@@ -5,7 +5,7 @@ from PIL import Image
 
 IP = '0.0.0.0'
 PORT = 8821  # ?
-EXP = r"C:\Users\naama\Downloads\networks\work\3wallpaper.jpg"
+EXP = "3wallpaper.jpg"
 
 
 def open_file(data):
