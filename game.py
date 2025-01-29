@@ -5,6 +5,7 @@ from PIL import Image
 
 IP = '0.0.0.0'
 PORT = 8821  # ?
+DEFAULT_BUFFER_SIZE =1024
 EXP = "3wallpaper.jpg"
 
 
@@ -22,7 +23,7 @@ def udp_server():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server_socket.bind((IP, PORT))
     print("server is listening")
-    (data, client_address) = server_socket.recvfrom(1024)
+    (data, client_address) = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
     open_file(data)
     server_socket.close()
 
