@@ -1,5 +1,5 @@
-import os
 import socket
+import pickle  # ספרייה שממירה אובייקטים לבינארי
 from PIL import Image
 
 
@@ -9,14 +9,15 @@ DEFAULT_BUFFER_SIZE = 1024
 EXP = "3wallpaper.jpg"
 
 
-def open_file(data):
-    if os.path.exists(data):
-        print("found file")
-        file_data = Image.open(data)
-        file_data.show()
-        file_data.close()
-    else:
-        print("did not found file")
+def handle_client(data, addr, server_socket):
+    """
+    send to the client tuple with coordinates
+    """
+    x = 0
+    y = 0
+    coordinates = (x, y)
+    coordinates_binary = pickle.dumps(coordinates)
+    server_socket.sendto(coordinates_binary, addr)
 
 
 def udp_server():
@@ -26,8 +27,7 @@ def udp_server():
     while True:
         try:
             (data, addr) = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
-            print(f"got from {addr}: {data}")
-            open_file(data)
+            handle_client(data, addr, server_socket)
         except Exception as ex:
             print("Client exception! %s" % (str(ex)))
     # server_socket.close()
