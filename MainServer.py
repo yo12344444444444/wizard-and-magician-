@@ -1,26 +1,29 @@
 import socket
+import pickle
 
 DNS_SERVER_IP = '0.0.0.0'
 DNS_SERVER_PORT = 8821
 DEFAULT_BUFFER_SIZE = 1024
 
 FORWARDING_SERVER_IP = '127.0.0.1'
-FORWARDING_SERVER_PORT = 8821
+FORWARDING_SERVER_PORT = 8822
 
 def request_handler(data, addr):
     """
-    מקבל פאקטה מהלקוח ושולח אותה לשרת המשני. השרת המשני יגיב ישירות ללקוח.
+    מקבל פאקטה מהלקוח ושולח אותה לשרת המשני יחד עם כתובת הלקוח.
     """
-    print(f" Received request from {addr}")
-
+    print(f"Received request from {addr}")
     try:
         forward_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        forward_socket.sendto(data, (FORWARDING_SERVER_IP, FORWARDING_SERVER_PORT))
+        packed_data = pickle.dumps((data, addr))
+        forward_socket.sendto(packed_data, (FORWARDING_SERVER_IP, FORWARDING_SERVER_PORT))
+
         forward_socket.close()
-        print(f" Forwarded request to {FORWARDING_SERVER_IP}:{FORWARDING_SERVER_PORT}")
+        print(f"Forwarded request to {FORWARDING_SERVER_IP}:{FORWARDING_SERVER_PORT}")
 
     except Exception as ex:
-        print(f" Error forwarding request: {str(ex)}")
+        print(f"Error forwarding request: {str(ex)}")
+
 def udp_server(ip, port):
     """
     מאזין לבקשות לקוח ומעביר אותן לשרת המשני.
