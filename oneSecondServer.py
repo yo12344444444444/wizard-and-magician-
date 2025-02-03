@@ -1,5 +1,5 @@
 import socket
-import pickle  # לטיפול בנתונים בינאריים
+import pickle
 
 IP = '0.0.0.0'
 PORT = 8823
@@ -7,32 +7,37 @@ DEFAULT_BUFFER_SIZE = 1024
 
 def handle_client(packed_data, server_socket):
     """
-    מקבל פאקטה מהשרת הראשי (שכוללת נתוני לקוח + כתובת הלקוח),
-    מחזיר ישירות ללקוח tuple עם קואורדינטות
+    Receives a packet from the main server (including client data + client address),
+    and responds directly to the client with the message "You have reached me, you're in quadrant 1."
     """
     try:
+        # Unpack the data and extract the client address
         data, client_addr = pickle.loads(packed_data)
         print(f"Handling request from {client_addr}")
-        coordinates = (0, 0)
-        response = pickle.dumps(coordinates)
+
+        # Instead of coordinates, returning a custom message
+        message = "You have reached me, you're in quadrant 1"
+        response = pickle.dumps(message)  # Pack the message as binary data
         server_socket.sendto(response, client_addr)
-        print(f"Response {coordinates} sent to {client_addr}")
+        print(f"Response '{message}' sent to {client_addr}")
 
     except Exception as ex:
         print(f"Error handling client: {str(ex)}")
 
 def udp_server():
     """
-    מאזין לבקשות מהשרת הראשי ושולח תשובה ישירות ללקוח.
+    Listens for requests from the main server and sends a response directly to the client.
     """
+    # Create a UDP socket
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server_socket.bind((IP, PORT))
     print(f"Secondary server listening on {IP}:{PORT}")
 
     while True:
         try:
+            # Receive a packed request from the main server
             packed_data, _ = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
-            handle_client(packed_data, server_socket)
+            handle_client(packed_data, server_socket)  # Process the request
         except Exception as ex:
             print(f"Client exception: {str(ex)}")
 

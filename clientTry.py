@@ -1,21 +1,18 @@
 import socket
-import pickle  # לפענוח הנתונים
+import pickle
 
 HOST = '127.0.0.1'
-PORT = 8821  # שולח לשרת הראשי
+PORT = 8821
 DEFAULT_BUFFER_SIZE = 1024
 
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-# שליחת הודעה לשרת הראשי
-message = "Hello world!"
-client_socket.sendto(message.encode('utf-8'), (HOST, PORT))
-print(f"Sent message to server: {message}")
-
-# קבלת תשובה ישירות מהשרת המשני
+coordinates = (5, -10)  #sending coordinates
+packed_coordinates = pickle.dumps(coordinates)  #make the coordinates binary form
+client_socket.sendto(packed_coordinates, (HOST, PORT))
+print(f"Sent coordinates to server: {coordinates}")
 response, _ = client_socket.recvfrom(DEFAULT_BUFFER_SIZE)
 
-# פענוח הקואורדינטות
-coordinates = pickle.loads(response)
-print(f"Received coordinates from secondary server: {coordinates}")
+received_data = pickle.loads(response)
+print(f"Received response from secondary server: {received_data}")
 
 client_socket.close()
