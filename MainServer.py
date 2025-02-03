@@ -10,7 +10,7 @@ FORWARDING_SERVER_PORT = 8823
 
 def request_handler(data, addr):
     """
-    מקבל פאקטה מהלקוח ושולח אותה לשרת המשני יחד עם כתובת הלקוח.
+    מקבל פאקטה מהלקוח ושולח אותה לשרת המשני יחד עם כתובת הלקוח
     """
     print(f"Received request from {addr}")
     try:

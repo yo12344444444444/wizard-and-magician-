@@ -8,7 +8,7 @@ DEFAULT_BUFFER_SIZE = 1024
 def handle_client(packed_data, server_socket):
     """
     מקבל פאקטה מהשרת הראשי (שכוללת נתוני לקוח + כתובת הלקוח),
-    מחזיר ישירות ללקוח tuple עם קואורדינטות.
+    מחזיר ישירות ללקוח tuple עם קואורדינטות
     """
     try:
         data, client_addr = pickle.loads(packed_data)
