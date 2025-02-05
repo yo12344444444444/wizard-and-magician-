@@ -1,6 +1,6 @@
 import socket
 
-HOST = '10.12.9.72'  # Localhost IP address
+HOST = '10.12.8.38'  # Localhost IP address
 PORT = '8821'  # Port number to connect to
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 client_socket.connect((HOST, int(PORT)))

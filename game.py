@@ -1,36 +1,35 @@
-import os
-import socket
-from PIL import Image
+import pygame
+import sys
 
+# initialize it
+pygame.init()
 
-IP = '0.0.0.0'
-PORT = 8821  # ?
-EXP = "3wallpaper.jpg"
+# configurations
+frames_per_second = 30
+window_height = 1920
+window_width = 1080
 
+# colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+BLUE = (0, 0, 255)
 
-def open_file(data):
-    if os.path.exists(data):
-        print("found file")
-        file_data = Image.open(data)
-        file_data.show()
-        file_data.close()
-    else:
-        print("did not found file")
+# creating window
+display = pygame.display.set_mode((window_width, window_height))
 
+# creating our frame regulator
+clock = pygame.time.Clock()
 
-def udp_server():
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_socket.bind((IP, PORT))
-    print("server is listening")
-    (data, client_address) = server_socket.recvfrom(1024)
-    open_file(data)
-    server_socket.close()
-
-
-def main():
-    # udp_server()
-    open_file(EXP)
-
-
-if __name__ == "__main__":
-    main()
+# forever loop
+while True:
+  # frame clock ticking
+  clock.tick(frames_per_second)
+  
+  # frame Drawing
+  display.fill(WHITE)
+  
+  # event loop
+  for event in pygame.event.get():
+    if event.type == pygame.QUIT:
+      pygame.quit()
+      sys.exit()
