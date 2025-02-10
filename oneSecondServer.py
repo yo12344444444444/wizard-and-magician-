@@ -5,18 +5,6 @@ IP = '127.0.0.1'
 PORT = 8822
 DEFAULT_BUFFER_SIZE = 1024
 
-def send_request(client_addr, server_socket):
-    """
-    sends an array of arrays
-    """
-    coordinates = (0, 0)
-    array1 = [coordinates] # the first array in the main array
-    main_array = [array1] # the main array with the other arrays
-    response = pickle.dumps(main_array)
-    server_socket.sendto(response, client_addr)
-    print(f"Response {main_array} sent to {client_addr}")
-
-
 def handle_client(packed_data, server_socket):
     """
     מקבל פאקטה מהשרת הראשי (שכוללת נתוני לקוח + כתובת הלקוח),
@@ -25,11 +13,13 @@ def handle_client(packed_data, server_socket):
     try:
         data, client_addr = pickle.loads(packed_data)
         print(f"Handling request from {client_addr}")
-        send_request(client_addr, server_socket)
+        coordinates = (0, 0)
+        response = pickle.dumps(coordinates)
+        server_socket.sendto(response, client_addr)
+        print(f"Response {coordinates} sent to {client_addr}")
 
     except Exception as ex:
         print(f"Error handling client: {str(ex)}")
-
 
 def udp_server():
     """
