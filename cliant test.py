@@ -1,10 +1,18 @@
 import socket
+import pickle
 
-HOST = '10.12.8.38'  # Localhost IP address
-PORT = '8821'  # Port number to connect to
+HOST = '10.12.9.102'
+PORT = 8821
+DEFAULT_BUFFER_SIZE = 1024
+
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-client_socket.connect((HOST, int(PORT)))
+coordinates = (5, -10)  #sending coordinates
+packed_coordinates = pickle.dumps(coordinates)  #make the coordinates binary form
+client_socket.sendto(packed_coordinates, (HOST, PORT))
+print(f"Sent coordinates to server: {coordinates}")
+response, _ = client_socket.recvfrom(DEFAULT_BUFFER_SIZE)
 
-client_socket.send("Hello world!".encode('utf-8'))
-print(client_socket.recv(1024))
+received_data = pickle.loads(response)
+print(f"Received response from secondary server: {received_data}")
+
 client_socket.close()

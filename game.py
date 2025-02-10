@@ -1,13 +1,23 @@
 import pygame
 import sys
+import socket
+
+import self as self
+
+HOST = '10.12.8.38'  # Localhost IP address
+PORT = '8821'  # Port number to connect to
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+client_socket.connect((HOST, int(PORT)))
+
+client_socket.send("Hello world!".encode('utf-8'))
 
 # initialize it
 pygame.init()
 
 # configurations
 frames_per_second = 30
-window_height = 1920
-window_width = 1080
+window_height = 1080
+window_width = 1920
 
 # colors
 WHITE = (255, 255, 255)
@@ -17,19 +27,31 @@ BLUE = (0, 0, 255)
 # creating window
 display = pygame.display.set_mode((window_width, window_height))
 
-# creating our frame regulator
+img = pygame.image.load('img/lets tuch grass.png')
 clock = pygame.time.Clock()
+display.fill(WHITE)
+display.blit(img, (0, 0))
+class none:
+    def __init__(self, _pos, _bokenStrate, imge):
+        self.name = _pos
+        self.age = _bokenStrate
 
+    def put(self):
+        display.blit()
+
+def pacet_resive(pac):
+    for i in pac:
+        print(pac)
 # forever loop
 while True:
-  # frame clock ticking
-  clock.tick(frames_per_second)
-  
-  # frame Drawing
-  display.fill(WHITE)
-  
-  # event loop
-  for event in pygame.event.get():
-    if event.type == pygame.QUIT:
-      pygame.quit()
-      sys.exit()
+    # frame clock ticking
+    clock.tick(frames_per_second)
+    print(client_socket.recv(1024))
+
+    pygame.display.flip()
+    # event loop
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+            client_socket.close()

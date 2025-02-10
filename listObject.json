@@ -1,0 +1,13 @@
+{
+  "map objects":
+  [
+    {
+      "a": "/map/cloud.png",
+      "b": "apple",
+      "c": "tree",
+      "d": "blueberry bush",
+      "e": "blueberry",
+      "f": "bush"
+    }
+  ]
+}
