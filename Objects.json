@@ -1,6 +1,13 @@
 {
-  "nature":
-          [
-            {"a", "apple tree"}
-          ]
+  "On map objects":
+  [
+    {"a": "Apple_tree.jpg"},
+    {"b": "Tree.jpg"},
+    {"c": "Blueberry_bush.jpg"},
+    {"d": "Bush.jpg"},
+    {"e": "Grass.jpg"},
+    {"f": "Iron.jpg"},
+    {"g": "Gold.jpg"},
+    {"h": "Stones.jpg"}
+  ]
 }
