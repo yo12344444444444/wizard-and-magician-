@@ -8,6 +8,11 @@
     {"e": "Grass.jpg"},
     {"f": "Iron.jpg"},
     {"g": "Gold.jpg"},
-    {"h": "Stones.jpg"}
+    {"h": "Stones.jpg"},
+    {"i": "Blue_flower.jpg"},
+    {"j": "Pink_flower.jpg"},
+    {"k": "Purple_flower.jpg"},
+    {"l": "Red_flower.jpg"},
+    {"m": "Yellow_flower.jpg"}
   ]
 }
