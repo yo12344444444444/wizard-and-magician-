@@ -5,7 +5,6 @@ IP = '127.0.0.1'
 PORT = 8822
 DEFAULT_BUFFER_SIZE = 1024
 
-
 def build_array_of_packets(arr_obj):
     """
     arr_obj[(rot,id,x,y),...]
