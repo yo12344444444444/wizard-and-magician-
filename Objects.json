@@ -2,18 +2,18 @@
 
   "On map objects":
   [
-    {"a": "Apple_tree.jpg"},
-    {"b": "Tree.jpg"},
-    {"c": "Blueberry_bush.jpg"},
-    {"d": "Bush.jpg"},
-    {"e": "Grass.jpg"},
-    {"f": "Iron.jpg"},
-    {"g": "Gold.jpg"},
-    {"h": "Stones.jpg"},
-    {"i": "Blue_flower.jpg"},
-    {"j": "Pink_flower.jpg"},
-    {"k": "Purple_flower.jpg"},
-    {"l": "Red_flower.jpg"},
-    {"m": "Yellow_flower.jpg"}
+    {"id": "a", "file": "Apple_tree.jpg", "rotation?": false},
+    {"id": "b", "file": "Tree.jpg", "rotation?": false},
+    {"id": "c","file": "Blueberry_bush.jpg", "rotation?": false},
+    {"id": "d","file": "Bush.jpg", "rotation?": false},
+    {"id": "e","file": "Grass.jpg", "rotation?": false},
+    {"id": "f","file": "Iron.jpg", "rotation?": false},
+    {"id": "g","file": "Gold.jpg", "rotation?": false},
+    {"id": "h","file": "Stones.jpg", "rotation?": false},
+    {"id": "i","file": "Blue_flower.jpg", "rotation?": false},
+    {"id": "j","file": "Pink_flower.jpg", "rotation?": false},
+    {"id": "k","file": "Purple_flower.jpg", "rotation?": false},
+    {"id": "l","file": "Red_flower.jpg", "rotation?": false},
+    {"id": "m","file": "Yellow_flower.jpg", "rotation?": false}
   ]
 }
