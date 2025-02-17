@@ -1,15 +1,14 @@
 import pygame
 import sys
 import socket
+import json
 
-import self as self
+#HOST = '10.12.8.38'  # Localhost IP address
+#PORT = '8821'  # Port number to connect to
+#client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+#client_socket.connect((HOST, int(PORT)))
 
-HOST = '10.12.8.38'  # Localhost IP address
-PORT = '8821'  # Port number to connect to
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-client_socket.connect((HOST, int(PORT)))
-
-client_socket.send("Hello world!".encode('utf-8'))
+#client_socket.send("Hello world!".encode('utf-8'))
 
 # initialize it
 pygame.init()
@@ -31,12 +30,17 @@ img = pygame.image.load('img/lets tuch grass.png')
 clock = pygame.time.Clock()
 display.fill(WHITE)
 display.blit(img, (0, 0))
-class none:
-    def __init__(self, _pos, _bokenStrate, imge):
-        self.name = _pos
-        self.age = _bokenStrate
+class objectPlascer:
+    def __init__(self, pos, id):
+        self.pos = pos
+        self.id = id
 
     def put(self):
+        # some JSON:
+        with open("db.jaon", "r") as f:
+            y = json.loads(f)
+        print(y[self.id])
+        display.blit(, (0, 0))
         display.blit()
 
 def pacet_resive(pac):
@@ -46,8 +50,9 @@ def pacet_resive(pac):
 while True:
     # frame clock ticking
     clock.tick(frames_per_second)
-    print(client_socket.recv(1024))
-
+#    print(client_socket.recv(1024))
+    a = objectPlascer((22,22), 2)
+    a.put()
     pygame.display.flip()
     # event loop
     for event in pygame.event.get():
