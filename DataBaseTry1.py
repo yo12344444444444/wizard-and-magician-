@@ -4,6 +4,7 @@ import sqlite3  # Import the SQLite library
 conn = sqlite3.connect("game_database.db")
 cursor = conn.cursor()
 
+
 # Create the players table if it does not exist
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS players (
