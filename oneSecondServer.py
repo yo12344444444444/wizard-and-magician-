@@ -6,6 +6,7 @@ PORT = 8821
 DEFAULT_BUFFER_SIZE = 30
 
 
+
 def build_array_of_packets(arr_obj):
     """
     arr_obj[(rot,id,x,y,pos),...]
