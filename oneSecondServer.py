@@ -2,12 +2,13 @@ import socket
 import pickle  # לטיפול בנתונים בינאריים
 
 IP = '127.0.0.1'
-PORT = 8822
-DEFAULT_BUFFER_SIZE = 1024
+PORT = 8821
+DEFAULT_BUFFER_SIZE = 30
+
 
 def build_array_of_packets(arr_obj):
     """
-    arr_obj[(rot,id,x,y),...]
+    arr_obj[(rot,id,x,y,pos),...]
     get array with the objects and their coordinates
     build array with the small packets for the client
 
@@ -16,6 +17,7 @@ def build_array_of_packets(arr_obj):
     bits 1-6: type of the object(based on the json)
     bits 7-17: x coordinate
     bits 18-28: y coordinate
+    bits 29-30: which rotation
     """
     array_for_client = []
     for i in range(0, len(arr_obj), 1):
@@ -35,6 +37,9 @@ def build_array_of_packets(arr_obj):
 
         # the y coordination
         packet += bin(arr_obj[i][3]).zfill(11)
+
+        if packet[:1:]== b"1":
+            packet += bin(arr_obj[i][4]).zfill(2)
 
         array_for_client[i] = packet
     return array_for_client

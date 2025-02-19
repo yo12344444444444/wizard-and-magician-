@@ -1,8 +1,8 @@
 {
   "On map objects":
   [
-    {"id": "a", "file": "Apple_tree.jpg", "rotation?": false},
-    {"id": "b", "file": "Tree.jpg", "rotation?": false},
+    {"id": "a","file": "Apple_tree.jpg", "rotation?": false},
+    {"id": "b","file": "Tree.jpg", "rotation?": false},
     {"id": "c","file": "Blueberry_bush.jpg", "rotation?": false},
     {"id": "d","file": "Bush.jpg", "rotation?": false},
     {"id": "e","file": "Grass.jpg", "rotation?": false},
