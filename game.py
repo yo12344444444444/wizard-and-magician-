@@ -32,15 +32,16 @@ display.fill(WHITE)
 display.blit(img, (0, 0))
 class objectPlascer:
     def __init__(self, pos, id):
+        print("hi")
         self.pos = pos
         self.id = id
 
     def put(self):
         # some JSON:
-        with open("db.jaon", "r") as f:
-            y = json.loads(f)
-        print(y[self.id])
-        display.blit(, (0, 0))
+        with open("db.json", "r") as f:
+            y = json.load(f)
+        print(y["On map objects"][()])
+#        display.blit(, (0, 0))
         display.blit()
 
 def pacet_resive(pac):
@@ -51,7 +52,7 @@ while True:
     # frame clock ticking
     clock.tick(frames_per_second)
 #    print(client_socket.recv(1024))
-    a = objectPlascer((22,22), 2)
+    a = objectPlascer((22,22), 'a')
     a.put()
     pygame.display.flip()
     # event loop
