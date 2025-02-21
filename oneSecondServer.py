@@ -3,7 +3,7 @@ import pickle  # לטיפול בנתונים בינאריים
 
 IP = '127.0.0.1'
 PORT = 8821
-DEFAULT_BUFFER_SIZE = 30
+DEFAULT_BUFFER_SIZE = 31
 
 
 
@@ -13,37 +13,56 @@ def build_array_of_packets(arr_obj):
     get array with the objects and their coordinates
     build array with the small packets for the client
 
-    protocol: # add the rotation of every object with rotation?
+    protocol:
+    (length of every packet-32 bits)
     bit 0: 1 for rotation, 0 for no rotation
-    bits 1-6: type of the object(based on the json)
-    bits 7-17: x coordinate
-    bits 18-28: y coordinate
-    bits 29-30: which rotation
+    bits 1-7: type of the object(based on the json)
+    bits 8-18: x coordinate
+    bits 19-29: y coordinate
+    bits 30-31: which rotation, 00 for no rotation
     """
     array_for_client = []
     for i in range(0, len(arr_obj), 1):
-        packet = ""
 
         # if true there is rotation for the object
         if arr_obj[i][0]:
-            packet += b"1"
+            packet = f'{1:01b}'
         else:
-            packet += b"0"
+            packet = f'{0:01b}'
 
         # the id
-        packet += bin(ord(arr_obj[i][1])).zfill(6) #remove the 0b from the start?
+        packet += f'{ord(arr_obj[i][1]):07b}'.zfill(7)
 
         # the x coordination
-        packet += bin(arr_obj[i][2]).zfill(11)
+        packet += f'{arr_obj[i][2]:011b}'.zfill(11)
 
         # the y coordination
-        packet += bin(arr_obj[i][3]).zfill(11)
+        packet += f'{arr_obj[i][3]:011b}'.zfill(11)
 
-        if packet[:1:]== b"1":
-            packet += bin(arr_obj[i][4]).zfill(2)
 
-        array_for_client[i] = packet
+        if packet[0:1]== '1':
+            packet += f'{arr_obj[i][4]:02b}'.zfill(2)
+        else:
+            packet += '00'
+
+        array_for_client.insert(i, packet)
+    print(array_for_client)
     return array_for_client
+
+
+def response_to_bytes(array_for_client):
+    """
+    gets the array of the small packets(of the protocol)
+    and convert it to bytes(every small packet with 32 bits --> 4 bytes)
+    """
+    combined_bit_string = ''.join(array_for_client)
+    number = int(combined_bit_string, 2)
+    byte_value = number.to_bytes((len(combined_bit_string) + 7) // 8, 'big')
+    return byte_value
+
+
+def create_array_from_map():
+    pass
 
 
 
@@ -55,9 +74,12 @@ def handle_client(packed_data, server_socket):
     try:
         data, client_addr = pickle.loads(packed_data)
         print(f"Handling request from {client_addr}")
-        arr_obj = [(False, "a", 234, 1799),(True, "b", 235,765)]
+        arr_obj = [(False, "a", 234, 1799),(True, "b", 235,765,2)] # for test
+
         response = build_array_of_packets(arr_obj)
-        server_socket.sendto(response, client_addr)
+        response_in_bytes = response_to_bytes(response)
+        print(response_in_bytes)
+        server_socket.sendto(response_in_bytes, client_addr)
         print(f"Response {response} sent to {client_addr}")
 
     except Exception as ex:
