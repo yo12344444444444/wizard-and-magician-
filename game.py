@@ -43,6 +43,7 @@ class objectPlascer:
        # print("hi")
         self.pos = pos
         self.img = pygame.image.load("graphic/"+put(id))
+        display.blit(self.img,pos )
 
 
 def pacet_resive(pac):

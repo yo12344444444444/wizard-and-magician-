@@ -58,6 +58,7 @@ def response_to_bytes(array_for_client):
     combined_bit_string = ''.join(array_for_client)
     number = int(combined_bit_string, 2)
     byte_value = number.to_bytes((len(combined_bit_string) + 7) // 8, 'big')
+    print(byte_value)
     return byte_value
 
 
@@ -78,7 +79,7 @@ def handle_client(packed_data, server_socket):
 
         response = build_array_of_packets(arr_obj)
         response_in_bytes = response_to_bytes(response)
-        print(response_in_bytes)
+        print(client_addr)
         server_socket.sendto(response_in_bytes, client_addr)
         print(f"Response {response} sent to {client_addr}")
 
