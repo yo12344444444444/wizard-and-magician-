@@ -3,12 +3,12 @@ import sys
 import socket
 import json
 
-#HOST = '10.12.8.38'  # Localhost IP address
-#PORT = '8821'  # Port number to connect to
-#client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-#client_socket.connect((HOST, int(PORT)))
+# HOST = '10.12.8.38'  # Localhost IP address
+# PORT = '8821'  # Port number to connect to
+# client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+# client_socket.connect((HOST, int(PORT)))
 
-#client_socket.send("Hello world!".encode('utf-8'))
+# client_socket.send("Hello world!".encode('utf-8'))
 
 # initialize it
 pygame.init()
@@ -30,30 +30,34 @@ img = pygame.image.load('img/lets tuch grass.png')
 clock = pygame.time.Clock()
 display.fill(WHITE)
 display.blit(img, (0, 0))
+
+
+def put(id):
+    # some JSON:
+    with open("db.json", "r") as f:
+        y = json.load(f)
+    return y["On map objects"][id]
+
+
 class objectPlascer:
     def __init__(self, pos, id):
         print("hi")
         self.pos = pos
-        self.id = id
+        self.img = pygame.image.load("/map/"+put(id))
 
-    def put(self):
-        # some JSON:
-        with open("db.json", "r") as f:
-            y = json.load(f)
-        print(y["On map objects"]["a"])
-#        display.blit(, (0, 0))
-        display.blit()
 
 def pacet_resive(pac):
     for i in pac:
         print(pac)
+
+
 # forever loop
 while True:
     # frame clock ticking
     clock.tick(frames_per_second)
-#    print(client_socket.recv(1024))
-    a = objectPlascer((22,22), 'a')
-    a.put()
+    #    print(client_socket.recv(1024))
+    a = objectPlascer((22, 22), 'a')
+    put()
     pygame.display.flip()
     # event loop
     for event in pygame.event.get():
