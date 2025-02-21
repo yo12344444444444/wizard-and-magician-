@@ -40,7 +40,7 @@ class objectPlascer:
         # some JSON:
         with open("db.json", "r") as f:
             y = json.load(f)
-        print(y["On map objects"][1])
+        print(y["On map objects"]["a"])
 #        display.blit(, (0, 0))
         display.blit()
 

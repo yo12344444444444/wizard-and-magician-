@@ -1,7 +1,7 @@
 {
 
   "On map objects":
-  [
+
     {"a": "Apple_tree.jpg",
     "b": "Tree.jpg",
     "c": "Blueberry_bush.jpg",
@@ -15,5 +15,5 @@
     "k": "Purple_flower.jpg",
     "l": "Red_flower.jpg",
     "m": "Yellow_flower.jpg"}
-  ]
+
 }
