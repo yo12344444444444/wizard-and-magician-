@@ -3,7 +3,9 @@ import pickle  # לטיפול בנתונים בינאריים
 
 IP = '127.0.0.1'
 PORT = 8821
-DEFAULT_BUFFER_SIZE = 1024
+DEFAULT_BUFFER_SIZE = 31
+
+
 
 def build_array_of_packets(arr_obj):
     """
@@ -65,20 +67,21 @@ def create_array_from_map():
 
 
 
-def handle_client(packed_data, server_socket, client_addr):
+def handle_client(packed_data, server_socket):
     """
      Receives a packet from the main server (including client data + client address),
      sends the array with the small packets of the objects to the client
     """
     try:
-        print(f"Handling {packed_data}  request from {client_addr}")
+        data, client_addr = pickle.loads(packed_data)
+        print(f"Handling request from {client_addr}")
         arr_obj = [(False, "a", 234, 1799),(True, "b", 235,765,2)] # for test
 
         response = build_array_of_packets(arr_obj)
         response_in_bytes = response_to_bytes(response)
         print(client_addr)
         server_socket.sendto(response_in_bytes, client_addr)
-        print(f"Response {response_in_bytes} sent to {client_addr}")
+        print(f"Response {response} sent to {client_addr}")
 
     except Exception as ex:
         print(f"Error handling client: {str(ex)}")
@@ -96,8 +99,8 @@ def udp_server():
 
     while True:
         try:
-            packed_data, client_addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
-            handle_client(packed_data, server_socket, client_addr)
+            packed_data, _ = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
+            handle_client(packed_data, server_socket)
         except Exception as ex:
             print(f"Client exception: {str(ex)}")
 
