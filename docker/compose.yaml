@@ -9,10 +9,35 @@
 # https://github.com/docker/awesome-compose
 services:
   server:
+    container_name: "main-server"
     build:
       context: .
     ports:
       - "8821:8821"
+
+#  sqlite:
+#    image: hibitdev/sqlite:latest
+#    restart: on-failure
+#    secrets:
+#      - db-password
+#    container_name: sqlite
+#    hostname: sqlite.hibit
+#    ports:
+#      - "8191:8191"  # change
+#    volumes:
+#      - ./sqlite:/db
+#    command: [ "tail", "-f", "/dev/null" ]  # Keeps the container running
+
+##sqlite
+#  db:
+#    restart: on-failure
+#    user: SQLite
+#    secrets:
+#      - db-password
+#    environment:
+#    expose:
+#    healthcheck:
+#      test:
 
 # The commented out section below is an example of how to define a PostgreSQL
 # database that your application can use. `depends_on` tells Docker Compose to
