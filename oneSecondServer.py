@@ -3,7 +3,7 @@ import socket
 import pickle  # לטיפול בנתונים בינאריים
 
 IP = '127.0.0.1'
-PORT = 8888
+PORT = 8824
 DEFAULT_BUFFER_SIZE = 1024
 
 def build_array_of_packets(arr_obj):
@@ -57,7 +57,6 @@ def response_to_bytes(array_for_client):
     combined_bit_string = ''.join(array_for_client)
     number = int(combined_bit_string, 2)
     byte_value = number.to_bytes((len(combined_bit_string) + 7) // 8, 'big')
-  #  print(byte_value)
     return byte_value
 
 
@@ -91,17 +90,13 @@ def handle_client(packed_data, server_socket, client_addr):
      Receives a packet from the main server (including client data + client address),
      sends the array with the small packets of the objects to the client
     """
-    print( client_addr)
     with open("ips.json", "r") as f:
         y = json.load(f)
         y.update({client_addr[0]:parse_binary_response(packed_data)})
     try:
-     #   print(f"Handling {packed_data}  request from {client_addr}")
         arr_obj = [a for a in y["players"]]
-        #print(parse_binary_response(packed_data))
         response = build_array_of_packets(arr_obj)
         response_in_bytes = response_to_bytes(response)
-        #print(client_addr)
         server_socket.sendto(response_in_bytes, client_addr)
 
     except Exception as ex:
@@ -116,7 +111,6 @@ def udp_server():
     """
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server_socket.bind((IP, PORT))
-   #print(f"Secondary server listening on {IP}:{PORT}")
 
     while True:
         try:
@@ -173,14 +167,6 @@ client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 # Send dummy request
 request_message = b"Requesting Data"
 client_socket.sendto(request_message, (HOST, PORT))
-#print("Sent request to server.")
-
-# Receive response
 response, _ = client_socket.recvfrom(DEFAULT_BUFFER_SIZE)
-#print(f"Raw binary response: {response}")
-
-# Parse response
 decoded_objects = parse_binary_response(response)
-#print(f"Decoded objects: {decoded_objects}")
-
 client_socket.close()
