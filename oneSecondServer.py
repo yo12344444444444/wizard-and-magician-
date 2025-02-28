@@ -1,6 +1,5 @@
 import json
 import socket
-import pickle  # לטיפול בנתונים בינאריים
 
 IP = '127.0.0.1'
 PORT = 8824
@@ -8,64 +7,46 @@ DEFAULT_BUFFER_SIZE = 1024
 
 def build_array_of_packets(arr_obj):
     """
-    arr_obj[(rot,id,x,y,pos),...]
-    get array with the objects and their coordinates
-    build array with the small packets for the client
+    Converts an array of object data into small binary packets for the client.
 
-    protocol:
-    (length of every packet-32 bits)
-    bit 0: 1 for rotation, 0 for no rotation
-    bits 1-7: type of the object(based on the json)
-    bits 8-18: x coordinate
-    bits 19-29: y coordinate
-    bits 30-31: which rotation, 00 for no rotation
+    Protocol:
+    - Bit 0: Rotation (1 for rotation, 0 for no rotation)
+    - Bits 1-7: Object type (ASCII character ID)
+    - Bits 8-18: X coordinate (11 bits)
+    - Bits 19-29: Y coordinate (11 bits)
+    - Bits 30-31: Rotation type (2 bits)
     """
     array_for_client = []
-    for i in range(0, len(arr_obj), 1):
+    for obj in arr_obj:
+        rotation, object_id, x_coord, y_coord, rotation_type = obj
 
-        # if true there is rotation for the object
-        if arr_obj[i][0]:
-            packet = f'{1:01b}'
+        # Ensure object_id is a single character before converting to ASCII
+        if isinstance(object_id, str) and len(object_id) == 1:
+            object_id_bin = f'{ord(object_id):07b}'
         else:
-            packet = f'{0:01b}'
+            raise ValueError(f"Invalid object ID: {object_id}")
 
-        # the id
-        packet += f'{ord(arr_obj[i][1]):07b}'.zfill(7)
+        # Construct the binary packet
+        packet = f'{int(rotation):01b}'  # Bit 0: Rotation
+        packet += object_id_bin  # Bits 1-7: Object ID
+        packet += f'{x_coord:011b}'  # Bits 8-18: X coordinate
+        packet += f'{y_coord:011b}'  # Bits 19-29: Y coordinate
+        packet += f'{rotation_type:02b}' if rotation else '00'  # Bits 30-31: Rotation type
 
-        # the x coordination
-        packet += f'{arr_obj[i][2]:011b}'.zfill(11)
+        array_for_client.append(packet)
 
-        # the y coordination
-        packet += f'{arr_obj[i][3]:011b}'.zfill(11)
-
-
-        if packet[0:1]== '1':
-            packet += f'{arr_obj[i][4]:02b}'.zfill(2)
-        else:
-            packet += '00'
-
-        array_for_client.insert(i, packet)
-  #  print(array_for_client)
     return array_for_client
-
 
 def response_to_bytes(array_for_client):
     """
-    gets the array of the small packets(of the protocol)
-    and convert it to bytes(every small packet with 32 bits --> 4 bytes)
+    Converts an array of binary packets into bytes.
     """
     combined_bit_string = ''.join(array_for_client)
     number = int(combined_bit_string, 2)
-    byte_value = number.to_bytes((len(combined_bit_string) + 7) // 8, 'big')
-    return byte_value
-
-
-def create_array_from_map():
-    pass
-
+    return number.to_bytes((len(combined_bit_string) + 7) // 8, 'big')
 
 def parse_binary_response(binary_data):
-    """Parse binary response into human-readable object data."""
+    """Parses the binary response into human-readable object data."""
     bit_string = ''.join(f"{byte:08b}" for byte in binary_data)
     objects = []
 
@@ -84,30 +65,55 @@ def parse_binary_response(binary_data):
         objects.append((bool(rotation), object_id, x_coord, y_coord, rotation_type))
 
     return objects
-ips =[]
+
 def handle_client(packed_data, server_socket, client_addr):
     """
-     Receives a packet from the main server (including client data + client address),
-     sends the array with the small packets of the objects to the client
+    Handles incoming client requests and sends the processed object data.
     """
     with open("ips.json", "r") as f:
         y = json.load(f)
-        y.update({client_addr[0]:parse_binary_response(packed_data)})
+
+    # Ensure "plyers" key exists
+    if "plyers" not in y:
+        y["plyers"] = {}
+
+    # Update client data in "plyers"
+    y["plyers"][client_addr[0]] = parse_binary_response(packed_data)
+
+    # Save updated data back to the file
+    with open("ips.json", "w") as f:
+        json.dump(y, f, indent=4)
+
     try:
-        arr_obj = [a for a in y["players"]]
+        # Extract object data from "plyers"
+        arr_obj = []
+        for ip, data in y.get("plyers", {}).items():
+            if isinstance(data, list):
+                arr_obj.extend(data)  # Flatten list of objects
+
+        # Debugging step
+        print(f"Extracted Objects: {arr_obj}")
+
+        if not arr_obj:
+            print("No objects found, sending empty response.")
+            return  # Do not send empty packets
+
+        # Convert object data into binary packets
         response = build_array_of_packets(arr_obj)
+
+        # Convert binary packets to bytes
         response_in_bytes = response_to_bytes(response)
+
+        # Send response to client
         server_socket.sendto(response_in_bytes, client_addr)
 
     except Exception as ex:
         print(f"Error handling client: {str(ex)}")
 
 
-
 def udp_server():
     """
-    listen to requests from the main server and calls the
-    function that sends an answer to the client ^-^
+    Listens for UDP packets from the main server and processes them.
     """
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server_socket.bind((IP, PORT))
@@ -119,54 +125,8 @@ def udp_server():
         except Exception as ex:
             print(f"Client exception: {str(ex)}")
 
-
-
 def main():
     udp_server()
 
 if __name__ == "__main__":
     main()
-import socket
-
-HOST = '127.0.0.1'
-PORT = 8888
-DEFAULT_BUFFER_SIZE = 1024
-
-def parse_binary_response(binary_data):
-    """
-    Parses the received binary response and extracts the object data.
-    Protocol structure:
-    - Bit 0: Rotation (1 for rotation, 0 for no rotation)
-    - Bits 1-7: Object type (ASCII character ID)
-    - Bits 8-18: X coordinate (11 bits)
-    - Bits 19-29: Y coordinate (11 bits)
-    - Bits 30-31: Rotation type (2 bits)
-    """
-    bit_string = ''.join(f"{byte:08b}" for byte in binary_data)
-    objects = []
-
-    # Each packet is 32 bits (4 bytes)
-    for i in range(0, len(bit_string), 32):
-        packet = bit_string[i:i+32]
-        if len(packet) < 32:
-            continue  # Ignore incomplete packets
-
-        rotation = int(packet[0], 2)
-        object_id = chr(int(packet[1:8], 2))  # Convert ASCII binary to character
-        x_coord = int(packet[8:19], 2)
-        y_coord = int(packet[19:30], 2)
-        rotation_type = int(packet[30:32], 2) if rotation else 0  # Only if rotation exists
-
-        objects.append((bool(rotation), object_id, x_coord, y_coord, rotation_type))
-
-    return objects
-
-# Create a UDP client socket
-client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-# Send dummy request
-request_message = b"Requesting Data"
-client_socket.sendto(request_message, (HOST, PORT))
-response, _ = client_socket.recvfrom(DEFAULT_BUFFER_SIZE)
-decoded_objects = parse_binary_response(response)
-client_socket.close()

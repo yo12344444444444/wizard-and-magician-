@@ -89,18 +89,16 @@ def response_to_bytes(array_for_client):
     combined_bit_string = ''.join(array_for_client)
     number = int(combined_bit_string, 2)
     byte_value = number.to_bytes((len(combined_bit_string) + 7) // 8, 'big')
-   # print(byte_value)
     return byte_value
 def get_data():
     """Fetch data from the UDP server and parse it."""
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     response = build_array_of_packets((False, "a", pose[0],pose[1]))
-    print((False, "a", pose[0],pose[1]))
     response_in_bytes = response_to_bytes(response)
     client_socket.sendto(response_in_bytes, (HOST, PORT))
-
     response, _ = client_socket.recvfrom(DEFAULT_BUFFER_SIZE)
     decoded_objects = parse_binary_response(response)
+    print((False, "a", pose[0],pose[1]))
 
     client_socket.close()
     return decoded_objects
