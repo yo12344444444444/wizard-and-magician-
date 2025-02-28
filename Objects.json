@@ -1,0 +1,17 @@
+{
+  "On map objects": {
+    "a": { "file": "Apple_tree.jpg", "rotation": false },
+    "b": { "file": "Tree.jpg", "rotation": false },
+    "c": { "file": "Blueberry_bush.jpg", "rotation": false },
+    "d": { "file": "Bush.jpg", "rotation": false },
+    "e": { "file": "Grass.jpg", "rotation": false },
+    "f": { "file": "Iron.jpg", "rotation": false },
+    "g": { "file": "Gold.jpg", "rotation": false },
+    "h": { "file": "Stones.jpg", "rotation": false },
+    "i": { "file": "Blue_flower.jpg", "rotation": false },
+    "j": { "file": "Pink_flower.jpg", "rotation": false },
+    "k": { "file": "Purple_flower.jpg", "rotation": false },
+    "l": { "file": "Red_flower.jpg", "rotation": false },
+    "m": { "file": "Yellow_flower.jpg", "rotation": false }
+  }
+}
