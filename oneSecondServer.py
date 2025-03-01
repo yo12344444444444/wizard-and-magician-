@@ -1,135 +1,110 @@
-import sqlite3
 import socket
-import pickle
+import pickle  # לטיפול בנתונים בינאריים
 
-# התחברות למסד הנתונים עם טיפול בשגיאות
-try:
-    conn = sqlite3.connect("DATABASE_GAME.db", check_same_thread=False)
-    cursor = conn.cursor()
-    print("Successfully connected to the database.")
-except sqlite3.Error as e:
-    print(f"Error connecting to the database: {e}")
-    exit(1)  # יציאה מהתוכנית אם לא ניתן להתחבר למסד הנתונים
+IP = '127.0.0.1'
+PORT = 8821
+DEFAULT_BUFFER_SIZE = 1024
 
-# הצגת כל הנתונים במסד בעת הפעלת השרת
-cursor.execute("SELECT * FROM players;")
-players = cursor.fetchall()
-print("Players in database at startup:", players)
+def build_array_of_packets(arr_obj):
+    """
+    arr_obj[(rot,id,x,y,pos),...]
+    get array with the objects and their coordinates
+    build array with the small packets for the client
 
-conn.set_trace_callback(print)  # יציג את כל השאילתות שמתבצעות
+    protocol:
+    (length of every packet-32 bits)
+    bit 0: 1 for rotation, 0 for no rotation
+    bits 1-7: type of the object(based on the json)
+    bits 8-18: x coordinate
+    bits 19-29: y coordinate
+    bits 30-31: which rotation, 00 for no rotation
+    """
+    array_for_client = []
+    for i in range(0, len(arr_obj), 1):
 
-
-# פונקציה לקבלת נתוני שחקן
-def get_player_data(username):
-    cursor.execute("SELECT username, position_x, position_y, health, coins, status FROM players WHERE username = ?", (username,))
-    return cursor.fetchone()
-
-
-# פונקציה להוספת שחקן חדש (מניעת SQL Injection)
-def add_new_player(username, position_x=0, position_y=0, health=100, coins=0, status="active"):
-    try:
-        cursor.execute("""
-            INSERT INTO players (username, position_x, position_y, health, coins, status) 
-            VALUES (?, ?, ?, ?, ?, ?)""", (username, position_x, position_y, health, coins, status))
-        conn.commit()
-        return True
-    except sqlite3.IntegrityError:
-        return False  # השחקן כבר קיים
-
-
-# פונקציות לעדכון נתוני שחקן
-def update_player_position(username, x, y):
-    cursor.execute("UPDATE players SET position_x = ?, position_y = ? WHERE username = ?", (x, y, username))
-    conn.commit()
-
-
-def update_player_health(username, health):
-    cursor.execute("UPDATE players SET health = ? WHERE username = ?", (health, username))
-    conn.commit()
-
-
-def update_player_coins(username, coins):
-    cursor.execute("UPDATE players SET coins = ? WHERE username = ?", (coins, username))
-    conn.commit()
-
-
-def update_player_status(username, status):
-    cursor.execute("UPDATE players SET status = ? WHERE username = ?", (status, username))
-    conn.commit()
-
-
-# שליחת נתוני שחקן ללקוח
-def send_player_data_to_client(player_data, client_socket, client_addr):
-    response = {
-        "username": player_data[0],
-        "position": (player_data[1], player_data[2]),
-        "health": player_data[3],
-        "coins": player_data[4],
-        "status": player_data[5]
-    }
-    packed_data = pickle.dumps(response)
-    client_socket.sendto(packed_data, client_addr)
-
-
-# טיפול בבקשת לקוח
-def handle_client_request(packed_data, client_socket, client_addr):
-    try:
-        data = pickle.loads(packed_data)
-        username = data.get("username")
-        action = data.get("action")
-
-        # בדיקה שהשם חוקי
-        if not isinstance(username, str) or len(username) > 50:
-            response = {"error": "Invalid username format"}
-            client_socket.sendto(pickle.dumps(response), client_addr)
-            return
-
-        if action == "update_position":
-            position = data.get("position")
-            if position and len(position) == 2 and all(isinstance(i, (int, float)) for i in position):
-                x, y = position
-                update_player_position(username, x, y)
-                player_data = get_player_data(username)
-                send_player_data_to_client(player_data, client_socket, client_addr)
-            else:
-                response = {"error": "Invalid data format"}
-                client_socket.sendto(pickle.dumps(response), client_addr)
-
+        # if true there is rotation for the object
+        if arr_obj[i][0]:
+            packet = f'{1:01b}'
         else:
-            player_data = get_player_data(username)
-            if player_data:
-                send_player_data_to_client(player_data, client_socket, client_addr)
-            else:
-                response = {"error": "Player not found"}
-                client_socket.sendto(pickle.dumps(response), client_addr)
+            packet = f'{0:01b}'
+
+        # the id
+        packet += f'{ord(arr_obj[i][1]):07b}'.zfill(7)
+
+        # the x coordination
+        packet += f'{arr_obj[i][2]:011b}'.zfill(11)
+
+        # the y coordination
+        packet += f'{arr_obj[i][3]:011b}'.zfill(11)
+
+
+        if packet[0:1]== '1':
+            packet += f'{arr_obj[i][4]:02b}'.zfill(2)
+        else:
+            packet += '00'
+
+        array_for_client.insert(i, packet)
+    print(array_for_client)
+    return array_for_client
+
+
+def response_to_bytes(array_for_client):
+    """
+    gets the array of the small packets(of the protocol)
+    and convert it to bytes(every small packet with 32 bits --> 4 bytes)
+    """
+    combined_bit_string = ''.join(array_for_client)
+    number = int(combined_bit_string, 2)
+    byte_value = number.to_bytes((len(combined_bit_string) + 7) // 8, 'big')
+    print(byte_value)
+    return byte_value
+
+
+def create_array_from_map():
+    pass
+
+
+
+def handle_client(packed_data, server_socket, client_addr):
+    """
+     Receives a packet from the main server (including client data + client address),
+     sends the array with the small packets of the objects to the client
+    """
+    try:
+        print(f"Handling {packed_data}  request from {client_addr}")
+        arr_obj = [(False, "a", 234, 1799),(True, "b", 235,765,2)] # for test
+
+        response = build_array_of_packets(arr_obj)
+        response_in_bytes = response_to_bytes(response)
+        print(client_addr)
+        server_socket.sendto(response_in_bytes, client_addr)
+        print(f"Response {response_in_bytes} sent to {client_addr}")
 
     except Exception as ex:
         print(f"Error handling client: {str(ex)}")
 
 
-# שרת UDP
+
 def udp_server():
+    """
+    listen to requests from the main server and calls the
+    function that sends an answer to the client ^-^
+    """
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_socket.bind(('127.0.0.1', 8822))
-    print("Server listening on 127.0.0.1:8822")
+    server_socket.bind((IP, PORT))
+    print(f"Secondary server listening on {IP}:{PORT}")
 
-    try:
-        while True:
-            try:
-                packed_data, client_addr = server_socket.recvfrom(1024)
-                handle_client_request(packed_data, server_socket, client_addr)
-            except Exception as ex:
-                print(f"Error receiving data: {str(ex)}")
-
-    except KeyboardInterrupt:
-        print("\nShutting down server...")
-
-    finally:
-        # סגירת מסד הנתונים בעת כיבוי השרת
-        conn.close()
-        print("Database connection closed.")
+    while True:
+        try:
+            packed_data, client_addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
+            handle_client(packed_data, server_socket, client_addr)
+        except Exception as ex:
+            print(f"Client exception: {str(ex)}")
 
 
-# הפעלת השרת
-if __name__ == "__main__":
+
+def main():
     udp_server()
+
+if __name__ == "__main__":
+    main()
