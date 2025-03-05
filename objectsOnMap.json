@@ -1,0 +1,14 @@
+[
+  {
+    "objectType" : "a",
+    "objectID" : 1,
+    "x" : 100,
+    "y" : 100
+  },
+  {
+    "objectType" : "b",
+    "objectID" : 2,
+    "x" : 110,
+    "y" : 110
+  }
+]
