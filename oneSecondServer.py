@@ -6,6 +6,7 @@ IP = '127.0.0.1'
 PORT = 8824
 DEFAULT_BUFFER_SIZE = 1024
 
+
 def handle_client(packed_data, server_socket, client_addr):
     """
     Handles incoming client requests and sends the processed object data.

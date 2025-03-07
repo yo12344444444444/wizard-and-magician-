@@ -1,5 +1,6 @@
 class MathUtils:
 
+
     @staticmethod
     def build_array_of_packets(arr_obj):
         """
