@@ -89,6 +89,7 @@ def update_bots():
     conn.commit()
     conn.close()
 
+
 # Run in a loop (execute every 3 seconds)
 while True:
     update_bots()
