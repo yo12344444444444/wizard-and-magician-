@@ -4,8 +4,8 @@
 # If you need more help, visit the Dockerfile reference guide at
 # https://docs.docker.com/go/dockerfile-reference/
 
-ARG PYTHON_VERSION=3.11.9
-FROM python:${PYTHON_VERSION}-slim as base
+ARG PYTHON_VERSION=3.10.0
+FROM python:${PYTHON_VERSION}-alpine as base
 
 # Prevents Python from writing pyc files.
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -46,26 +46,6 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 COPY . .
 #COPY src ./src
 
-# Expose the port that the application listens on.
-EXPOSE 8821
-
 # Run the application.
-CMD app -- bind=0.0.0.0:8821
+CMD ["python", "game.py"]
 
-## Start with a lightweight base image
-#FROM alpine:latest
-#
-## Install SQLite
-#RUN apk update && apk add sqlite
-#
-## Set the default working directory
-#WORKDIR /db
-#
-## Set the default command to open SQLite
-#CMD ["sqlite3"]
-#
-#RUN sqlite3
-#
-#expose 8822
-#
-#CMD db -- bind=0.0.0.0:8822

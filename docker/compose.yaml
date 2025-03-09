@@ -1,19 +1,59 @@
-# Comments are provided throughout this file to help you get started.
-# If you need more help, visit the Docker Compose reference guide at
-# https://docs.docker.com/go/compose-spec-reference/
-
-# Here the instructions define your application as a service called "server".
-# This service is built from the Dockerfile in the current directory.
-# You can add other services your application may depend on here, such as a
-# database or a cache. For examples, see the Awesome Compose repository:
-# https://github.com/docker/awesome-compose
 services:
-  server:
+  main_server:
     container_name: "main-server"
     build:
-      context: .
+      context: ./
     ports:
       - "8821:8821"
+      - "8823:8823"
+      - "8824:8824"
+      - "8825:8825"
+      - "8826:8826"
+    volumes:
+      - ./app/DATABASE_GAME.db:/app/database.db
+      - ./app/logs:/app/logs
+    depends_on:
+      - db
+    restart: always
+
+  second_server_1:
+    container_name: "second server 1"
+    build:
+      context: ./
+    ports:
+      - "8822:8822"
+    depends_on:
+      - main_server
+    volumes:
+      - ./app/DATABASE_GAME.db:/app/database.db
+      - ./app/logs:/app/logs
+    command:
+      - python oneSecondServer.py
+    restart: always
+
+  second_server_2:
+    container_name: "second server 2"
+    build:
+      context: ./
+    ports:
+      - "8824:8824"
+    depends_on:
+      - main_server
+    volumes:
+      - ./app/DATABASE_GAME.db:/app/database.db
+      - ./app/logs:/app/logs
+    command:
+      - python oneSecondServer.py
+    restart: always
+
+  db:
+    container_name: "data base"
+    image: mcp/sqlite:latest
+    volumes:
+      - ./app/DATABASE_GAME.db:/app/database.db  # Mount the DB to persist data
+    command: tail -f /dev/null  # Keep the container running
+    restart: always
+
 
 #  sqlite:
 #    image: hibitdev/sqlite:latest
@@ -27,17 +67,6 @@ services:
 #    volumes:
 #      - ./sqlite:/db
 #    command: [ "tail", "-f", "/dev/null" ]  # Keeps the container running
-
-##sqlite
-#  db:
-#    restart: on-failure
-#    user: SQLite
-#    secrets:
-#      - db-password
-#    environment:
-#    expose:
-#    healthcheck:
-#      test:
 
 # The commented out section below is an example of how to define a PostgreSQL
 # database that your application can use. `depends_on` tells Docker Compose to
