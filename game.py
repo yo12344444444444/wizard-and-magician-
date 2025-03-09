@@ -4,8 +4,8 @@ import socket
 import json
 
 # Server connection settings
-HOST = '127.0.0.1'
-PORT = 8824
+HOST = '127.0.0.1'  # Use the server's IP address here
+PORT = 8822
 DEFAULT_BUFFER_SIZE = 1024
 
 # Initialize pygame
@@ -23,139 +23,111 @@ WHITE = (255, 255, 255)
 display = pygame.display.set_mode((window_width, window_height))
 clock = pygame.time.Clock()
 display.fill(WHITE)
+
+# Ask for the player's initial coin value (must be between 0-1023)
+while True:
+    try:
+        initial_coin = int(input("Enter your starting coin value (0-1023): "))
+        if 0 <= initial_coin <= 1023:
+            break
+        print("Invalid input! Please enter a number between 0 and 1023.")
+    except ValueError:
+        print("Invalid input! Please enter a valid number.")
+
+# Player data
+players_pos = {"a": [222, 2]}  # Store player positions
+players_coins = [0,initial_coin]  # Store player coin values
+
 def build_array_of_packets(arr_obj):
-    """
-    arr_obj[(rot,id,x,y,pos),...]
-    get array with the objects and their coordinates
-    build array with the small packets for the client
-
-    protocol:
-    (length of every packet-32 bits)
-    bit 0: 1 for rotation, 0 for no rotation
-    bits 1-7: type of the object(based on the json)
-    bits 8-18: x coordinate
-    bits 19-29: y coordinate
-    bits 30-31: which rotation, 00 for no rotation
-    """
-    array_for_client = []
-    if arr_obj[0]:
-        packet = f'{1:01b}'
-    else:
-        packet = f'{0:01b}'
-
-        # the id
+    packet = f'{1:01b}' if arr_obj[0] else f'{0:01b}'
     packet += f'{ord(arr_obj[1]):07b}'.zfill(7)
-
-        # the x coordination
     packet += f'{arr_obj[2]:011b}'.zfill(11)
-
-    # the y coordination
     packet += f'{arr_obj[3]:011b}'.zfill(11)
-
-
-    if packet[0:1]== '1':
-        packet += f'{arr_obj[4]:02b}'.zfill(2)
-    else:
-        packet += '00'
-
+    packet += f'{arr_obj[4]:010b}'.zfill(10)
     return packet
-# Initial player position
-pose = [222, 2]  # Player-controlled object position (mutable list)
 
-# Movement speed
-speed = 5
-
+def response_to_bytes(array_for_client):
+    combined_bit_string = ''.join(array_for_client)
+    number = int(combined_bit_string, 2)
+    byte_value = number.to_bytes((len(combined_bit_string) + 7) // 8, 'big')
+    return byte_value
 
 def put(id):
-    """Load image based on object ID from JSON file."""
-    print(id)
     with open("Objects.json", "r") as f:
         y = json.load(f)
     return y["On map objects"][id]['file']
 
-
 class ObjectPlacer:
-    """Handles object placement in the game window."""
     def __init__(self, pos, id):
         self.pos = pos
         self.img = pygame.image.load("graphic/" + put(id))
         display.blit(self.img, pos)
 
-def response_to_bytes(array_for_client):
-    """
-    gets the array of the small packets(of the protocol)
-    and convert it to bytes(every small packet with 32 bits --> 4 bytes)
-    """
-    combined_bit_string = ''.join(array_for_client)
-    number = int(combined_bit_string, 2)
-    byte_value = number.to_bytes((len(combined_bit_string) + 7) // 8, 'big')
-    return byte_value
-def get_data():
-    """Fetch data from the UDP server and parse it."""
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    response = build_array_of_packets((False, "a", pose[0],pose[1]))
-    response_in_bytes = response_to_bytes(response)
-    client_socket.sendto(response_in_bytes, (HOST, PORT))
-    response, _ = client_socket.recvfrom(DEFAULT_BUFFER_SIZE)
-    decoded_objects = parse_binary_response(response)
-    print((False, "a", pose[0],pose[1]))
-
-    client_socket.close()
-    return decoded_objects
-
-
 def parse_binary_response(binary_data):
-    """Parse binary response into human-readable object data."""
     bit_string = ''.join(f"{byte:08b}" for byte in binary_data)
     objects = []
-
-    # Each packet is 32 bits (4 bytes)
-    for i in range(0, len(bit_string), 32):
-        packet = bit_string[i:i+32]
-        if len(packet) < 32:
-            continue  # Ignore incomplete packets
-
+    for i in range(0, len(bit_string), 40):
+        packet = bit_string[i:i+40]
+        if len(packet) < 40:
+            continue
         rotation = int(packet[0], 2)
         object_id = chr(int(packet[1:8], 2))
         x_coord = int(packet[8:19], 2)
         y_coord = int(packet[19:30], 2)
-        rotation_type = int(packet[30:32], 2) if rotation else 0
-
-        objects.append((bool(rotation), object_id, x_coord, y_coord, rotation_type))
-
+        objects.append((bool(rotation), object_id, x_coord, y_coord))
     return objects
 
+def get_data():
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    retries = 3
+    coin_value_a = players_coins[1]
+    response_a = build_array_of_packets((False, "a", players_pos["a"][0], players_pos["a"][1], coin_value_a))
+    response_in_bytes = response_to_bytes([response_a])
+
+    for attempt in range(retries):
+        try:
+            client_socket.sendto(response_in_bytes, (HOST, PORT))
+            response, _ = client_socket.recvfrom(DEFAULT_BUFFER_SIZE)
+            decoded_objects = parse_binary_response(response)
+            # Update player coins and other data
+            for obj in decoded_objects:
+                print(obj)
+
+            return decoded_objects
+        except ConnectionResetError as e:
+            print(f"Connection reset on attempt {attempt + 1}: {e}")
+            if attempt < retries - 1:
+                print("Retrying...")
+            else:
+                print("Max retries reached. Returning empty list.")
+                return []  # Return empty list if retries are exhausted
+        finally:
+            client_socket.close()
 
 # Main game loop
 while True:
     clock.tick(frames_per_second)
+    display.fill(WHITE)
 
-    display.fill(WHITE)  # Clear the screen **before** drawing anything
-
-    # Fetch and display objects from the server
     game_objects = get_data()
     for obj_data in game_objects:
-        print(obj_data)
-        ObjectPlacer((obj_data[2], obj_data[3]), obj_data[1])  # Draw all server objects
+        ObjectPlacer((obj_data[2], obj_data[3]), obj_data[1])  # Draw objects
 
-    # Draw player-controlled object
-  #  ObjectPlacer(tuple(pose), "a")  # Player always visible
-
-    # Event handling
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
 
-    # Get pressed keys for movement
     keys = pygame.key.get_pressed()
-    if keys[pygame.K_w]:  # Move up
-        pose[1] -= speed
-    if keys[pygame.K_s]:  # Move down
-        pose[1] += speed
-    if keys[pygame.K_a]:  # Move left
-        pose[0] -= speed
-    if keys[pygame.K_d]:  # Move right
-        pose[0] += speed
 
-    pygame.display.flip()  # Re
+    # Player a movement (WASD)
+    if keys[pygame.K_w]:
+        players_pos["a"][1] -= 5
+    if keys[pygame.K_s]:
+        players_pos["a"][1] += 5
+    if keys[pygame.K_a]:
+        players_pos["a"][0] -= 5
+    if keys[pygame.K_d]:
+        players_pos["a"][0] += 5
+
+    pygame.display.flip()
