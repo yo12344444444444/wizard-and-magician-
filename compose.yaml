@@ -1,0 +1,72 @@
+services:
+  main_server:
+    container_name: "main-server"
+    build:
+      context: .
+    image: nettahalamish/cyber-project-grade-11:latest
+    command: ["python", "MainServer.py"]
+    ports:
+      - "8821:8821"
+      - "8823:8823"
+#      - "8824:8824"
+#      - "8825:8825"
+#      - "8826:8826"
+    volumes:
+      - ./app/DATABASE_GAME.db:/app/database.db
+    restart: always
+
+  second_server_1:
+    container_name: "second-server-1"
+    build:
+      context: .
+    image: nettahalamish/cyber-project-grade-11:latest
+    ports:
+      - "8822:8822"
+    depends_on:
+      - main_server
+    volumes:
+      - ./app/DATABASE_GAME.db:/app/database.db
+    command: ["python", "oneSecondServer.py"]
+    restart: always
+
+  second_server_2:
+    container_name: "second-server-2"
+    build:
+      context: .
+    image: nettahalamish/cyber-project-grade-11:latest
+    ports:
+      - "8824:8824"
+    depends_on:
+      - main_server
+    volumes:
+      - ./app/DATABASE_GAME.db:/app/database.db
+    command: ["python", "oneSecondServer.py"]
+    restart: always
+
+  server_3:
+    container_name: "server-3"
+    build:
+      context: .
+    image: nettahalamish/cyber-project-grade-11:latest
+    ports:
+      - "8825:8825"
+    depends_on:
+      - main_server
+    volumes:
+      - ./app/DATABASE_GAME.db:/app/database.db
+    command: [ "python", "Server3.py" ]
+    restart: always
+
+  server_4:
+    container_name: "server-4"
+    build:
+      context: .
+    image: nettahalamish/cyber-project-grade-11:latest
+    ports:
+      - "8826:8826"
+    depends_on:
+      - main_server
+    volumes:
+      - ./app/DATABASE_GAME.db:/app/database.db
+    command: [ "python", "Server4.py" ]
+    restart: always

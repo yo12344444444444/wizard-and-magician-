@@ -8,7 +8,7 @@
 **/__pycache__
 **/.venv
 **/.classpath
-**/.dockerignore
+.dockerignore
 **/.env
 **/.git
 **/.gitignore
@@ -24,7 +24,7 @@
 **/charts
 **/docker-compose*
 **/compose.y*ml
-**/Dockerfile*
+../Dockerfile
 **/node_modules
 **/npm-debug.log
 **/obj
