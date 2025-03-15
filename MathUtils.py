@@ -4,66 +4,57 @@ class MathUtils:
     @staticmethod
     def build_array_of_packets(arr_obj):
         """
-        Converts an array of object data into small binary packets for the client.
-
-        Protocol:
-        - Bit 0: Rotation (1 for rotation, 0 for no rotation)
-        - Bits 1-7: Object type (ASCII character ID)
-        - Bits 8-18: X coordinate (11 bits)
-        - Bits 19-29: Y coordinate (11 bits)
-        - Bits 30-31: Rotation type (2 bits)
+        arr_obj[(rot, id, x, y, coin),...]
+        Protocol (40-bit packet):
+        bit 0: 1 for rotation, 0 for no rotation
+        bits 1-7: type of the object (from JSON)
+        bits 8-18: x coordinate
+        bits 19-29: y coordinate
+        bits 30-39: coin value (10 bits)
         """
-        array_for_client = []
-        for obj in arr_obj:
-            rotation, object_id, x_coord, y_coord, rotation_type = obj
+        packet = f'{1:01b}' if arr_obj[0] else f'{0:01b}'
 
-            # Ensure object_id is a single character before converting to ASCII
-            if isinstance(object_id, str) and len(object_id) == 1:
-                object_id_bin = f'{ord(object_id):07b}'
-            else:
-                raise ValueError(f"Invalid object ID: {object_id}")
+        # Object ID (7 bits)
+        packet += f'{ord(arr_obj[4]):07b}'.zfill(7)
 
-            # Construct the binary packet
-            packet = f'{int(rotation):01b}'  # Bit 0: Rotation
-            packet += object_id_bin  # Bits 1-7: Object ID
-            packet += f'{x_coord:011b}'  # Bits 8-18: X coordinate
-            packet += f'{y_coord:011b}'  # Bits 19-29: Y coordinate
-            packet += f'{rotation_type:02b}' if rotation else '00'  # Bits 30-31: Rotation type
+        # X Coordinate (11 bits)
+        packet += f'{arr_obj[2]:011b}'.zfill(11)
 
-            array_for_client.append(packet)
+        # Y Coordinate (11 bits)
+        packet += f'{arr_obj[3]:011b}'.zfill(11)
 
-        return array_for_client
+        # Coin Value (10 bits)
+        coin_value = int(arr_obj[1])  # Ensure this is an integer (coin value, not object id)
+        print(coin_value)
+        packet += f'{coin_value:010b}'.zfill(10)
 
+        return packet
 
     @staticmethod
     def response_to_bytes(array_for_client):
-        """
-        Converts an array of binary packets into bytes.
-        """
+        """ Converts the array of packets into bytes (each 40-bit packet → 5 bytes). """
         combined_bit_string = ''.join(array_for_client)
         number = int(combined_bit_string, 2)
-        return number.to_bytes((len(combined_bit_string) + 7) // 8, 'big')
-
-
+        byte_value = number.to_bytes((len(combined_bit_string) + 7) // 8, 'big')
+        return byte_value
 
     @staticmethod
     def parse_binary_response(binary_data):
-        """Parses the binary response into human-readable object data."""
+        """ Parses the binary response into human-readable object data. """
         bit_string = ''.join(f"{byte:08b}" for byte in binary_data)
         objects = []
 
-        # Each packet is 32 bits (4 bytes)
-        for i in range(0, len(bit_string), 32):
-            packet = bit_string[i:i + 32]
-            if len(packet) < 32:
+        for i in range(0, len(bit_string), 40):  # Now packets are 40 bits
+            packet = bit_string[i:i+40]
+            if len(packet) < 40:
                 continue  # Ignore incomplete packets
 
             rotation = int(packet[0], 2)
             object_id = chr(int(packet[1:8], 2))
             x_coord = int(packet[8:19], 2)
             y_coord = int(packet[19:30], 2)
-            rotation_type = int(packet[30:32], 2) if rotation else 0
+            coin_value = int(packet[30:40], 2)
 
-            objects.append((bool(rotation), object_id, x_coord, y_coord, rotation_type))
+            objects.append((bool(rotation), object_id, x_coord, y_coord, coin_value))
 
         return objects

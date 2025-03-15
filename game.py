@@ -5,7 +5,7 @@ import json
 
 # Server connection settings
 HOST = '127.0.0.1'  # Use the server's IP address here
-PORT = 8822
+PORT = 8821
 DEFAULT_BUFFER_SIZE = 1024
 
 # Initialize pygame
