@@ -1,5 +1,20 @@
+import json
 class MathUtils:
+    def getObjects():
+        with open("ips.json", "r") as f:
+             y = json.load(f)
 
+        if "players" not in y:
+            y["players"] = {}
+
+
+        arr_obj = []
+        for obj_id, data in y["players"].items():
+            x, y_pos = map(int, data["pose"].split(","))
+            id = data["id"]
+            arr_obj.append((False, obj_id, x, y_pos, id))
+           # print(arr_obj)
+        return arr_obj
 
     @staticmethod
     def build_array_of_packets(arr_obj):

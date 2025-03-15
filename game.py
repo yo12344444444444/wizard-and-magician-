@@ -2,12 +2,14 @@ import pygame
 import sys
 import socket
 import json
+from genericFunction import MathUtils
 
-# Server connection settings
+tolernsStoneSword = 10
 HOST = '127.0.0.1'  # Use the server's IP address here
 PORT = 8821
 DEFAULT_BUFFER_SIZE = 1024
-
+x, y, rect_width, rect_height = 200, 150, 48, 93
+a =False
 # Initialize pygame
 pygame.init()
 
@@ -18,7 +20,7 @@ window_width = 1000
 
 # Colors
 WHITE = (255, 255, 255)
-
+blue =(0,0,0)
 # Creating window
 display = pygame.display.set_mode((window_width, window_height))
 clock = pygame.time.Clock()
@@ -90,9 +92,6 @@ def get_data():
             response, _ = client_socket.recvfrom(DEFAULT_BUFFER_SIZE)
             decoded_objects = parse_binary_response(response)
             # Update player coins and other data
-            for obj in decoded_objects:
-                print(obj)
-
             return decoded_objects
         except ConnectionResetError as e:
             print(f"Connection reset on attempt {attempt + 1}: {e}")
@@ -117,10 +116,20 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            x, y = event.pos  # Get mouse position
+            arr = MathUtils.getObjects()
+            result = next((sub_arr for sub_arr in arr if sub_arr[4] == 'b'), None)
+            print(result)
+            if 173+93+tolernsStoneSword > y > 173-tolernsStoneSword and 377+48+tolernsStoneSword > x > 377-tolernsStoneSword:
+                a=True
+            else:
+                a=False
+    if a:
+        pygame.draw.rect(display, blue, (x, y, rect_width, rect_height))
 
     keys = pygame.key.get_pressed()
 
-    # Player a movement (WASD)
     if keys[pygame.K_w]:
         players_pos["a"][1] -= 5
     if keys[pygame.K_s]:

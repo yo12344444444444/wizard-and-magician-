@@ -1,11 +1,11 @@
 import socket
 import json
-from MathUtils import MathUtils
+from genericFunction import MathUtils
+
 # Server connection settings
 HOST = '127.0.0.1'
 PORT = 8821
 DEFAULT_BUFFER_SIZE = 1024
-
 
 
 def handle_client(packed_data, server_socket, client_addr):
@@ -25,28 +25,33 @@ def handle_client(packed_data, server_socket, client_addr):
         print(f"Invalid data from {client_addr}, ignoring...")
         return
 
-    # Assuming the first data received is initial position, handle the player data
+    updated_ids = set()  # Track updated player IDs
+
+    # Process received player data
     for obj in player_data:
         print(obj)
         obj_id = obj[4]
+        updated_ids.add(obj_id)  # Track this ID as updated
 
-        # Ensure the player data exists in the dictionary
+        # Ensure the player data exists or update it
         if obj_id not in y["players"]:
             print(f"Adding new player {obj_id}")
             y["players"][obj_id] = {"pose": f"{obj[2]},{obj[3]}", "id": obj[1], "coin": 0}
         else:
-            # Update position and coin value for future updates
+            # Update position
             y["players"][obj_id]["pose"] = f"{obj[2]},{obj[3]}"
-            # If coin value is greater, update the coin and id
+            # Update coin and id if necessary
             if obj[4] > y["players"][obj_id]["coin"]:
                 y["players"][obj_id]["coin"] = obj[4]
                 y["players"][obj_id]["id"] = obj[1]
+
+    # **Keep all existing players** (don't delete missing ones)
 
     # Save updated player data to the JSON file
     with open("ips.json", "w") as f:
         json.dump(y, f, indent=1)
 
-    # Prepare the response to send for both players
+    # Prepare the response for all players
     arr_obj = []
     for obj_id, data in y["players"].items():
         x, y_pos = map(int, data["pose"].split(","))
@@ -57,11 +62,9 @@ def handle_client(packed_data, server_socket, client_addr):
         print("No objects found, sending empty response.")
         return
 
-    # Build the response packets
+    # Build and send response packets
     response = [MathUtils.build_array_of_packets(obj) for obj in arr_obj]
     response_in_bytes = MathUtils.response_to_bytes(response)
-
-    # Send the response to the client
     server_socket.sendto(response_in_bytes, client_addr)
 
 
