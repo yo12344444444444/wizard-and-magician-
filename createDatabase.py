@@ -1,114 +1,77 @@
 import sqlite3
-import socket
-import pickle
+import bcrypt
 
-# התחברות למסד הנתונים
-conn = sqlite3.connect("game_database.db", check_same_thread=False)
+# Create a connection to the database
+conn = sqlite3.connect("DATABASE_GAME.db")
 cursor = conn.cursor()
 
+# Delete old tables if they exist
+cursor.execute("DROP TABLE IF EXISTS players;")
+cursor.execute("DROP TABLE IF EXISTS items;")
 
-# פונקציה לקבלת נתוני שחקן
-def get_player_data(username):
-    cursor.execute("SELECT username, position_x, position_y, health, coins, status FROM players WHERE username = ?", (username,))
-    return cursor.fetchone()
+# Create the players table with username and securely stored password
+cursor.execute("""
+CREATE TABLE players (
+    player_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    position_x INTEGER NOT NULL DEFAULT 0,
+    position_y INTEGER NOT NULL DEFAULT 0,
+    health INTEGER NOT NULL DEFAULT 100,
+    coins INTEGER NOT NULL DEFAULT 200,
+    status TEXT NOT NULL DEFAULT 'active'
+);
+""")
 
-
-# פונקציה להוספת שחקן חדש
-def add_new_player(username, position_x=0, position_y=0, health=100, coins=0, status="active"):
-    try:
-        cursor.execute("INSERT INTO players (username, position_x, position_y, health, coins, status) VALUES (?, ?, ?, ?, ?, ?)",
-                       (username, position_x, position_y, health, coins, status))
-        conn.commit()
-        return True
-    except sqlite3.IntegrityError:
-        return False  # השחקן כבר קיים
-
-
-# פונקציות לעדכון נתוני שחקן
-def update_player_position(username, x, y):
-    cursor.execute("UPDATE players SET position_x = ?, position_y = ? WHERE username = ?", (x, y, username))
-    conn.commit()
-
-
-def update_player_health(username, health):
-    cursor.execute("UPDATE players SET health = ? WHERE username = ?", (health, username))
-    conn.commit()
-
-
-def update_player_coins(username, coins):
-    cursor.execute("UPDATE players SET coins = ? WHERE username = ?", (coins, username))
-    conn.commit()
+# Create the items table
+cursor.execute("""
+CREATE TABLE items (
+    item_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    player_id INTEGER NOT NULL,
+    item_name TEXT NOT NULL,
+    quantity INTEGER DEFAULT 1,
+    FOREIGN KEY (player_id) REFERENCES players(player_id)
+);
+""")
 
 
-def update_player_status(username, status):
-    cursor.execute("UPDATE players SET status = ? WHERE username = ?", (status, username))
-    conn.commit()
+def hash_password(password):
+    """Function to hash a password using bcrypt"""
+    salt = bcrypt.gensalt()
+    hashed_password = bcrypt.hashpw(password.encode(), salt)
+    return hashed_password
 
 
-# שליחת נתוני שחקן ללקוח
-def send_player_data_to_client(player_data, client_socket, client_addr):
-    response = {
-        "username": player_data[0],
-        "position": (player_data[1], player_data[2]),
-        "health": player_data[3],
-        "coins": player_data[4],
-        "status": player_data[5]
-    }
-    packed_data = pickle.dumps(response)
-    client_socket.sendto(packed_data, client_addr)
+def verify_password(username, password):
+    """Function to verify if the username and password match"""
+    conn = sqlite3.connect("DATABASE_GAME.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT password_hash FROM players WHERE username = ?", (username,))
+    result = cursor.fetchone()
+    conn.close()
+
+    if result:
+        stored_hash = result[0]
+        return bcrypt.checkpw(password.encode(), stored_hash.encode())
+    return False
 
 
-# טיפול בבקשת לקוח
-def handle_client_request(packed_data, client_socket, client_addr):
-    try:
-        data = pickle.loads(packed_data)
-        username = data.get("username")
-        action = data.get("action")
+# Insert players with hashed passwords
+cursor.execute(
+    "INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status) VALUES (?, ?, ?, ?, ?, ?, ?);",
+    ("Player1", hash_password("password123"), 21600, 38400, 100, 200, 'active'))
 
-        if action == "add_player":
-            success = add_new_player(username)
-            response = {"success": success, "message": f"Player {username} {'added' if success else 'already exists'}"}
-            client_socket.sendto(pickle.dumps(response), client_addr)
+cursor.execute(
+    "INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status) VALUES (?, ?, ?, ?, ?, ?, ?);",
+    ("Player2", hash_password("mysecurepass"), 21600, 38400, 100, 200, 'active'))
 
-        else:
-            player_data = get_player_data(username)
-            if player_data:
-                if action == "update_position":
-                    x, y = data["position"]
-                    update_player_position(username, x, y)
+# Insert example items for players
+cursor.execute("INSERT INTO items (player_id, item_name, quantity) VALUES (1, 'Sword', 1);")
+cursor.execute("INSERT INTO items (player_id, item_name, quantity) VALUES (1, 'HealthPotion', 3);")
+cursor.execute("INSERT INTO items (player_id, item_name, quantity) VALUES (2, 'Bow', 1);")
 
-                elif action == "update_health":
-                    update_player_health(username, data["health"])
+# Save changes and close the connection
+conn.commit()
+conn.close()
 
-                elif action == "update_coins":
-                    update_player_coins(username, data["coins"])
-
-                elif action == "update_status":
-                    update_player_status(username, data["status"])
-
-                send_player_data_to_client(player_data, client_socket, client_addr)
-            else:
-                response = {"error": "Player not found"}
-                client_socket.sendto(pickle.dumps(response), client_addr)
-
-    except Exception as ex:
-        print(f"Error handling client: {str(ex)}")
-
-
-# שרת UDP
-def udp_server():
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_socket.bind(('127.0.0.1', 8822))
-    print("Server listening on 127.0.0.1:8822")
-
-    while True:
-        try:
-            packed_data, client_addr = server_socket.recvfrom(1024)
-            handle_client_request(packed_data, server_socket, client_addr)
-        except Exception as ex:
-            print(f"Error receiving data: {str(ex)}")
-
-
-# הפעלת השרת
-if __name__ == "__main__":
-    udp_server()
+print("✅ Database successfully created with secure password storage!")
