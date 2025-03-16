@@ -1,53 +1,77 @@
 import socket
-import sqlite3
-import pickle  # 📦 נוסיף את pickle כדי לארוז את הנתונים
+import json
+from genericFunction import MathUtils
 
-IP = '127.0.0.1'
-PORT = 8825
+# Server connection settings
+HOST = '127.0.0.1'
+PORT = 8821
 DEFAULT_BUFFER_SIZE = 1024
 
 
-def get_players_from_db():
-    """שליפת נתוני שחקנים ממסד הנתונים"""
-    conn = sqlite3.connect('DATABASE_GAME.db')  # התחברות למסד הנתונים
-    cursor = conn.cursor()
-    cursor.execute("SELECT ip_address, position_x, position_y, health FROM players")
-    players = cursor.fetchall()
-    conn.close()
-    return players
-
-
 def handle_client(packed_data, server_socket, client_addr):
-    """
-    קבלת בקשה ושליחת מידע לשחקן
-    """
+    # Load existing player data from the JSON file
     try:
-        players = get_players_from_db()  # שליפת נתונים מהמסד
-        response = [{"ip": p[0], "x": p[1], "y": p[2], "health": p[3]} for p in players]  # המרת הנתונים למילון
-        packed_response = pickle.dumps(response)  # 📦 שימוש ב-pickle לאריזה
-        print(f"📡 Sending data to client {client_addr}: {response}")  # ✅ הדפסה לפני שליחה
-        server_socket.sendto(packed_response, client_addr)  # שליחת תשובה ללקוח
-    except Exception as ex:
-        print(f"Error handling client: {str(ex)}")
+        with open("ips.json", "r") as f:
+            y = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        y = {"players": {}}
+
+    if "players" not in y:
+        y["players"] = {}
+
+    # Parse the incoming data
+    player_data = MathUtils.parse_binary_response(packed_data)
+    if not player_data:
+        print(f"Invalid data from {client_addr}, ignoring...")
+        return
+
+    updated_ids = set()  # Track updated player IDs
+
+    # Process received player data
+    for obj in player_data:
+        print(obj)
+        obj_id = obj[4]
+        updated_ids.add(obj_id)  # Track this ID as updated
+
+        # Ensure the player data exists or update it
+        if obj_id not in y["players"]:
+            print(f"Adding new player {obj_id}")
+            y["players"][obj_id] = {"pose": f"{obj[2]},{obj[3]}", "id": obj[1], "coin": 0}
+        else:
+            # Update position
+            y["players"][obj_id]["pose"] = f"{obj[2]},{obj[3]}"
+            # Update coin and id if necessary
+            if obj[4] > y["players"][obj_id]["coin"]:
+                y["players"][obj_id]["coin"] = obj[4]
+                y["players"][obj_id]["id"] = obj[1]
+
+    # **Keep all existing players** (don't delete missing ones)
+
+    # Save updated player data to the JSON file
+    with open("ips.json", "w") as f:
+        json.dump(y, f, indent=1)
+
+    # Prepare the response for all players
+    arr_obj = []
+    for obj_id, data in y["players"].items():
+        x, y_pos = map(int, data["pose"].split(","))
+        id = data["id"]
+        arr_obj.append((False, obj_id, x, y_pos, id))
+
+    if not arr_obj:
+        print("No objects found, sending empty response.")
+        return
+
+    # Build and send response packets
+    response = [MathUtils.build_array_of_packets(obj) for obj in arr_obj]
+    response_in_bytes = MathUtils.response_to_bytes(response)
+    server_socket.sendto(response_in_bytes, client_addr)
 
 
-def udp_server():
-    """הפעלת שרת ה-UDP"""
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_socket.bind((IP, PORT))
-    print(f"✅ UDP Server running on {IP}:{PORT}")
+# Server setup
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+server_socket.bind((HOST, PORT))
 
-    while True:
-        try:
-            packed_data, client_addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
-            handle_client(packed_data, server_socket, client_addr)
-        except Exception as ex:
-            print(f"Client exception: {str(ex)}")
-
-
-def main():
-    udp_server()
-
-
-if __name__ == "__main__":
-    main()
+while True:
+    packed_data, client_addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
+    handle_client(packed_data, server_socket, client_addr)
