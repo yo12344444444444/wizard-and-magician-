@@ -1,23 +1,21 @@
 import sqlite3
 
 def authenticate_user(username, password):
-    """בודקת אם שם המשתמש והסיסמה קיימים במסד הנתונים ומחזירה את נתוני השחקן אם כן"""
-    conn = sqlite3.connect('DATABASE_GAME.db')  # התחברות למסד הנתונים
+    """Checks if the username and password exist in the database and returns the player data if valid"""
+    conn = sqlite3.connect('DATABASE_GAME.db')  # Connect to the database
     cursor = conn.cursor()
-
     cursor.execute("SELECT * FROM players WHERE username = ? AND password = ?", (username, password))
-    player_data = cursor.fetchone()  # מחזיר את הנתונים של השחקן אם קיים
-
+    player_data = cursor.fetchone()  # Returns the player's data if they exist
     conn.close()
 
     if player_data:
-        return True, player_data  # השחקן קיים, מחזירים True ואת המידע שלו
+        return True, player_data  # Player exists, return True and their data
     else:
-        return False, None  # השחקן לא קיים
+        return False, None  # Player does not exist
 
-# דוגמה לשימוש:
+# Example usage:
 exists, data = authenticate_user("player1", "securepass123")
 if exists:
-    print("✅ משתמש קיים! הנתונים שלו:", data)
+    print("✅ User exists! Player data:", data)
 else:
-    print("❌ שם משתמש או סיסמה שגויים")
+    print("❌ Incorrect username or password")
