@@ -146,9 +146,12 @@ def loging_screen(screen, screen_width, screen_height):
                 elif 217 < x < 465 and 554 < y < 638:
                     username_input_active = False
                     password_input_active = False
-                    does_user_exist = True
-                    if does_user_exist:
+                    does_user_exist = authenticate_user(username_text, password_text)[0]
+                    if not does_user_exist:
                         error_text = "This User doesn't exist, check the Username or the Password"
+                    else:
+                        pass
+                    # enter game
 
             elif username_input_active and event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_BACKSPACE:
@@ -237,11 +240,14 @@ def signing_screen(screen, screen_width, screen_height):
                     username_input_active = False
                     password_input_active = False
                     verification_input_active = False
-                    does_username_exist = True
+                    does_username_exist = authenticate_user(username_text, password_text)[0]
                     if password_text != verification_text:
                         error_text = "The Password and the Verification aren't equal"
                     elif does_username_exist:
                         error_text = "This Username already exists, choose another one"
+                    else:
+                        pass
+                    # create user
 
             elif username_input_active and event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_BACKSPACE:
@@ -285,6 +291,8 @@ def signing_screen(screen, screen_width, screen_height):
 
         pygame.display.flip()
 
+def authenticate_user(username, password):
+    pass
 
 def main():
     pygame.init()
