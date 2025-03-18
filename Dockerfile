@@ -12,7 +12,7 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 # Copy the source code into the container.
-COPY . .
+COPY ./ /app/
 
 RUN apk add --no-cache gcc musl-dev python3-dev libffi-dev build-base
 
