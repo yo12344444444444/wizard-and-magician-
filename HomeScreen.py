@@ -79,6 +79,7 @@ def instructions1_screen(screen, screen_width, screen_height):
         pygame.display.update()
 
 
+
 def instructions2_screen(screen, screen_width, screen_height):
     """
         running the second screen of the instructions
