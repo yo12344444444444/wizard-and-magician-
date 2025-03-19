@@ -63,7 +63,7 @@ def update_bots():
 
         # If a player is close, the bot attacks (e.g., reduces health)
         if closest_player and min_distance < DETECTION_RANGE:
-            print(f"🔴 Bot {bot_id} attacks player at {closest_player}!")
+            print(f" Bot {bot_id} attacks player at {closest_player}!")
             try:
                 cursor.execute("UPDATE players SET health = health - 10 WHERE pose_x=? AND pose_y=?", closest_player)
                 print(f"Player at {closest_player} health updated.")
@@ -79,7 +79,7 @@ def update_bots():
         else:
             new_x = bot_x + random.randint(-50, 50)
             new_y = bot_y + random.randint(-50, 50)
-            print(f"🟢 Bot {bot_id} moves to new location: ({new_x}, {new_y})")
+            print(f" Bot {bot_id} moves to new location: ({new_x}, {new_y})")
             try:
                 cursor.execute("UPDATE bots SET pose_x=?, pose_y=? WHERE bot_id=?", (new_x, new_y, bot_id))
                 print(f"Bot {bot_id} position updated.")

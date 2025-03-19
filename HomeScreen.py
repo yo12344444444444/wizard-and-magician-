@@ -16,6 +16,6 @@ def authenticate_user(username, password):
 # Example usage:
 exists, data = authenticate_user("player1", "securepass123")
 if exists:
-    print("✅ User exists! Player data:", data)
+    print("User exists! Player data:", data)
 else:
-    print("❌ Incorrect username or password")
+    print("ncorrect username or password")
