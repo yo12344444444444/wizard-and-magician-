@@ -8,7 +8,7 @@ screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("Input Example")
 
 # טוען תמונה ומגדיל לגודל המסך
-image = pygame.image.load('screens\SigningScreen1.0.png')  # שים כאן את המיקום של התמונה
+image = pygame.image.load('graphic\Walking_Front.gif')  # שים כאן את המיקום של התמונה
 image = pygame.transform.scale(image, (screen_width, screen_height))
 
 # צבעים וגופן
