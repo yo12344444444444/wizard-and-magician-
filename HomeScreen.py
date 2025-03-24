@@ -1,6 +1,6 @@
 import pygame
 import sqlite3
-
+import bcrypt
 
 HOME_SCREEN = 'screens\HomeScreen1.0.png'
 INSTRUCTION1 = 'screens\InstructionsA1.0.jpg'
@@ -16,24 +16,27 @@ WHITE = (255,255,255)
 RED = (139,0,0)
 
 def authenticate_user(username, password):
-    """Checks if the username and password exist in the database and returns the player data if valid"""
-    conn = sqlite3.connect('DATABASE_GAME.db')  # Connect to the database
+    """בודקת אם המשתמש קיים ומאמתת את הסיסמה"""
+    conn = sqlite3.connect('DATABASE_GAME.db')
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM players WHERE username = ? AND password = ?", (username, password))
-    player_data = cursor.fetchone()  # Returns the player's data if they exist
+
+    # שליפת ההאש של הסיסמה השמורה במסד הנתונים
+    cursor.execute("SELECT password_hash FROM players WHERE username = ?", (username,))
+    result = cursor.fetchone()
     conn.close()
 
-    if player_data:
-        return True, player_data  # Player exists, return True and their data
-    else:
-        return False, None  # Player does not exist
+    if result:
+        stored_password_hash = result[0]
+        # השוואת ההאש עם הסיסמה שהוזנה
+        if bcrypt.checkpw(password.encode(), stored_password_hash.encode()):
+            return True  # התחברות מוצלחת
+    return False  # שם משתמש או סיסמה שגויים
 
-# Example usage:
-exists, data = authenticate_user("player1", "securepass123")
-if exists:
-    print("User exists! Player data:", data)
+# בדיקת התחברות
+if authenticate_user("player1", "securepass123"):
+    print("Login successful! ✅")
 else:
-    print("ncorrect username or password")
+    print("Incorrect username or password ❌")
 
 def home_screen(screen, screen_width, screen_height):
     """
@@ -70,8 +73,6 @@ def home_screen(screen, screen_width, screen_height):
 
         screen.blit(image, (0, 0))
         pygame.display.update()
-
-
 
 def instructions1_screen(screen, screen_width, screen_height):
     """
@@ -125,10 +126,37 @@ def instructions2_screen(screen, screen_width, screen_height):
         pygame.display.update()
 
 
+import hashlib
+import os
+import pygame
+
+# הגדרות בסיסיות
+LOGIN = 'path_to_your_image.png'  # נתיב לתמונה של מסך ההתחברות
+WHITE = (255, 255, 255)  # צבע לבן
+RED = (255, 0, 0)  # צבע אדום
+LEFT = 1  # כפתור עכבר שמאלי
+
+def hash_password(password):
+    """
+    פונקציה להחישוב של סיסמה מוצפנת עם SHA-256
+    """
+    salt = os.urandom(16)  # יצירת Salt אקראי
+    hashed_password = hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000)
+    return salt + hashed_password  # אחסון ה-Salt יחד עם ה-Hash
+
+def verify_password(stored_password, password_attempt):
+    """
+    פונקציה לבדוק אם הסיסמה שנכנסה תואמת את הסיסמה המוצפנת
+    """
+    salt = stored_password[:16]  # קבלת ה-Salt
+    stored_hash = stored_password[16:]  # קבלת ה-Hash
+    hashed_attempt = hashlib.pbkdf2_hmac('sha256', password_attempt.encode(), salt, 100000)
+    return stored_hash == hashed_attempt
+
 def loging_screen(screen, screen_width, screen_height):
     """
-            running the loging screen
-        """
+    running the login screen with encrypted password handling
+    """
     image = pygame.image.load(LOGIN)
     image = pygame.transform.scale(image, (screen_width, screen_height))
     running = True
@@ -148,8 +176,7 @@ def loging_screen(screen, screen_width, screen_height):
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == LEFT:
-                x = pygame.mouse.get_pos()[0]
-                y = pygame.mouse.get_pos()[1]
+                x, y = pygame.mouse.get_pos()
 
                 # return back (to home screen)
                 if 1204 < x < 1262 and 716 < y < 781:
@@ -169,13 +196,14 @@ def loging_screen(screen, screen_width, screen_height):
                 elif 217 < x < 465 and 554 < y < 638:
                     username_input_active = False
                     password_input_active = False
-                    # does_user_exist = authenticate_user(username_text, password_text)[0]
-                    does_user_exist = False
+                    does_user_exist = False  # בדוק אם המשתמש קיים
                     if not does_user_exist:
                         error_text = "This User doesn't exist, check the Username or the Password"
                     else:
+                        # הצפנה של הסיסמה לפני שליחתה
+                        hashed_password = hash_password(password_text)
+                        # עכשיו אפשר לשלוח את hashed_password לשרת
                         pass
-                    # enter game
 
             elif username_input_active and event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_BACKSPACE:
@@ -183,31 +211,32 @@ def loging_screen(screen, screen_width, screen_height):
                 elif len(username_text) < 10:
                     username_text += event.unicode
 
-
             elif password_input_active and event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_BACKSPACE:
                     password_text = password_text[:-1]
                 elif len(password_text) < 10:
                     password_text += event.unicode
 
-
+        # רוור לוגו ותצוגה
         screen.blit(image, (0, 0))
 
+        # הצגת שם משתמש
         text_surface = font.render(username_text, True, WHITE)
         text_position = (490, 300)
         screen.blit(text_surface, text_position)
 
+        # הצגת סיסמה
         password_print = "*" * len(password_text)
         text_surface = font.render(password_print, True, WHITE)
         text_position = (480, 443)
         screen.blit(text_surface, text_position)
 
+        # הצגת הודעת שגיאה
         text_surface = font2.render(error_text, True, RED)
         text_position = (217, 510)
         screen.blit(text_surface, text_position)
 
         pygame.display.update()
-
 
 def signing_screen(screen, screen_width, screen_height):
     """
@@ -315,11 +344,6 @@ def signing_screen(screen, screen_width, screen_height):
         screen.blit(text_surface, text_position)
 
         pygame.display.flip()
-
-
-def authenticate_user(username, password):
-    pass
-
 
 def main():
     pygame.init()

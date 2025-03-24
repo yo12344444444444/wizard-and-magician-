@@ -4,7 +4,8 @@ CREATE TABLE players (
     pose_x INTEGER NOT NULL,
     pose_y INTEGER NOT NULL,
     money INTEGER DEFAULT 200,
-    health INTEGER DEFAULT 100 --the amount of health that the players start with
+    health INTEGER DEFAULT 100,
+    password_hash TEXT NOT NULL
 );
 
 CREATE TABLE items (
