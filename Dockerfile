@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 ARG PYTHON_VERSION=3.10.0
-FROM python:${PYTHON_VERSION}-alpine AS base
+FROM python:${PYTHON_VERSION}-slim AS base
 
 # Prevents Python from writing pyc files.
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -14,7 +14,9 @@ WORKDIR /app
 # Copy the source code into the container.
 COPY ./ /app/
 
-RUN apk add --no-cache gcc musl-dev python3-dev libffi-dev build-base
+RUN apt-get update && apt-get install -y \
+    gcc python3-dev libffi-dev build-essential \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
@@ -26,6 +28,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN --mount=type=cache,target=/root/.cache/pip \
     --mount=type=bind,source=requirements.txt,target=requirements.txt \
     python -m pip install -r requirements.txt
+
+# Install dependencies required for pygame
+RUN apt-get update && apt-get install -y \
+    gcc musl-dev python3-dev libffi-dev build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install pygame 2.6.1
+RUN pip install pygame==2.6.1
+
+COPY . .
 
 # Create a non-privileged user that the app will run under.
 # See https://docs.docker.com/go/dockerfile-user-best-practices/
