@@ -1,109 +1,95 @@
 import socket
 import pickle
+import sqlite3
 
 DNS_SERVER_IP = '0.0.0.0'
 DNS_SERVER_PORT = 8821
 DEFAULT_BUFFER_SIZE = 1024
 
-FORWARDING_SERVER_IP = '127.0.0.1'
-FORWARDING_SERVER_PORT = 8823
+FORWARDING_SERVERS = {
+    1: ('127.0.0.1', 8823),  # רבעון 1
+    2: ('127.0.0.1', 8824),  # רבעון 2
+    3: ('127.0.0.1', 8825),  # רבעון 3
+    4: ('127.0.0.1', 8826)   # רבעון 4
+}
 
-FORWARDING2_SERVER_IP = '127.0.0.1'
-FORWARDING2_SERVER_PORT = 8824
+# התחברות למסד הנתונים עם טיפול בשגיאות
+try:
+    conn = sqlite3.connect("DATABASE_GAME.db", check_same_thread=False)
+    cursor = conn.cursor()
+    print("✅ Successfully connected to the database.")
+except sqlite3.Error as e:
+    print(f"❌ Error connecting to the database: {e}")
+    exit(1)  # יציאה מהתוכנית אם לא ניתן להתחבר למסד הנתונים
 
-FORWARDING3_SERVER_IP = '127.0.0.1'
-FORWARDING3_SERVER_PORT = 8825
+def get_player_quadrant(player_id):
+    """
+    מחפש את השחקן במסד הנתונים לפי ה-ID ושולף את הקואורדינטות שלו כדי לקבוע את הרבעון
+    """
+    try:
+        cursor.execute("SELECT x, y FROM players WHERE id = ?", (player_id,))
+        result = cursor.fetchone()
 
-FORWARDING4_SERVER_IP = '127.0.0.1'
-FORWARDING4_SERVER_PORT = 8826
-
-def is_in_quadrant_one(coordinates):
-    """
-    Function to check if the coordinates are in the first quadrant.
-    """
-    x, y = coordinates
-    return x > 0 and y > 0
-
-def is_in_quadrant_second(coordinates):
-    """
-    Function to check if the coordinates are in the first quadrant.
-    """
-    x, y = coordinates
-    return x < 0 and y > 0
-def is_in_quadrant_3(coordinates):
-    """
-    Function to check if the coordinates are in the first quadrant.
-    """
-    x, y = coordinates
-    return x < 0 and y < 0
-
-def is_in_quadrant_4(coordinates):
-    """
-    Function to check if the coordinates are in the first quadrant.
-    """
-    x, y = coordinates
-    return x > 0 and y < 0
+        if result:
+            x, y = result
+            if x > 0 and y > 0:
+                return 1  # רבעון 1
+            elif x < 0 and y > 0:
+                return 2  # רבעון 2
+            elif x < 0 and y < 0:
+                return 3  # רבעון 3
+            elif x > 0 and y < 0:
+                return 4  # רבעון 4
+        else:
+            print(f"⚠ Player ID {player_id} not found in database.")
+            return None
+    except sqlite3.Error as e:
+        print(f"❌ Database error: {e}")
+        return None
 
 def request_handler(data, addr):
     """
-    Receives the packet from the client and forwards it to the secondary server
-    only if the coordinates are in quadrant 1.
+    מקבל פאקטה מהקליינט, מזהה את השחקן לפי ה-ID ושולח אותו לשרת המשני לפי המיקום במסד הנתונים.
     """
-    print(f"Received request from {addr}")
+    print(f"📥 Received request from {addr}")
 
     try:
-        # Unpack the data received from the client (now we expect a tuple)
-        coordinates = pickle.loads(data)  # Expecting coordinates to be a tuple, e.g., (5, 10)
-        print(f"Coordinates received: {coordinates}")
+        # פירוק הנתונים שהגיעו מהקליינט - מצפים לקבל ID של שחקן
+        player_id = pickle.loads(data)  # הלקוח שולח את ה-ID שלו
+        print(f"🔍 Looking for player ID: {player_id}")
 
-        # Check if the coordinates are in quadrant one
-        if is_in_quadrant_one(coordinates):
+        quadrant = get_player_quadrant(player_id)
+        if quadrant and quadrant in FORWARDING_SERVERS:
+            forwarding_ip, forwarding_port = FORWARDING_SERVERS[quadrant]
+            packed_data = pickle.dumps((player_id, addr))  # שולחים את ה-ID לשרת המתאים
+            print(f"🚀 Forwarding request to {forwarding_ip}:{forwarding_port}")
+
             forward_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            packed_data = pickle.dumps((data, addr))  # Wrap the data with the client address
-            print(f"Forwarding request to {FORWARDING_SERVER_IP}:{FORWARDING_SERVER_PORT}")
-            forward_socket.sendto(packed_data, (FORWARDING_SERVER_IP, FORWARDING_SERVER_PORT))
-            forward_socket.close()
-        elif is_in_quadrant_second(coordinates):
-            forward_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            packed_data = pickle.dumps((data, addr))  # Wrap the data with the client address
-            print(f"Forwarding request to {FORWARDING2_SERVER_IP}:{FORWARDING2_SERVER_PORT}")
-            forward_socket.sendto(packed_data, (FORWARDING2_SERVER_IP, FORWARDING2_SERVER_PORT))
-            forward_socket.close()
-        elif is_in_quadrant_3(coordinates):
-            forward_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            packed_data = pickle.dumps((data, addr))  # Wrap the data with the client address
-            print(f"Forwarding request to {FORWARDING3_SERVER_IP}:{FORWARDING3_SERVER_PORT}")
-            forward_socket.sendto(packed_data, (FORWARDING3_SERVER_IP, FORWARDING3_SERVER_PORT))
-            forward_socket.close()
-        elif is_in_quadrant_4(coordinates):
-            forward_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            packed_data = pickle.dumps((data, addr))  # Wrap the data with the client address
-            print(f"Forwarding request to {FORWARDING4_SERVER_IP}:{FORWARDING4_SERVER_PORT}")
-            forward_socket.sendto(packed_data, (FORWARDING4_SERVER_IP, FORWARDING4_SERVER_PORT))
+            forward_socket.sendto(packed_data, (forwarding_ip, forwarding_port))
             forward_socket.close()
         else:
-            print(f"Coordinates {coordinates} are not in quadrant 1 or 2or 3 or 4, not forwarding request.")
+            print(f"⚠ Could not determine quadrant for player ID {player_id}. Request not forwarded.")
 
     except Exception as ex:
-        print(f"Error forwarding request: {str(ex)}")
+        print(f"❌ Error processing request: {str(ex)}")
 
 def udp_server(ip, port):
     """
-    Start the UDP server that listens for client requests and forwards them if valid.
+    מפעיל שרת UDP שמאזין לבקשות ומעביר אותן בהתאם למיקום מה-Database.
     """
-    print("Starting UDP forwarder server...")
+    print("🌐 Starting UDP forwarder server...")
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     server_socket.bind((ip, port))
-    print(f"Server started at {ip}:{port} and waiting for data...")
+    print(f"✅ Server started at {ip}:{port}, waiting for data...")
 
     while True:
         try:
             data, addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
-            print(f"Received data from {addr}")
+            print(f"📩 Received data from {addr}")
             request_handler(data, addr)
 
         except Exception as ex:
-            print(f"Client exception: {str(ex)}")
+            print(f"❌ Client exception: {str(ex)}")
 
 def main():
     udp_server(DNS_SERVER_IP, DNS_SERVER_PORT)
