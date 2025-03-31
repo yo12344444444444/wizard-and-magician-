@@ -8,6 +8,7 @@ cursor = conn.cursor()
 # Delete old tables if they exist
 cursor.execute("DROP TABLE IF EXISTS players;")
 cursor.execute("DROP TABLE IF EXISTS items;")
+cursor.execute("DROP TABLE IF EXISTS bots;")
 
 # Create the players table with username and securely stored password
 cursor.execute("""
@@ -22,6 +23,18 @@ CREATE TABLE players (
     status TEXT NOT NULL DEFAULT 'active'
 );
 """)
+
+# Create bots table with additional column for last_direction_time
+cursor.execute('''
+   CREATE TABLE IF NOT EXISTS bots (
+       bot_id INTEGER PRIMARY KEY AUTOINCREMENT,
+       position_x INTEGER NOT NULL,
+       position_y INTEGER NOT NULL,
+       health INTEGER DEFAULT 100,
+       bot_type TEXT CHECK(bot_type IN ('melee', 'ranged')) NOT NULL,
+       last_direction_time INTEGER DEFAULT 0  -- זמן שינוי הכיוון
+   )
+''')
 
 # Create the items table
 cursor.execute("""
@@ -69,6 +82,19 @@ cursor.execute(
 cursor.execute("INSERT INTO items (player_id, item_name, quantity) VALUES (1, 'Sword', 1);")
 cursor.execute("INSERT INTO items (player_id, item_name, quantity) VALUES (1, 'HealthPotion', 3);")
 cursor.execute("INSERT INTO items (player_id, item_name, quantity) VALUES (2, 'Bow', 1);")
+
+# Insert example bots
+cursor.execute(
+    "INSERT INTO bots (bot_type, position_x, position_y, health) VALUES (?, ?, ?, ?);",
+    ("melee", 22000, 39000, 100))  # בוט לתקיפה קרובה
+
+cursor.execute(
+    "INSERT INTO bots (bot_type, position_x, position_y, health) VALUES (?, ?, ?, ?);",
+    ("ranged", 23000, 40000, 80))  # בוט לתקיפה רחוקה
+
+cursor.execute(
+    "INSERT INTO bots (bot_type, position_x, position_y, health) VALUES (?, ?, ?, ?);",
+    ("melee", 24000, 38000, 120))  # בוט נוסף לתקיפה קרובה
 
 # Save changes and close the connection
 conn.commit()
