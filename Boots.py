@@ -11,6 +11,15 @@ CHANGE_DIRECTION_INTERVAL = 2  # Seconds before changing direction
 SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
 NUM_BOTS = 5
 
+# Load bot images
+pygame.init()
+bot_images = {
+    "front": pygame.image.load("graphic/Ghost_Front.jpg"),
+    "back": pygame.image.load("graphic/Ghost_Back.jpg"),
+    "left": pygame.image.load("graphic/Ghost_Left.jpg"),
+    "right": pygame.image.load("graphic/Ghost_Right.jpg")
+}
+
 def get_players():
     conn = sqlite3.connect("DATABASE_GAME.db")
     cursor = conn.cursor()
@@ -58,8 +67,7 @@ def update_bots():
             new_x, new_y = bot_x + dx, bot_y + dy
         else:
             if current_time - last_dir_time > CHANGE_DIRECTION_INTERVAL:
-                angle = random.uniform(0, 2 * math.pi)
-                dir_x, dir_y = math.cos(angle) * BOT_SPEED, math.sin(angle) * BOT_SPEED
+                dir_x, dir_y = random.choice([-1, 1]) * BOT_SPEED, random.choice([-1, 1]) * BOT_SPEED
                 last_dir_time = current_time
             new_x, new_y = bot_x + dir_x, bot_y + dir_y
 
@@ -73,8 +81,16 @@ def update_bots():
     conn.close()
 
 def draw_bots(screen, bots):
-    for _, x, y, _, _, _ in bots:
-        pygame.draw.circle(screen, (255, 0, 0), (int(x), int(y)), 10)
+    for _, x, y, dir_x, dir_y, _ in bots:
+        if dir_y < 0:
+            bot_img = bot_images["front"]
+        elif dir_y > 0:
+            bot_img = bot_images["back"]
+        elif dir_x < 0:
+            bot_img = bot_images["left"]
+        else:
+            bot_img = bot_images["right"]
+        screen.blit(bot_img, (int(x) - bot_img.get_width() // 2, int(y) - bot_img.get_height() // 2))
 
 def game_loop():
     pygame.init()
