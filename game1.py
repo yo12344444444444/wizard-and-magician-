@@ -14,7 +14,6 @@ HOST = '127.0.0.1'
 PORT = 8821
 DEFAULT_BUFFER_SIZE = 1024
 rect_width, rect_height = 48, 93
-a = False
 frames_per_second = 30
 window_height = 800
 window_width = 1000
@@ -134,7 +133,6 @@ def get_players():
     cursor.execute("SELECT player_id, position_x, position_y FROM players")
     players = cursor.fetchall()
     conn.close()
-    print("Players from database:", players)
     return players
 
 def update_player_position(player_id, x, y):
@@ -143,7 +141,6 @@ def update_player_position(player_id, x, y):
     cursor.execute("UPDATE players SET position_x=?, position_y=? WHERE player_id=?", (x, y, player_id))
     conn.commit()
     conn.close()
-    print(f"Updated Player Position: {x}, {y}")
 
 def get_bots():
     conn = sqlite3.connect("DATABASE_GAME.db")
@@ -211,7 +208,6 @@ def draw_bots(screen, bots):
         screen.blit(bot_img, (int(x) - bot_img.get_width() // 2, int(y) - bot_img.get_height() // 2))
 
 def draw_players(screen, players):
-    print("Drawing players:", players)
     for _, x, y in players:
         screen.blit(player_image, (int(x), int(y)))
 
@@ -220,14 +216,6 @@ def game_loop():
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     clock = pygame.time.Clock()
     running = True
-    players = get_players()
-
-    if not players:
-        print("No players found in the database!")
-        return
-
-    player_id = players[0][0]
-    player_x, player_y = players[0][1], players[0][2]
 
     while running:
         clock.tick(frames_per_second)
@@ -240,7 +228,15 @@ def game_loop():
         update_bots()
         bots = get_bots()
         draw_bots(screen, bots)
+
+        players = get_players()
+        if not players:
+            print("No players found in the database!")
+            continue
+
         draw_players(screen, players)
+
+        a = False # הגדרת a בתחילת כל איטרציה
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -253,12 +249,14 @@ def game_loop():
                 print(result)
                 if 173 + 93 + tolernsStoneSword > y > 173 - tolernsStoneSword and 377 + 48 + tolernsStoneSword > x > 377 - tolernsStoneSword:
                     a = True
-                else:
-                    a = False
+
         if a:
             pygame.draw.rect(screen, blue, (x, y, rect_width, rect_height))
 
+        # עדכון מיקום השחקן
+        player_id = players[0][0]
         keys = pygame.key.get_pressed()
+        player_x, player_y = players[0][1], players[0][2]
 
         if keys[pygame.K_w]:
             player_y = max(0, player_y - PLAYER_SPEED)
