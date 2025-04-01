@@ -266,9 +266,7 @@ def game_loop():
             player_x = max(0, player_x - PLAYER_SPEED)
         if keys[pygame.K_d]:
             player_x = min(SCREEN_WIDTH, player_x + PLAYER_SPEED)
-
         update_player_position(player_id, player_x, player_y)
-
         pygame.display.flip()
         clock.tick(60)
 
