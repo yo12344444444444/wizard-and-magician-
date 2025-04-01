@@ -15,7 +15,19 @@ class MathUtils:
             arr_obj.append((False, obj_id, x, y_pos, id))
            # print(arr_obj)
         return arr_obj
+    @staticmethod
+    def killObj(id):
+        with open("ips.json", "r+") as f:
+            data = json.load(f)  # Load JSON data
 
+            if "players" in data and id in data["players"]:
+                data["players"].pop(id)  # Remove the ID if it exists
+
+                f.seek(0)  # Move cursor to the beginning of the file
+                json.dump(data, f, indent=4)  # Write updated JSON with indentation
+                f.truncate()  # Remove leftover content if file size shrinks
+            else:
+                print(f"ID {id} not found in players.")
     @staticmethod
     def build_array_of_packets(arr_obj):
         """

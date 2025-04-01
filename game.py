@@ -5,11 +5,12 @@ import json
 from genericFunction import MathUtils
 
 tolernsStoneSword = 10
-HOST = '127.0.0.1'  # Use the server's IP address here
+HOST = '127.0.0.1'
 PORT = 8821
 DEFAULT_BUFFER_SIZE = 1024
 x, y, rect_width, rect_height = 200, 150, 48, 93
-a =False
+a = False
+
 # Initialize pygame
 pygame.init()
 
@@ -20,13 +21,14 @@ window_width = 1000
 
 # Colors
 WHITE = (255, 255, 255)
-blue =(0,0,0)
+BLUE = (0, 0, 0)
+
 # Creating window
 display = pygame.display.set_mode((window_width, window_height))
 clock = pygame.time.Clock()
 display.fill(WHITE)
-
-# Ask for the player's initial coin value (must be between 0-1023)
+initial_coin=0
+# Get player coin value
 while True:
     try:
         initial_coin = int(input("Enter your starting coin value (0-1023): "))
@@ -37,8 +39,7 @@ while True:
         print("Invalid input! Please enter a valid number.")
 
 # Player data
-players_pos = {"a": [222, 2]}  # Store player positions
-players_coins = [0,initial_coin]  # Store player coin values
+players_pos = ["n", [222, 2]]  # Store player positions
 
 def build_array_of_packets(arr_obj):
     packet = f'{1:01b}' if arr_obj[0] else f'{0:01b}'
@@ -57,12 +58,12 @@ def response_to_bytes(array_for_client):
 def put(id):
     with open("Objects.json", "r") as f:
         y = json.load(f)
-    return y["On map objects"][id]['file']
+    return y["On map objects"].get(id, {}).get('file', "default.png")  # Default fallback
 
 class ObjectPlacer:
     def __init__(self, pos, id):
         self.pos = pos
-        self.img = pygame.image.load("graphic/" + put(id))
+        self.img = pygame.image.load(f"graphic/{put(id)}")
         display.blit(self.img, pos)
 
 def parse_binary_response(binary_data):
@@ -82,8 +83,7 @@ def parse_binary_response(binary_data):
 def get_data():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     retries = 3
-    coin_value_a = players_coins[1]
-    response_a = build_array_of_packets((False, "a", players_pos["a"][0], players_pos["a"][1], coin_value_a))
+    response_a = build_array_of_packets((False, players_pos[0], players_pos[1][0], players_pos[1][1], initial_coin))
     response_in_bytes = response_to_bytes([response_a])
 
     for attempt in range(retries):
@@ -91,7 +91,6 @@ def get_data():
             client_socket.sendto(response_in_bytes, (HOST, PORT))
             response, _ = client_socket.recvfrom(DEFAULT_BUFFER_SIZE)
             decoded_objects = parse_binary_response(response)
-            # Update player coins and other data
             return decoded_objects
         except ConnectionResetError as e:
             print(f"Connection reset on attempt {attempt + 1}: {e}")
@@ -99,12 +98,13 @@ def get_data():
                 print("Retrying...")
             else:
                 print("Max retries reached. Returning empty list.")
-                return []  # Return empty list if retries are exhausted
+                return []
         finally:
-            client_socket.close()
+            client_socket.close()  # Close socket **after** all attempts
 
 # Main game loop
-while True:
+running = True
+while running:
     clock.tick(frames_per_second)
     display.fill(WHITE)
 
@@ -114,29 +114,41 @@ while True:
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
+            running = False
+
         if event.type == pygame.MOUSEBUTTONDOWN:
-            x, y = event.pos  # Get mouse position
             arr = MathUtils.getObjects()
-            result = next((sub_arr for sub_arr in arr if sub_arr[4] == 'b'), None)
-            print(result)
-            if 173+93+tolernsStoneSword > y > 173-tolernsStoneSword and 377+48+tolernsStoneSword > x > 377-tolernsStoneSword:
-                a=True
+            x, y = event.pos  # Get mouse position
+            for obj in arr:
+                obj_x, obj_y = obj[2], obj[3]
+                if obj_x - tolernsStoneSword <= x <= obj_x + 93 + tolernsStoneSword and \
+                   obj_y - tolernsStoneSword <= y <= obj_y + 48 + tolernsStoneSword:
+                    a = True
+                    b = obj[1]
+                    break  # Exit loop early if found
             else:
-                a=False
-    if a:
-        pygame.draw.rect(display, blue, (x, y, rect_width, rect_height))
+                a = False  # If no object is clicked, reset `a`
 
+            if a:
+                MathUtils.killObj(b)
+                print("hi")
+
+    # Handle movement (keys are checked inside the event loop now)
     keys = pygame.key.get_pressed()
-
     if keys[pygame.K_w]:
-        players_pos["a"][1] -= 5
+        players_pos[1][1] -= 5
+        players_pos[0] = "r"
     if keys[pygame.K_s]:
-        players_pos["a"][1] += 5
+        players_pos[1][1] += 5
+        players_pos[0] = "o"
     if keys[pygame.K_a]:
-        players_pos["a"][0] -= 5
+        players_pos[1][0] -= 5
+        players_pos[0] = "p"
     if keys[pygame.K_d]:
-        players_pos["a"][0] += 5
+        players_pos[1][0] += 5
+        players_pos[0] = "q"
 
     pygame.display.flip()
+
+pygame.quit()
+sys.exit()
