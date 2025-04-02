@@ -8,8 +8,8 @@ services:
     ports:
 #      - "8820:8820"
 #      - "8821:8821"
-      - "8823:8823"
-      - "8824:8824"
+      - "8823:8823/udp"
+      - "8824:8824/udp"
 #      - "8825:8825"
 #      - "8826:8826"
     volumes:
@@ -27,7 +27,7 @@ services:
       context: .
     image: nettahalamish/cyber-project-grade-11:latest
     ports:
-      - "8820:8820"
+      - "8820:8820/udp"
     depends_on:
       - main_server
     volumes:
@@ -41,7 +41,7 @@ services:
       context: .
     image: nettahalamish/cyber-project-grade-11:latest
     ports:
-      - "8821:8821"
+      - "8821:8821/udp"
     depends_on:
       - main_server
     volumes:
@@ -55,7 +55,7 @@ services:
       context: .
     image: nettahalamish/cyber-project-grade-11:latest
     ports:
-      - "8825:8825"
+      - "8825:8825/udp"
     depends_on:
       - main_server
     volumes:
@@ -69,7 +69,7 @@ services:
       context: .
     image: nettahalamish/cyber-project-grade-11:latest
     ports:
-      - "8826:8826"
+      - "8826:8826/udp"
     depends_on:
       - main_server
     volumes:
