@@ -1,4 +1,3 @@
-import pygame
 import sqlite3
 import bcrypt
 

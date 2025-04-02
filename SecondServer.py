@@ -2,7 +2,7 @@ import socket
 import pickle
 
 IP = '0.0.0.0'
-PORT = 8824
+PORT = 8820
 DEFAULT_BUFFER_SIZE = 1024
 
 def handle_client(packed_data, server_socket):

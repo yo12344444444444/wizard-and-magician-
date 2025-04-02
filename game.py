@@ -4,12 +4,12 @@ import socket
 import json
 from genericFunction import MathUtils
 
-tolernsStoneSword = 10
+tolerantStoneSword = 10
 HOST = '127.0.0.1'  # Use the server's IP address here
 PORT = 8821
 DEFAULT_BUFFER_SIZE = 1024
 x, y, rect_width, rect_height = 200, 150, 48, 93
-a =False
+a = False
 # Initialize pygame
 pygame.init()
 
@@ -20,7 +20,7 @@ window_width = 1000
 
 # Colors
 WHITE = (255, 255, 255)
-blue =(0,0,0)
+blue = (0, 0, 0)
 # Creating window
 display = pygame.display.set_mode((window_width, window_height))
 clock = pygame.time.Clock()
@@ -38,7 +38,8 @@ while True:
 
 # Player data
 players_pos = {"a": [222, 2]}  # Store player positions
-players_coins = [0,initial_coin]  # Store player coin values
+players_coins = [0, initial_coin]  # Store player coin values
+
 
 def build_array_of_packets(arr_obj):
     packet = f'{1:01b}' if arr_obj[0] else f'{0:01b}'
@@ -48,16 +49,19 @@ def build_array_of_packets(arr_obj):
     packet += f'{arr_obj[4]:010b}'.zfill(10)
     return packet
 
+
 def response_to_bytes(array_for_client):
     combined_bit_string = ''.join(array_for_client)
     number = int(combined_bit_string, 2)
     byte_value = number.to_bytes((len(combined_bit_string) + 7) // 8, 'big')
     return byte_value
 
+
 def put(id):
     with open("Objects.json", "r") as f:
         y = json.load(f)
     return y["On map objects"][id]['file']
+
 
 class ObjectPlacer:
     def __init__(self, pos, id):
@@ -65,11 +69,12 @@ class ObjectPlacer:
         self.img = pygame.image.load("graphic/" + put(id))
         display.blit(self.img, pos)
 
+
 def parse_binary_response(binary_data):
     bit_string = ''.join(f"{byte:08b}" for byte in binary_data)
     objects = []
     for i in range(0, len(bit_string), 40):
-        packet = bit_string[i:i+40]
+        packet = bit_string[i:i + 40]
         if len(packet) < 40:
             continue
         rotation = int(packet[0], 2)
@@ -78,6 +83,7 @@ def parse_binary_response(binary_data):
         y_coord = int(packet[19:30], 2)
         objects.append((bool(rotation), object_id, x_coord, y_coord))
     return objects
+
 
 def get_data():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -103,6 +109,7 @@ def get_data():
         finally:
             client_socket.close()
 
+
 # Main game loop
 while True:
     clock.tick(frames_per_second)
@@ -121,10 +128,10 @@ while True:
             arr = MathUtils.getObjects()
             result = next((sub_arr for sub_arr in arr if sub_arr[4] == 'b'), None)
             print(result)
-            if 173+93+tolernsStoneSword > y > 173-tolernsStoneSword and 377+48+tolernsStoneSword > x > 377-tolernsStoneSword:
-                a=True
+            if 173 + 93 + tolerantStoneSword > y > 173 - tolerantStoneSword and 377 + 48 + tolerantStoneSword > x > 377 - tolerantStoneSword:
+                a = True
             else:
-                a=False
+                a = False
     if a:
         pygame.draw.rect(display, blue, (x, y, rect_width, rect_height))
 
