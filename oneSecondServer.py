@@ -4,7 +4,7 @@ from genericFunction import MathUtils
 
 # Server connection settings
 HOST = '127.0.0.1'
-PORT = 8821
+PORT = 8822
 DEFAULT_BUFFER_SIZE = 1024
 
 
