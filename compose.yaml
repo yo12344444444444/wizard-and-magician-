@@ -6,19 +6,10 @@ services:
     image: nettahalamish/cyber-project-grade-11:latest
     command: ["python", "MainServer.py"]
     ports:
-#      - "8820:8820"
-#      - "8821:8821"
       - "8823:8823/udp"
       - "8824:8824/udp"
-#      - "8825:8825"
-#      - "8826:8826"
     volumes:
       - ./app/DATABASE_GAME.db:/app/database.db
-    environment:
-      - SECOND_SERVER_1=http://second-server-1:8820
-      - SECOND_SERVER_2=http://second-server-2:8821
-      - SERVER_3=http://server3:8825
-      - SERVER_4=http://server4:8826
     restart: always
 
   second_server_1:

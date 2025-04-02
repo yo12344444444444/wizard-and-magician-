@@ -13,7 +13,7 @@ a = False
 # Initialize pygame
 pygame.init()
 
-# Configurations
+# Configurationss
 frames_per_second = 30
 window_height = 800
 window_width = 1000
