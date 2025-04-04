@@ -6,8 +6,7 @@ services:
     image: nettahalamish/cyber-project-grade-11:latest
     command: ["python", "MainServer.py"]
     ports:
-      - "8823:8823/udp"
-      - "8824:8824/udp"
+      - "8821:8821/udp"
     volumes:
       - ./app/DATABASE_GAME.db:/app/database.db
     restart: always
@@ -32,7 +31,7 @@ services:
       context: .
     image: nettahalamish/cyber-project-grade-11:latest
     ports:
-      - "8821:8821/udp"
+      - "8822:8822/udp"
     depends_on:
       - main_server
     volumes:
