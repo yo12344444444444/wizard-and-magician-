@@ -27,10 +27,10 @@ pygame.init()
 
 # Load bot images
 bot_images = {
-    "up": pygame.image.load("GRAphic/ghost_back.png"),
-    "down": pygame.image.load("GRAphic/ghost_front.png"),
-    "left": pygame.image.load("GRAphic/ghost_left.png"),
-    "right": pygame.image.load("GRAphic/ghost_right.png")
+    "up": pygame.image.load("graphic/Ghost_Back.png"),
+    "down": pygame.image.load("graphic/Ghost_Front.png"),
+    "left": pygame.image.load("graphic/Ghost_Left.png"),
+    "right": pygame.image.load("graphic/Ghost_Right.png")
 }
 
 def get_players():
