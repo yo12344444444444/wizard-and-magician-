@@ -4,7 +4,7 @@ import socket
 import json
 from genericFunction import MathUtils
 
-tolernsStoneSword = 10
+tolernsStoneSword = 15
 HOST = '127.0.0.1'
 PORT = 8822
 DEFAULT_BUFFER_SIZE = 1024
@@ -27,7 +27,7 @@ BLUE = (0, 0, 0)
 display = pygame.display.set_mode((window_width, window_height))
 clock = pygame.time.Clock()
 display.fill(WHITE)
-initial_coin=0
+initial_coin = 0
 
 # Get player coin value
 while True:
@@ -43,12 +43,13 @@ while True:
 players_pos = ["n", [22222, 222222]]  # Store player positions
 player_width, player_height = 48, 93
 
+
 def build_array_of_packets(arr_obj):
     # Generate the binary packet properly, ensuring it's just binary (no `-` or other symbols)
     packet = f'{1:01b}' if arr_obj[0] else f'{0:01b}'
     packet += f'{ord(arr_obj[1]):07b}'.zfill(7)
     packet += f'{arr_obj[2]:017b}'.zfill(11)
-  #  print(packet)
+    #  print(packet)
     packet += f'{arr_obj[3]:017b}'.zfill(11)
     packet += f'{arr_obj[4]:010b}'.zfill(10)
     # Make sure no non-binary characters are present
@@ -56,6 +57,7 @@ def build_array_of_packets(arr_obj):
         raise ValueError(f"Invalid binary string: {packet}")
 
     return packet
+
 
 def response_to_bytes(array_for_client):
     # Combine the array of binary strings into one large string
@@ -78,17 +80,19 @@ def put(id):
         y = json.load(f)
     return y["On map objects"].get(id, {}).get('file', "Walking_Front_1.jpg")  # Default fallback
 
+
 class ObjectPlacer:
     def __init__(self, pos, id):
         self.pos = pos
         self.img = pygame.image.load(f"graphic/{put(id)}")
         display.blit(self.img, pos)
 
+
 def parse_binary_response(binary_data):
     bit_string = ''.join(f"{byte:08b}" for byte in binary_data)
     objects = []
     for i in range(0, len(bit_string), 52):
-        packet = bit_string[i:i+52]
+        packet = bit_string[i:i + 52]
         if len(packet) < 52:
             continue
         rotation = int(packet[0], 2)
@@ -98,11 +102,12 @@ def parse_binary_response(binary_data):
         objects.append((bool(rotation), object_id, x_coord, y_coord))
     return objects
 
+
 def get_data():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     retries = 3
-   # print(players_pos[0])
-    response_a = MathUtils.build_array_of_packets((False, players_pos[0], players_pos[1][0], players_pos[1][1], initial_coin))
+    response_a = MathUtils.build_array_of_packets(
+        (False, players_pos[0], players_pos[1][0], players_pos[1][1], initial_coin))
     response_in_bytes = response_to_bytes([response_a])
 
     for attempt in range(retries):
@@ -121,6 +126,7 @@ def get_data():
         finally:
             client_socket.close()  # Close socket **after** all attempts
 
+
 # Main game loop
 running = True
 camera_x, camera_y = 0, 0  # Camera position
@@ -129,26 +135,27 @@ while running:
     clock.tick(frames_per_second)
     display.fill(WHITE)
 
-    # Get game objects
     game_objects = get_data()
     ObjectPlacer((camera_x, camera_y), players_pos[0])
     # Adjust object positions based on camera offset
     arr = MathUtils.getObjects()
     for obj_data in arr:
-        ObjectPlacer((obj_data[2] - players_pos[1][0], obj_data[3]- players_pos[1][1]), obj_data[1])  # Offset by camera
+        ObjectPlacer((obj_data[2] - players_pos[1][0], obj_data[3] - players_pos[1][1]),
+                     obj_data[1])  # Offset by camera
 
     # Handle events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
-
         if event.type == pygame.MOUSEBUTTONDOWN:
             arr = MathUtils.getObjects()
             x, y = event.pos  # Get mouse position
             for obj in arr:
                 obj_x, obj_y = obj[2], obj[3]
-                if obj_x - players_pos[1][0] - tolernsStoneSword <= x <= obj_x - players_pos[1][0] + 93 + tolernsStoneSword and \
-                   obj_y - players_pos[1][1] - tolernsStoneSword <= y <= obj_y - players_pos[1][1] + 48 + tolernsStoneSword:
+                if obj_x - players_pos[1][0] - tolernsStoneSword <= x <= obj_x - players_pos[1][
+                    0] + 93 + tolernsStoneSword and \
+                        obj_y - players_pos[1][1] - tolernsStoneSword <= y <= obj_y - players_pos[1][
+                    1] + 48 + tolernsStoneSword:
                     a = True
                     b = obj[1]
                     break  # Exit loop early if found
@@ -174,8 +181,8 @@ while running:
         players_pos[0] = "q"
 
     # Keep the camera centered on the player
-    camera_x = window_width // 2 -120
-    camera_y = window_height // 2 -80
+    camera_x = window_width // 2 - 120
+    camera_y = window_height // 2 - 80
 
     pygame.display.flip()
 
