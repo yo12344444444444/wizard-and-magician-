@@ -38,10 +38,10 @@ display.fill(WHITE)
 
 # טעינת תמונות
 bot_images = {
-    "front": pygame.image.load("graphic/Ghost_Front.jpg"),
-    "back": pygame.image.load("graphic/Ghost_Back.jpg"),
-    "left": pygame.image.load("graphic/Ghost_Left.jpg"),
-    "right": pygame.image.load("graphic/Ghost_Front.jpg")
+    "front": pygame.image.load("graphic/Ghost_Front.png"),
+    "back": pygame.image.load("graphic/Ghost_Back.png"),
+    "left": pygame.image.load("graphic/Ghost_Left.png"),
+    "right": pygame.image.load("graphic/Ghost_Front.png")
 }
 player_image = pygame.image.load("graphic/Blue_flower.jpg")
 
