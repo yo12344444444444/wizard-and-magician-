@@ -4,7 +4,7 @@ import socket
 import json
 from genericFunction import MathUtils
 
-tolernsStoneSword = 15
+tolernsStoneSword = 10
 HOST = '127.0.0.1'
 PORT = 8822
 DEFAULT_BUFFER_SIZE = 1024
@@ -20,7 +20,7 @@ window_height = 800
 window_width = 1000
 
 # Colors
-WHITE = (255, 255, 255)
+WHITE = (0, 255, 0)
 BLUE = (0, 0, 0)
 
 # Creating window
@@ -75,6 +75,7 @@ def response_to_bytes(array_for_client):
 
     return byte_value
 
+
 def put(id):
     with open("Objects.json", "r") as f:
         y = json.load(f)
@@ -126,7 +127,6 @@ def get_data():
         finally:
             client_socket.close()  # Close socket **after** all attempts
 
-
 # Main game loop
 running = True
 camera_x, camera_y = 0, 0  # Camera position
@@ -134,53 +134,65 @@ camera_x, camera_y = 0, 0  # Camera position
 while running:
     clock.tick(frames_per_second)
     display.fill(WHITE)
-
+    can_move_up = True
+    can_move_down = True
+    can_move_left = True
+    can_move_right = True
     game_objects = get_data()
     ObjectPlacer((camera_x, camera_y), players_pos[0])
     # Adjust object positions based on camera offset
     arr = MathUtils.getObjects()
     for obj_data in arr:
-        ObjectPlacer((obj_data[2] - players_pos[1][0], obj_data[3] - players_pos[1][1]),
-                     obj_data[1])  # Offset by camera
+        obj_x, obj_y = obj_data[2], obj_data[3]
+        if int(obj_data[1]) != initial_coin:
+            if obj_x - 80 <= players_pos[1][0] <= obj_x + 80 and obj_y - 122 <= players_pos[1][1] <= obj_y + 122:
+                if players_pos[1][1] > obj_y:
+                    can_move_up = False
+                if players_pos[1][1] < obj_y:
+                    can_move_down = False
+                if players_pos[1][0] > obj_x:
+                    can_move_left = False
+                if players_pos[1][0] < obj_x:
+                    can_move_right = False
+
+        if int(obj_data[1]) != initial_coin:
+            ObjectPlacer((obj_x - players_pos[1][0]+ camera_x, obj_y - players_pos[1][1]+ camera_y), obj_data[1])  # Offset by camera
 
     # Handle events
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.MOUSEBUTTONDOWN:
-            arr = MathUtils.getObjects()
-            x, y = event.pos  # Get mouse position
+            x, y = event.pos  # Get mouse position on screen
+
             for obj in arr:
                 obj_x, obj_y = obj[2], obj[3]
-                if obj_x - players_pos[1][0] - tolernsStoneSword <= x <= obj_x - players_pos[1][
-                    0] + 93 + tolernsStoneSword and \
-                        obj_y - players_pos[1][1] - tolernsStoneSword <= y <= obj_y - players_pos[1][
-                    1] + 48 + tolernsStoneSword:
-                    a = True
-                    b = obj[1]
-                    break  # Exit loop early if found
-            else:
-                a = False  # If no object is clicked, reset `a`
+                screen_x = obj_x - players_pos[1][0] + camera_x
+                screen_y = obj_y - players_pos[1][1] + camera_y
 
-            if a:
-                MathUtils.killObj(b)
+                if (
+                    screen_x - tolernsStoneSword <= x <= screen_x + 48 + tolernsStoneSword and
+                    screen_y - tolernsStoneSword <= y <= screen_y + 0 + tolernsStoneSword
+                ):
+                    MathUtils.killObj(obj[1])  # Kill the object by ID
+                    break  # Exit loop after first kill
 
     # Handle movement (keys are checked inside the event loop now)
     keys = pygame.key.get_pressed()
-    if keys[pygame.K_w]:
+    if keys[pygame.K_w] and can_move_up:
         players_pos[1][1] -= 5
         players_pos[0] = "r"
-    if keys[pygame.K_s]:
+    if keys[pygame.K_s] and can_move_down:
         players_pos[1][1] += 5
         players_pos[0] = "o"
-    if keys[pygame.K_a]:
+    if keys[pygame.K_a] and can_move_left:
         players_pos[1][0] -= 5
         players_pos[0] = "p"
-    if keys[pygame.K_d]:
+    if keys[pygame.K_d] and can_move_right:
         players_pos[1][0] += 5
         players_pos[0] = "q"
 
-    # Keep the camera centered on the player
+
     camera_x = window_width // 2 - 120
     camera_y = window_height // 2 - 80
 
