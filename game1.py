@@ -133,9 +133,9 @@ while running:
     game_objects = get_data()
     ObjectPlacer((camera_x, camera_y), players_pos[0])
     # Adjust object positions based on camera offset
-    for obj_data in game_objects:
-        #print(obj_data)
-        ObjectPlacer((obj_data[2], obj_data[3]), obj_data[1])  # Offset by camera
+    arr = MathUtils.getObjects()
+    for obj_data in arr:
+        ObjectPlacer((obj_data[2] - players_pos[1][0], obj_data[3]- players_pos[1][1]), obj_data[1])  # Offset by camera
 
     # Handle events
     for event in pygame.event.get():
@@ -147,8 +147,8 @@ while running:
             x, y = event.pos  # Get mouse position
             for obj in arr:
                 obj_x, obj_y = obj[2], obj[3]
-                if obj_x - tolernsStoneSword <= x <= obj_x + 93 + tolernsStoneSword and \
-                   obj_y - tolernsStoneSword <= y <= obj_y + 48 + tolernsStoneSword:
+                if obj_x - players_pos[1][0] - tolernsStoneSword <= x <= obj_x - players_pos[1][0] + 93 + tolernsStoneSword and \
+                   obj_y - players_pos[1][1] - tolernsStoneSword <= y <= obj_y - players_pos[1][1] + 48 + tolernsStoneSword:
                     a = True
                     b = obj[1]
                     break  # Exit loop early if found
@@ -157,7 +157,6 @@ while running:
 
             if a:
                 MathUtils.killObj(b)
-                print("hi")
 
     # Handle movement (keys are checked inside the event loop now)
     keys = pygame.key.get_pressed()
