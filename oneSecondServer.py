@@ -15,7 +15,7 @@ CHANGE_DIRECTION_INTERVAL = 2
 SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
 NUM_BOTS = 5
 HOST = '127.0.0.1'
-PORT = 8821
+PORT = 8822
 DEFAULT_BUFFER_SIZE = 1024
 
 tolernsStoneSword = 10
@@ -24,6 +24,63 @@ a = False
 
 # Initialize pygame
 pygame.init()
+def handle_client(packed_data, server_socket, client_addr):
+    # Load existing player data from the JSON file
+    try:
+        with open("ips.json", "r") as f:
+            y = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        y = {"players": {}}
+
+    if "players" not in y:
+        y["players"] = {}
+
+    # Parse the incoming data
+    player_data = MathUtils.parse_binary_response(packed_data)
+    if not player_data:
+        print(f"Invalid data from {client_addr}, ignoring...")
+        return
+
+    updated_ids = set()  # Track updated player IDs
+
+    # Process received player data
+    player_x, player_y = None, None
+    for obj in player_data:
+        obj_id = obj[4]
+        if obj_id not in y["players"]:
+            y["players"][obj_id] = {"pose": f"{obj[2]},{obj[3]}", "id": obj[1]}
+        else:
+            y["players"][obj_id]["pose"] = f"{obj[2]},{obj[3]}"
+        updated_ids.add(obj_id)
+
+        # Save current player's position
+        player_x, player_y = obj[2], obj[3]
+
+
+
+    # **Keep all existing players** (don't delete missing ones)
+
+    # Save updated player data to the JSON file
+    with open("ips.json", "w") as f:
+        json.dump(y, f, indent=1)
+
+    # Prepare the response for all players
+    arr_obj = []
+    for obj_id, data in y["players"].items():
+        x, y_pos = map(int, data["pose"].split(","))
+        if (obj[2]-(1920/2)<x<obj[2]+(1920/2)):
+            pass
+        id = data["id"]
+        arr_obj.append((False,id , x, y_pos, obj_id))
+
+    if not arr_obj:
+        print("No objects found, sending empty response.")
+        return
+
+    # Build and send response packets
+    response = [MathUtils.build_array_of_packets(obj) for obj in arr_obj]
+    response_in_bytes = MathUtils.response_to_bytes(response)
+    server_socket.sendto(response_in_bytes, client_addr)
 
 # Load bot images
 bot_images = {
@@ -105,6 +162,10 @@ def draw_bots(screen, bots):
             bot_img = bot_images["right"]
         screen.blit(bot_img, (int(x) - bot_img.get_width() // 2, int(y) - bot_img.get_height() // 2))
 
+
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+server_socket.bind((HOST, PORT))
+
 def game_loop():
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     clock = pygame.time.Clock()
@@ -113,6 +174,8 @@ def game_loop():
     players_coins = [0, 100]
 
     while running:
+        packed_data, client_addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
+        handle_client(packed_data, server_socket, client_addr)
         screen.fill((0, 0, 0))
         update_bots()
         bots = get_bots()

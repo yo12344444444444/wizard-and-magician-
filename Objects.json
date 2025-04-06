@@ -5,13 +5,18 @@
     "c": { "file": "Blueberry_Bush.jpg", "rotation": false },
     "d": { "file": "Bush.jpg", "rotation": false },
     "e": { "file": "Grass.jpg", "rotation": false },
-    "f": { "file": "Iron.jpg", "rotation": false },
-    "g": { "file": "Gold.jpg", "rotation": false },
-    "h": { "file": "Stones.jpg", "rotation": false },
+    "f": { "file": "Iron_Sword.jpg", "rotation": false },
+    "g": { "file": "Gold_Sword.jpg", "rotation": false },
+    "h": { "file": "Stones_Sword.jpg", "rotation": false },
     "i": { "file": "Blue_Flower.jpg", "rotation": false },
     "j": { "file": "Pink_Flower.jpg", "rotation": false },
     "k": { "file": "Purple_Flower.jpg", "rotation": false },
     "l": { "file": "Red_Flower.jpg", "rotation": false },
-    "m": { "file": "Yellow_Flower.jpg", "rotation": false }
+    "m": { "file": "Yellow_Flower.jpg", "rotation": false },
+    "n": { "file": "Walking_Front_1.jpg", "rotation": false },
+    "o": { "file": "Walking_Front_2.jpg", "rotation": false },
+    "p": { "file": "Walking_Left_2.jpg", "rotation": false },
+    "q": { "file": "Walking_Right_2.jpg", "rotation": false },
+    "r": { "file": "Standing_Back.jpg", "rotation": false }
   }
 }
