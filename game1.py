@@ -4,7 +4,7 @@ import socket
 import json
 from genericFunction import MathUtils
 
-tolernsStoneSword = 10
+tolernsStoneSword = 100
 HOST = '127.0.0.1'
 PORT = 8822
 DEFAULT_BUFFER_SIZE = 1024
@@ -20,7 +20,7 @@ window_height = 800
 window_width = 1000
 
 # Colors
-WHITE = (0, 255, 0)
+WHITE = (255, 255, 255)
 BLUE = (0, 0, 0)
 
 # Creating window
@@ -130,7 +130,14 @@ def get_data():
 # Main game loop
 running = True
 camera_x, camera_y = 0, 0  # Camera position
+def inRadius(obj, radius=100):
+    """Check if an object is within a given radius of the player."""
+    obj_x, obj_y = obj[2], obj[3]
+    player_x, player_y = players_pos[1]
 
+    distance_squared = (obj_x - player_x) ** 2 + (obj_y - player_y) ** 2
+    print(distance_squared <= radius ** 2)
+    return distance_squared <= radius ** 2
 while running:
     clock.tick(frames_per_second)
     display.fill(WHITE)
@@ -172,10 +179,10 @@ while running:
 
                 if (
                     screen_x - tolernsStoneSword <= x <= screen_x + 48 + tolernsStoneSword and
-                    screen_y - tolernsStoneSword <= y <= screen_y + 0 + tolernsStoneSword
-                ):
+                    screen_y - tolernsStoneSword <= y <= screen_y + 110 + tolernsStoneSword and (inRadius(obj, tolernsStoneSword))):
                     MathUtils.killObj(obj[1])  # Kill the object by ID
-                    break  # Exit loop after first kill
+                    arr = MathUtils.getObjects()  # Refresh list after kill
+                    break
 
     # Handle movement (keys are checked inside the event loop now)
     keys = pygame.key.get_pressed()
