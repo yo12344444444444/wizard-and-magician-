@@ -13,7 +13,6 @@ class MathUtils:
             x, y_pos = map(int, data["pose"].split(","))
             id = data["id"]
             arr_obj.append((False, obj_id, x, y_pos, id))
-           # print(arr_obj)
         return arr_obj
     @staticmethod
     def killObj(id):
@@ -32,28 +31,27 @@ class MathUtils:
     def build_array_of_packets(arr_obj):
         """
         arr_obj[(rot, id, x, y, coin),...]
-        Protocol (40-bit packet):
+        Protocol (52-bit packet):
         bit 0: 1 for rotation, 0 for no rotation
         bits 1-7: type of the object (from JSON)
-        bits 8-18: x coordinate
-        bits 19-29: y coordinate
-        bits 30-39: coin value (10 bits)
+        bits 8-25: x coordinate
+        bits 25-42: y coordinate
+        bits 42-52: coin value (10 bits)
         """
-        packet = f'{1:01b}' if arr_obj[0] else f'{0:01b}'
+        packet = f'{0:01b}'.zfill(1)
 
         # Object ID (7 bits)
-        packet += f'{ord(arr_obj[4]):07b}'.zfill(7)
+        packet += f'{ord(arr_obj[1]):07b}'.zfill(7)
 
         # X Coordinate (11 bits)
-        packet += f'{arr_obj[2]:011b}'.zfill(11)
+        packet += f'{arr_obj[2]:017b}'.zfill(17)
 
         # Y Coordinate (11 bits)
-        packet += f'{arr_obj[3]:011b}'.zfill(11)
+        packet += f'{arr_obj[3]:017b}'.zfill(17)
 
-        # Coin Value (10 bits)
-        coin_value = int(arr_obj[1])  # Ensure this is an integer (coin value, not object id)
-        print(coin_value)
+        coin_value = int(arr_obj[4])  # Ensure this is an integer (coin value, not object id)
         packet += f'{coin_value:010b}'.zfill(10)
+        packet += '0000'  # <--- Add 4 bits padding
 
         return packet
 
@@ -67,21 +65,26 @@ class MathUtils:
 
     @staticmethod
     def parse_binary_response(binary_data):
-        """ Parses the binary response into human-readable object data. """
         bit_string = ''.join(f"{byte:08b}" for byte in binary_data)
         objects = []
 
-        for i in range(0, len(bit_string), 40):  # Now packets are 40 bits
-            packet = bit_string[i:i+40]
-            if len(packet) < 40:
+        for i in range(0, len(bit_string), 56):  # 56-bit packets now
+            packet = bit_string[i:i+56]
+            if len(packet) < 52:
                 continue  # Ignore incomplete packets
-
             rotation = int(packet[0], 2)
             object_id = chr(int(packet[1:8], 2))
-            x_coord = int(packet[8:19], 2)
-            y_coord = int(packet[19:30], 2)
-            coin_value = int(packet[30:40], 2)
+            x_coord = int(packet[8:25], 2)
+            y_coord = int(packet[25:43], 2)
+
+            # Extract the 10-bit coin_value portion, and handle the case where it might be empty
+            coin_value_str = packet[43:53]
+            if coin_value_str and all(c in '01' for c in coin_value_str):  # Check if it's valid binary
+                coin_value = int(coin_value_str, 2)
+            else:
+                coin_value = 0  # Default value if coin_value field is malformed or empty
 
             objects.append((bool(rotation), object_id, x_coord, y_coord, coin_value))
-
+            print(objects)
         return objects
+

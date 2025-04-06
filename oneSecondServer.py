@@ -28,22 +28,19 @@ def handle_client(packed_data, server_socket, client_addr):
     updated_ids = set()  # Track updated player IDs
 
     # Process received player data
+    player_x, player_y = None, None
     for obj in player_data:
-        print(obj)
         obj_id = obj[4]
-        updated_ids.add(obj_id)  # Track this ID as updated
-
-        # Ensure the player data exists or update it
         if obj_id not in y["players"]:
-            print(f"Adding new player {obj_id}")
-            y["players"][obj_id] = {"pose": f"{obj[2]},{obj[3]}", "id": obj[1], "coin": 0}
+            y["players"][obj_id] = {"pose": f"{obj[2]},{obj[3]}", "id": obj[1]}
         else:
-            # Update position
             y["players"][obj_id]["pose"] = f"{obj[2]},{obj[3]}"
-            # Update coin and id if necessary
-            if obj[4] > y["players"][obj_id]["coin"]:
-                y["players"][obj_id]["coin"] = obj[4]
-                y["players"][obj_id]["id"] = obj[1]
+        updated_ids.add(obj_id)
+
+        # Save current player's position
+        player_x, player_y = obj[2], obj[3]
+
+
 
     # **Keep all existing players** (don't delete missing ones)
 
@@ -55,8 +52,10 @@ def handle_client(packed_data, server_socket, client_addr):
     arr_obj = []
     for obj_id, data in y["players"].items():
         x, y_pos = map(int, data["pose"].split(","))
+        if (obj[2]-(1920/2)<x<obj[2]+(1920/2)):
+            pass
         id = data["id"]
-        arr_obj.append((False, obj_id, x, y_pos, id))
+        arr_obj.append((False,id , x, y_pos, obj_id))
 
     if not arr_obj:
         print("No objects found, sending empty response.")
