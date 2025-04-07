@@ -4,7 +4,7 @@ import socket
 import json
 from genericFunction import MathUtils
 
-tolernsStoneSword = 10
+tolernsStoneSword = 100
 HOST = '127.0.0.1'
 PORT = 8826
 DEFAULT_BUFFER_SIZE = 1024
