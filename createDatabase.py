@@ -11,7 +11,7 @@ cursor.execute("DROP TABLE IF EXISTS items;")
 cursor.execute("DROP TABLE IF EXISTS bots;")
 cursor.execute("DROP TABLE IF EXISTS map_objects;")  # גם את זו אם קיימת
 
-# יצירת טבלת players
+# טבלת players
 cursor.execute("""
 CREATE TABLE players (
     player_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -25,9 +25,9 @@ CREATE TABLE players (
 );
 """)
 
-# יצירת טבלת bots
+# טבלת bots
 cursor.execute('''
-CREATE TABLE IF NOT EXISTS bots (
+CREATE TABLE bots (
     bot_id INTEGER PRIMARY KEY AUTOINCREMENT,
     position_x INTEGER NOT NULL,
     position_y INTEGER NOT NULL,
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS bots (
 );
 ''')
 
-# יצירת טבלת items
+# טבלת items
 cursor.execute("""
 CREATE TABLE items (
     item_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,23 +48,25 @@ CREATE TABLE items (
 );
 """)
 
-# יצירת טבלת map_objects
+# טבלת map_objects עם מיקום!
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS map_objects (
+CREATE TABLE map_objects (
     object_id INTEGER PRIMARY KEY AUTOINCREMENT,
     code TEXT NOT NULL,
     file TEXT NOT NULL,
-    rotation BOOLEAN NOT NULL
+    rotation BOOLEAN NOT NULL,
+    position_x INTEGER NOT NULL,
+    position_y INTEGER NOT NULL
 );
 """)
 
-# פונקציה להצפנת סיסמא
+# הצפנת סיסמא
 def hash_password(password):
     salt = bcrypt.gensalt()
     hashed_password = bcrypt.hashpw(password.encode(), salt)
     return hashed_password
 
-# פונקציה לבדוק סיסמא
+# אימות סיסמא
 def verify_password(username, password):
     conn = sqlite3.connect("DATABASE_GAME.db")
     cursor = conn.cursor()
@@ -98,7 +100,7 @@ cursor.execute("INSERT INTO bots (bot_type, position_x, position_y, health) VALU
 cursor.execute("INSERT INTO bots (bot_type, position_x, position_y, health) VALUES (?, ?, ?, ?);",
                ("melee", 24000, 38000, 120))
 
-# הכנסת map objects מה-JSON
+# הכנסת map objects עם מיקום רנדומלי לדוגמה
 map_objects_json = {
     "On map objects": {
         "a": {"file": "Apple_Tree.jpg", "rotation": False},
@@ -117,12 +119,19 @@ map_objects_json = {
     }
 }
 
-for code, data in map_objects_json["On map objects"].items():
+# לדוגמה - מיקומים בין 21000-25000 ב-x ו-38000-42000 ב-y
+x_positions = [21500, 22000, 22500, 23000, 23500, 24000, 24500]
+y_positions = [38500, 39000, 39500, 40000, 40500, 41000, 41500]
+
+for idx, (code, data) in enumerate(map_objects_json["On map objects"].items()):
+    position_x = x_positions[idx % len(x_positions)]
+    position_y = y_positions[idx % len(y_positions)]
     cursor.execute("""
-    INSERT INTO map_objects (code, file, rotation) VALUES (?, ?, ?);
-    """, (code, data["file"], data["rotation"]))
+    INSERT INTO map_objects (code, file, rotation, position_x, position_y)
+    VALUES (?, ?, ?, ?, ?);
+    """, (code, data["file"], data["rotation"], position_x, position_y))
 
 conn.commit()
 conn.close()
 
-print("✅ Database successfully created with secure password storage and map objects!")
+print("✅ Database successfully created with map object positions!")
