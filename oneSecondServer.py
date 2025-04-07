@@ -122,12 +122,10 @@ def main():
         try:
             data, addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
             handle_client(data, addr)
-
             # Update bots every 1/30th of a second
             if time.time() - last_bot_update > 1 / 30:
                 update_bots()
                 last_bot_update = time.time()
-
         except Exception as e:
             print("Error:", e)
 
