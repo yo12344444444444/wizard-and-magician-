@@ -1,16 +1,17 @@
 import sqlite3
 import bcrypt
 
-# Create a connection to the database
+# יצירת חיבור למסד הנתונים
 conn = sqlite3.connect("DATABASE_GAME.db")
 cursor = conn.cursor()
 
-# Delete old tables if they exist
+# מחיקת טבלאות ישנות אם קיימות
 cursor.execute("DROP TABLE IF EXISTS players;")
 cursor.execute("DROP TABLE IF EXISTS items;")
 cursor.execute("DROP TABLE IF EXISTS bots;")
+cursor.execute("DROP TABLE IF EXISTS map_objects;")  # גם את זו אם קיימת
 
-# Create the players table with username and securely stored password
+# יצירת טבלת players
 cursor.execute("""
 CREATE TABLE players (
     player_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,19 +25,19 @@ CREATE TABLE players (
 );
 """)
 
-# Create bots table with additional column for last_direction_time
+# יצירת טבלת bots
 cursor.execute('''
-   CREATE TABLE IF NOT EXISTS bots (
-       bot_id INTEGER PRIMARY KEY AUTOINCREMENT,
-       position_x INTEGER NOT NULL,
-       position_y INTEGER NOT NULL,
-       health INTEGER DEFAULT 100,
-       bot_type TEXT CHECK(bot_type IN ('melee', 'ranged')) NOT NULL,
-       last_direction_time INTEGER DEFAULT 0  -- זמן שינוי הכיוון
-   )
+CREATE TABLE IF NOT EXISTS bots (
+    bot_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    position_x INTEGER NOT NULL,
+    position_y INTEGER NOT NULL,
+    health INTEGER DEFAULT 100,
+    bot_type TEXT CHECK(bot_type IN ('melee', 'ranged')) NOT NULL,
+    last_direction_time INTEGER DEFAULT 0
+);
 ''')
 
-# Create the items table
+# יצירת טבלת items
 cursor.execute("""
 CREATE TABLE items (
     item_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,29 +48,35 @@ CREATE TABLE items (
 );
 """)
 
+# יצירת טבלת map_objects
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS map_objects (
+    object_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT NOT NULL,
+    file TEXT NOT NULL,
+    rotation BOOLEAN NOT NULL
+);
+""")
 
+# פונקציה להצפנת סיסמא
 def hash_password(password):
-    """Function to hash a password using bcrypt"""
     salt = bcrypt.gensalt()
     hashed_password = bcrypt.hashpw(password.encode(), salt)
     return hashed_password
 
-
+# פונקציה לבדוק סיסמא
 def verify_password(username, password):
-    """Function to verify if the username and password match"""
     conn = sqlite3.connect("DATABASE_GAME.db")
     cursor = conn.cursor()
     cursor.execute("SELECT password_hash FROM players WHERE username = ?", (username,))
     result = cursor.fetchone()
     conn.close()
-
     if result:
         stored_hash = result[0]
         return bcrypt.checkpw(password.encode(), stored_hash.encode())
     return False
 
-
-# Insert players with hashed passwords
+# הכנסת שחקנים
 cursor.execute(
     "INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status) VALUES (?, ?, ?, ?, ?, ?, ?);",
     ("Player1", hash_password("password123"), 21600, 38400, 100, 200, 'active'))
@@ -78,26 +85,44 @@ cursor.execute(
     "INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status) VALUES (?, ?, ?, ?, ?, ?, ?);",
     ("Player2", hash_password("mysecurepass"), 21600, 38400, 100, 200, 'active'))
 
-# Insert example items for players
+# הכנסת חפצים
 cursor.execute("INSERT INTO items (player_id, item_name, quantity) VALUES (1, 'Sword', 1);")
 cursor.execute("INSERT INTO items (player_id, item_name, quantity) VALUES (1, 'HealthPotion', 3);")
 cursor.execute("INSERT INTO items (player_id, item_name, quantity) VALUES (2, 'Bow', 1);")
 
-# Insert example bots
-cursor.execute(
-    "INSERT INTO bots (bot_type, position_x, position_y, health) VALUES (?, ?, ?, ?);",
-    ("melee", 22000, 39000, 100))  # בוט לתקיפה קרובה
+# הכנסת בוטים
+cursor.execute("INSERT INTO bots (bot_type, position_x, position_y, health) VALUES (?, ?, ?, ?);",
+               ("melee", 22000, 39000, 100))
+cursor.execute("INSERT INTO bots (bot_type, position_x, position_y, health) VALUES (?, ?, ?, ?);",
+               ("ranged", 23000, 40000, 80))
+cursor.execute("INSERT INTO bots (bot_type, position_x, position_y, health) VALUES (?, ?, ?, ?);",
+               ("melee", 24000, 38000, 120))
 
-cursor.execute(
-    "INSERT INTO bots (bot_type, position_x, position_y, health) VALUES (?, ?, ?, ?);",
-    ("ranged", 23000, 40000, 80))  # בוט לתקיפה רחוקה
+# הכנסת map objects מה-JSON
+map_objects_json = {
+    "On map objects": {
+        "a": {"file": "Apple_Tree.jpg", "rotation": False},
+        "b": {"file": "Tree.jpg", "rotation": False},
+        "c": {"file": "Blueberry_Bush.jpg", "rotation": False},
+        "d": {"file": "Bush.jpg", "rotation": False},
+        "e": {"file": "Grass.jpg", "rotation": False},
+        "f": {"file": "Iron.jpg", "rotation": False},
+        "g": {"file": "Gold.jpg", "rotation": False},
+        "h": {"file": "Stones.jpg", "rotation": False},
+        "i": {"file": "Blue_Flower.jpg", "rotation": False},
+        "j": {"file": "Pink_Flower.jpg", "rotation": False},
+        "k": {"file": "Purple_Flower.jpg", "rotation": False},
+        "l": {"file": "Red_Flower.jpg", "rotation": False},
+        "m": {"file": "Yellow_Flower.jpg", "rotation": False}
+    }
+}
 
-cursor.execute(
-    "INSERT INTO bots (bot_type, position_x, position_y, health) VALUES (?, ?, ?, ?);",
-    ("melee", 24000, 38000, 120))  # בוט נוסף לתקיפה קרובה
+for code, data in map_objects_json["On map objects"].items():
+    cursor.execute("""
+    INSERT INTO map_objects (code, file, rotation) VALUES (?, ?, ?);
+    """, (code, data["file"], data["rotation"]))
 
-# Save changes and close the connection
 conn.commit()
 conn.close()
 
-print("✅ Database successfully created with secure password storage!")
+print("✅ Database successfully created with secure password storage and map objects!")
