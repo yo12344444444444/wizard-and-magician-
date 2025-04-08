@@ -8,6 +8,8 @@ MINI_MAP_ICON = "graphic\Map_Icon.png"
 NOT_OPEN_INVENTORY = r"graphic\Not_Open_Inventory.png"
 FULL_INVENTORY = r"graphic\Full_Inventory.png"
 FULL_HP_BAR = "graphic\Hp_Bar.png"
+CHAT_WINDOW_LAYER_1 = "graphic\Chat_First_Layer.png"
+CHAT_WINDOW_LAYER_2 = "graphic\Chat_Second_Layer.png"
 WHITE = (255,255,255)
 BACK = (182,212,137)
 
@@ -16,11 +18,24 @@ window_height = 720
 window_width = 1280
 
 INVENTORY_OPEN = 0 #BOOLEAN OF NUMBERS- odd=full_inventory, even=not full inventory
+CHAT_OPEN = 0 #BOOLEAN OF NUMBERS- odd=open, even=close
 display = pygame.display.set_mode((window_width, window_height))
 display.fill(BACK)
 
+def open_chat():
+    """
+    opens the chat window
+    """
+    open_chat_first_layer_image = pygame.image.load(CHAT_WINDOW_LAYER_1).convert_alpha()
+    open_chat_first_layer_image.set_colorkey(WHITE)
+    open_chat_first_layer_image.set_alpha(180)
+    chat_first_layer = buttons.Button(810, 30, open_chat_first_layer_image)
+    chat_first_layer.draw(display)
 
-
+    open_chat_second_layer_image = pygame.image.load(CHAT_WINDOW_LAYER_2).convert()
+    open_chat_second_layer_image.set_colorkey(WHITE)
+    chat_second_layer = buttons.Button(810, 30, open_chat_second_layer_image)
+    chat_second_layer.draw(display)
 
 def open_full_inventory():
     """
@@ -82,17 +97,21 @@ def put_icons_on_screen(display,inventory_icon, mini_map_icon, exit_icon, chat_i
     prints on the screen the icons, the mini map frame
     """
     global INVENTORY_OPEN
+    global CHAT_OPEN
 
     if inventory_icon.draw(display):
         INVENTORY_OPEN += 1
     if INVENTORY_OPEN % 2 == 1:
         open_full_inventory()
-    if INVENTORY_OPEN%2 == 0:
+    if INVENTORY_OPEN % 2 == 0:
         open_not_full_inventory()
-    mini_map_icon.draw(display)
     if exit_icon.draw(display):
         return False
-    chat_icon.draw(display)
+    if chat_icon.draw(display):
+        CHAT_OPEN +=1
+    if CHAT_OPEN % 2 == 1:
+        open_chat()
+    mini_map_icon.draw(display)
 
     return True
 
