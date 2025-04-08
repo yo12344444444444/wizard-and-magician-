@@ -48,8 +48,8 @@ def put_icons_on_screen(screen):
         screen.blit(exit_icon, (270, 30))
         screen.blit(inventory_icon, (370, 30))
         screen.blit(chat_icon, (470, 30))
-        screen.blit(inventory_not_open, (300,650))
-        screen.blit(hp_bar, (300, 600))
+        screen.blit(inventory_not_open, (300,570))
+        screen.blit(hp_bar, (300, 520))
         # עדכון המסך
         pygame.display.flip()
 
