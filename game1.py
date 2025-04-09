@@ -22,14 +22,6 @@ def main(ip):
     clock = pygame.time.Clock()
     display.fill(WHITE)
     initial_coin = 0
-    while True:
-        try:
-            initial_coin = int(input("Enter your starting coin value (0-1023): "))
-            if 0 <= initial_coin <= 1023:
-                break
-            print("Invalid input! Please enter a number between 0 and 1023.")
-        except ValueError:
-            print("Invalid input! Please enter a valid number.")
     players_pos = ["n", [22222, 222222]]
 
 
