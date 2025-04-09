@@ -5,7 +5,7 @@ import json
 from genericFunction import MathUtils
 
 tolernsStoneSword = 10
-HOST = '192.168.1.79'
+HOST = '192.168.1.157'
 PORT = 8827
 health = 100
 DEFAULT_BUFFER_SIZE = 1024
@@ -106,6 +106,7 @@ def get_data():
                 #           health_redcation(response)
                 pass
             decoded_objects = MathUtils.parse_binary_response(response)
+            print(decoded_objects)
             # else:
             #    pass
             #  decoded_objects = MathUtils.parse_binary_response(response)

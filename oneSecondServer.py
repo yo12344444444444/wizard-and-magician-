@@ -9,7 +9,7 @@ import myEmenies
 from genericFunction import MathUtils
 
 # Constants
-HOST = '192.168.1.157'
+clint = '192.168.1.79'
 PORT = 8826
 DEFAULT_BUFFER_SIZE = 1024
 DETECTION_RANGE = 500
@@ -81,6 +81,7 @@ def update_bots():
 def handle_client(data, addr):
     try:
         player_data = MathUtils.parse_binary_response(data)
+        print(player_data)
     except Exception as e:
         print("Parse error:", e)
         return
