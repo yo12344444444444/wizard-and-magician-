@@ -101,7 +101,7 @@ def instructions2_screen(screen, screen_width, screen_height):
                 x = pygame.mouse.get_pos()[0]
                 y = pygame.mouse.get_pos()[1]
 
-                # return back (to instruction 1 screen)
+                # return (to instruction 1 screen)
                 if 1204 < x < 1262 and 640 < y < 700:
                     running = False
         screen.blit(image, (0, 0))
@@ -300,6 +300,7 @@ def signing_screen(screen, screen_width, screen_height):
 
 
 def create_user(username,password):
+    global packed_data
     """
     sends to the mainserver packet with the username and password like this:
     create // username // password
