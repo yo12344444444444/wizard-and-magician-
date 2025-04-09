@@ -99,7 +99,6 @@ def udp_server(ip, port):
             print(f" Received data from {addr}")
             server_socket.sendto(str(1).encode(), addr)
             request_handler(data, addr)
-
         except Exception as ex:
             print(f" Client exception: {str(ex)}")
 
