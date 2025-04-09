@@ -5,8 +5,9 @@ import json
 from genericFunction import MathUtils
 
 tolernsStoneSword = 10
-HOST = '127.0.0.1'
-PORT = 8826
+HOST = '192.168.1.79'
+PORT = 8827
+health = 100
 DEFAULT_BUFFER_SIZE = 1024
 x, y, rect_width, rect_height = 200, 150, 48, 93
 a = False
@@ -104,6 +105,11 @@ def parse_binary_response(binary_data):
     return objects
 
 
+def health_redcation(data):
+    global health
+    health -= int(data[1:8], 2)
+
+
 def get_data():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     retries = 3
@@ -115,7 +121,10 @@ def get_data():
         try:
             client_socket.sendto(response_in_bytes, (HOST, PORT))
             response, _ = client_socket.recvfrom(DEFAULT_BUFFER_SIZE)
-            decoded_objects = MathUtils.parse_binary_response(response)
+            if response[0]:
+                health_redcation(response)
+            else:
+                decoded_objects = MathUtils.parse_binary_response(response)
             return decoded_objects
         except ConnectionResetError as e:
             print(f"Connection reset on attempt {attempt + 1}: {e}")
@@ -127,7 +136,17 @@ def get_data():
         finally:
             client_socket.close()  # Close socket *after* all attempts
 
-# Main game loop
+
+r = True
+while r:
+    # print(int(bin(initial_coin).encode(), 2))
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    client_socket.settimeout(0.2)
+    client_socket.sendto(bin(initial_coin).encode(), (HOST, PORT))
+    response, _ = client_socket.recvfrom(DEFAULT_BUFFER_SIZE)
+    print(response)
+    if response is not None:
+        r = False
 running = True
 camera_x, camera_y = 0, 0  # Camera position
 
@@ -156,7 +175,8 @@ while running:
                     can_move_right = False
 
         if int(obj_data[1]) != initial_coin:
-            ObjectPlacer((obj_x - players_pos[1][0]+ camera_x, obj_y - players_pos[1][1]+ camera_y), obj_data[1])  # Offset by camera
+            ObjectPlacer((obj_x - players_pos[1][0] + camera_x, obj_y - players_pos[1][1] + camera_y),
+                         obj_data[1])  # Offset by camera
 
     # Handle events
     for event in pygame.event.get():
@@ -171,8 +191,8 @@ while running:
                 screen_y = obj_y - players_pos[1][1] + camera_y
 
                 if (
-                    screen_x - tolernsStoneSword <= x <= screen_x + 48 + tolernsStoneSword and
-                    screen_y - tolernsStoneSword <= y <= screen_y + 0 + tolernsStoneSword
+                        screen_x - tolernsStoneSword <= x <= screen_x + 48 + tolernsStoneSword and
+                        screen_y - tolernsStoneSword <= y <= screen_y + 0 + tolernsStoneSword
                 ):
                     MathUtils.killObj(obj[1])  # Kill the object by ID
                     break  # Exit loop after first kill
@@ -191,7 +211,6 @@ while running:
     if keys[pygame.K_d] and can_move_right:
         players_pos[1][0] += 5
         players_pos[0] = "q"
-
 
     camera_x = window_width // 2 - 120
     camera_y = window_height // 2 - 80

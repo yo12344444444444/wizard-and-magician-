@@ -4,10 +4,12 @@ import time
 import sqlite3
 import math
 import random
+
+import myEmenies
 from genericFunction import MathUtils
 
 # Constants
-HOST = '127.0.0.1'
+HOST = '192.168.1.157'
 PORT = 8826
 DEFAULT_BUFFER_SIZE = 1024
 DETECTION_RANGE = 500
@@ -28,7 +30,7 @@ def get_players():
     return data
 
 def get_bots(conn, cursor):
-    cursor.execute("SELECT bot_id, position_x, position_y, direction_x, direction_y, last_direction_time FROM bots")
+    cursor.execute("SELECT bot_id, position_x, position_y, last_direction_time FROM bots")
     return cursor.fetchall()
 
 def update_bots():
@@ -41,7 +43,7 @@ def update_bots():
     updates = []
 
     for bot in bots:
-        bot_id, bot_x, bot_y, dir_x, dir_y, last_dir_time = bot
+        bot_id, bot_x, bot_y, last_dir_time = bot
         closest_player = None
         min_dist = float("inf")
 
@@ -62,15 +64,15 @@ def update_bots():
                 dir_x = random.choice([-1, 1]) * BOT_SPEED
                 dir_y = random.choice([-1, 1]) * BOT_SPEED
                 last_dir_time = current_time
-            dx, dy = dir_x, dir_y
 
-        new_x = max(10, min(bot_x + dx, SCREEN_WIDTH - 10))
-        new_y = max(10, min(bot_y + dy, SCREEN_HEIGHT - 10))
+        new_x = max(10, min(bot_x, SCREEN_WIDTH - 10))
+        new_y = max(10, min(bot_y , SCREEN_HEIGHT - 10))
 
-        updates.append((new_x, new_y, dir_x, dir_y, last_dir_time, bot_id))
-
+        updates.append((new_x, new_y, last_dir_time, bot_id))
+        print(updates)
+       # MathUtils.parse_binary_response()
     cursor.executemany(
-        "UPDATE bots SET position_x=?, position_y=?, direction_x=?, direction_y=?, last_direction_time=? WHERE bot_id=?",
+        "UPDATE bots SET position_x=?, position_y=?, last_direction_time=? WHERE bot_id=?",
         updates
     )
     conn.commit()
@@ -103,6 +105,7 @@ def handle_client(data, addr):
         json.dump(y, f, indent=1)
 
     # Filter objects within range (optimized)
+  #  print(myEmenies.get_objects_near_player())
     arr_obj = []
     for obj_id, data in y["players"].items():
         x, y_pos = map(int, data["pose"].split(","))
@@ -119,16 +122,14 @@ def main():
     last_bot_update = 0
 
     while True:
-        try:
-            data, addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
-            handle_client(data, addr)
+        data, addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
+        print(data)
+        handle_client(data, addr)
 
-            # Update bots every 1/30th of a second
-            if time.time() - last_bot_update > 1 / 30:
-                update_bots()
-                last_bot_update = time.time()
+        # Update bots every 1/30th of a second
+        if time.time() - last_bot_update > 1 / 30:
+            update_bots()
+            last_bot_update = time.time()
 
-        except Exception as e:
-            print("Error:", e)
 
 main()
