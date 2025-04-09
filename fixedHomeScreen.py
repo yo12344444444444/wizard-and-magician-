@@ -1,8 +1,6 @@
 import pygame
 import socket
 
-IP = '127.0.0.1'
-PORT = 8222
 DEFAULT_BUFFER_SIZE = 35
 
 HOME_SCREEN = 'screens\HomeScreen1.0.png'
@@ -320,11 +318,12 @@ def create_user(username,password):
     packed_data, client_addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
     server_socket.close()
     # packed_data = 1
-    if packed_data == 1:
+    if packed_data[0] == 1:
         return False # the username already exists
     return True
 
 def enter_user(username,password):
+    global packed_data
     """
     sends to the mainserver packet with the username and password like this:
     enter // username // password
@@ -343,17 +342,20 @@ def enter_user(username,password):
     packed_data, client_addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
     server_socket.close()
     packed_data = 1
-    if packed_data == 0:
+    if packed_data[0] == 0:
         return False # the user doesn't exist
     return True
 
-def main():
+def main(ip, port):
+    global IP, PORT
+    IP = ip
+    PORT = port
     pygame.init()
     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
     pygame.display.set_caption("game")
     screen_width, screen_height = pygame.display.get_surface().get_size()
     if home_screen(screen, screen_width, screen_height):
-        return True
+        return packed_data
     pygame.quit()
 
 if __name__ == "__main__":
