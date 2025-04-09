@@ -7,7 +7,7 @@ import random
 from genericFunction import MathUtils
 
 # Constants
-HOST = '127.0.0.1'
+HOST = '0.0.0.0'
 PORT = 8826
 DEFAULT_BUFFER_SIZE = 1024
 DETECTION_RANGE = 500
@@ -28,7 +28,7 @@ def get_players():
     return data
 
 def get_bots(conn, cursor):
-    cursor.execute("SELECT bot_id, position_x, position_y, direction_x, direction_y, last_direction_time FROM bots")
+    cursor.execute("SELECT bot_id, position_x, position_y,last_direction_time FROM bots")
     return cursor.fetchall()
 
 def update_bots():
@@ -70,7 +70,7 @@ def update_bots():
         updates.append((new_x, new_y, dir_x, dir_y, last_dir_time, bot_id))
 
     cursor.executemany(
-        "UPDATE bots SET position_x=?, position_y=?, direction_x=?, direction_y=?, last_direction_time=? WHERE bot_id=?",
+        "UPDATE bots SET position_x=?, position_y=?,last_direction_time=? WHERE bot_id=?",
         updates
     )
     conn.commit()

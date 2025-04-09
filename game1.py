@@ -5,7 +5,7 @@ import json
 from genericFunction import MathUtils
 
 tolernsStoneSword = 10
-HOST = '127.0.0.1'
+HOST = '192.168.1.157'
 PORT = 8826
 DEFAULT_BUFFER_SIZE = 1024
 x, y, rect_width, rect_height = 200, 150, 48, 93
