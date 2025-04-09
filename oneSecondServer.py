@@ -4,8 +4,6 @@ import time
 import sqlite3
 import math
 import random
-
-import myEmenies
 from genericFunction import MathUtils
 
 # Constants
@@ -106,7 +104,6 @@ def handle_client(data, addr):
         json.dump(y, f, indent=1)
 
     # Filter objects within range (optimized)
-  #  print(myEmenies.get_objects_near_player())
     arr_obj = []
     for obj_id, data in y["players"].items():
         x, y_pos = map(int, data["pose"].split(","))

@@ -127,7 +127,7 @@ def main(ip):
     while r:
         client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         client_socket.settimeout(6)
-        client_socket.sendto(bin(initial_coin).encode(), (HOST, PORT))
+        client_socket.sendto("2212".encode(), (HOST, PORT))
         response, _ = client_socket.recvfrom(DEFAULT_BUFFER_SIZE)
         print(response)
         if response is not None:
