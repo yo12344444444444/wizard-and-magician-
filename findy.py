@@ -22,7 +22,7 @@ def main():
     while time.time() - start < 1:
         try:
             data, addr = client_socket.recvfrom(BUFFER_SIZE)
-            return addr
+            return addr, data
         except socket.timeout:
             break
 
