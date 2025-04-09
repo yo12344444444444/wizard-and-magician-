@@ -19,7 +19,7 @@ SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
 
 # Initialize server
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-server_socket.bind((HOST, PORT))
+server_socket.bind((clint, PORT))
 
 def get_players():
     conn = sqlite3.connect("DATABASE_GAME.db")
@@ -118,13 +118,24 @@ def handle_client(data, addr):
         packet_bytes = MathUtils.response_to_bytes(packets)
         server_socket.sendto(packet_bytes, addr)
 
+def allowUtalk():
+    BUFFER_SIZE = 1024
+
+    print("Server is listening...")
+    r=True
+    while r:
+        data, addr = server_socket.recvfrom(BUFFER_SIZE)
+        print(f"Received from {addr}: {data.decode()}")
+
+        if data.decode().lower() == "hello":
+            server_socket.sendto(b"1", addr)
+            r = False
 def main():
     print("Fast UDP Server Running")
     last_bot_update = 0
 
     while True:
         data, addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
-        print(data)
         handle_client(data, addr)
 
         # Update bots every 1/30th of a second
@@ -132,5 +143,5 @@ def main():
             update_bots()
             last_bot_update = time.time()
 
-
+allowUtalk()
 main()
