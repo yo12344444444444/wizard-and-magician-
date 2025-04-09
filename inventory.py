@@ -1,3 +1,5 @@
+from tkinter.constants import CURRENT
+
 import pygame
 import buttons
 
@@ -10,6 +12,7 @@ FULL_INVENTORY = r"graphic\Full_Inventory.png"
 FULL_HP_BAR = "graphic\Hp_Bar.png"
 CHAT_WINDOW_LAYER_1 = "graphic\Chat_First_Layer.png"
 CHAT_WINDOW_LAYER_2 = "graphic\Chat_Second_Layer.png"
+CURRENT_ITEM = "graphic"
 WHITE = (255,255,255)
 BACK = (182,212,137)
 
