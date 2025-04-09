@@ -8,7 +8,7 @@ from genericFunction import MathUtils
 
 # Constants
 HOST = '0.0.0.0'
-PORT = 8826
+PORT = 8822
 DEFAULT_BUFFER_SIZE = 1024
 DETECTION_RANGE = 500
 BOT_SPEED = 0.75
