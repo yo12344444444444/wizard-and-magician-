@@ -2,6 +2,7 @@ from tkinter.constants import CURRENT
 
 import pygame
 import buttons
+import json
 
 INVENTORY_ICON = "graphic\Inventory_Icon.png"
 EXIT_ICON = "graphic\Exit_Icon.png"
@@ -12,7 +13,7 @@ FULL_INVENTORY = r"graphic\Full_Inventory.png"
 FULL_HP_BAR = "graphic\Hp_Bar.png"
 CHAT_WINDOW_LAYER_1 = "graphic\Chat_First_Layer.png"
 CHAT_WINDOW_LAYER_2 = "graphic\Chat_Second_Layer.png"
-CURRENT_ITEM = "graphic"
+CURRENT_HOLDING = "graphic\Current_Holding.png"
 WHITE = (255,255,255)
 BACK = (182,212,137)
 
@@ -46,12 +47,12 @@ def open_full_inventory():
     """
     open_full_inventory_image = pygame.image.load(FULL_INVENTORY).convert()
     open_full_inventory_image.set_colorkey(WHITE)
-    full_inventory = buttons.Button(300, 119, open_full_inventory_image)
+    full_inventory = buttons.Button(350, 119, open_full_inventory_image)
     full_inventory.draw(display)
 
     hp_bar_image = pygame.image.load(FULL_HP_BAR).convert()
     hp_bar_image.set_colorkey(WHITE)
-    hp_bar_icon = buttons.Button(590, 170, hp_bar_image)
+    hp_bar_icon = buttons.Button(640, 170, hp_bar_image)
     hp_bar_icon.draw(display)
 
 
@@ -61,13 +62,13 @@ def open_not_full_inventory():
     """
     inventory_not_open_image = pygame.image.load(NOT_OPEN_INVENTORY).convert()
     inventory_not_open_image.set_colorkey(WHITE)
-    inventory_not_open = buttons.Button(300, 570, inventory_not_open_image)
+    inventory_not_open = buttons.Button(350, 570, inventory_not_open_image)
     inventory_not_open.draw(display)
 
     # hp bar:
     hp_bar_image = pygame.image.load(FULL_HP_BAR).convert()
     hp_bar_image.set_colorkey(WHITE)
-    hp_bar_icon = buttons.Button(300, 520, hp_bar_image)
+    hp_bar_icon = buttons.Button(350, 520, hp_bar_image)
     hp_bar_icon.draw(display)
 
 def print_in_full_inventory():
@@ -75,7 +76,10 @@ def print_in_full_inventory():
     prints in the full inventory the items
     :return:
     """
-    pass
+    with open("inventory.json", "r") as file:
+        data = json.load(file)
+
+
 
 def create_icons():
     # inventory icon:
@@ -98,10 +102,15 @@ def create_icons():
     chat_image.set_colorkey(WHITE)
     chat_icon = buttons.Button(470, 30, chat_image)
 
-    return inventory_icon,mini_map_icon,exit_icon,chat_icon
+    # holding icon:
+    current_holding_image = pygame.image.load(CURRENT_HOLDING).convert()
+    current_holding_image .set_colorkey(WHITE)
+    current_holding = buttons.Button(150, 570, current_holding_image)
+
+    return inventory_icon,mini_map_icon,exit_icon,chat_icon,current_holding
 
 
-def put_icons_on_screen(display,inventory_icon, mini_map_icon, exit_icon, chat_icon):
+def put_icons_on_screen(display,inventory_icon, mini_map_icon, exit_icon, chat_icon,current_holding):
     """
     prints on the screen the icons, the mini map frame
     """
@@ -121,18 +130,18 @@ def put_icons_on_screen(display,inventory_icon, mini_map_icon, exit_icon, chat_i
     if CHAT_OPEN % 2 == 1:
         open_chat()
     mini_map_icon.draw(display)
-
+    current_holding.draw(display)
     return True
 
 
-inventory_icon, mini_map_icon, exit_icon, chat_icon = create_icons()
+inventory_icon, mini_map_icon, exit_icon, chat_icon,current_holding = create_icons()
 running = True
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
     display.fill(BACK)
-    if not put_icons_on_screen(display,inventory_icon, mini_map_icon, exit_icon, chat_icon):
+    if not put_icons_on_screen(display,inventory_icon, mini_map_icon, exit_icon, chat_icon,current_holding):
         running = False
     pygame.display.flip()
 pygame.quit()

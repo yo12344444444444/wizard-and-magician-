@@ -170,10 +170,11 @@ def open_full_inventory():
     hp_bar_image.set_colorkey(WHITE)
     hp_bar_icon = buttons.Button(590, 170, hp_bar_image)
     hp_bar_icon.draw(display)
-
+    """
     conn = sqlite3.connect("DATABASE_GAME.db", check_same_thread=False)
     cursor = conn.cursor()
     print(" Successfully connected to the database.")
+    """
 
 
 def open_not_full_inventory():

@@ -17,5 +17,6 @@
   "16": { "item": null, "quantity": 0, "topleft_x": 430, "topleft_y": 465 },
   "17": { "item": null, "quantity": 0, "topleft_x": 535, "topleft_y": 465 },
   "18": { "item": null, "quantity": 0, "topleft_x": 647, "topleft_y": 465 },
-  "19": { "item": null, "quantity": 0 }
+  "19": { "cell": 1, "topleft_x": 160, "topleft_y": 586 }
+
 }
