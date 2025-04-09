@@ -67,6 +67,12 @@ def open_not_full_inventory():
     hp_bar_icon = buttons.Button(300, 520, hp_bar_image)
     hp_bar_icon.draw(display)
 
+def print_in_full_inventory():
+    """
+    prints in the full inventory the items
+    :return:
+    """
+    pass
 
 def create_icons():
     # inventory icon:

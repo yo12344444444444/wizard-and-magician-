@@ -1,0 +1,13 @@
+{
+  "Stone_Sword": {"id": 1, "stackable": false, "icon": "inventory\\Stone_Sword_Inventory.png"},
+  "Iron_Sword": {"id": 2, "stackable": false,  "icon": "inventory\\Iron_Sword_Inventory.png"},
+  "Gold_Sword": {"id": 3, "stackable": false, "icon": "inventory\\Gold_Sword_Inventory.png"},
+  "Wood_Wand": {"id": 4, "stackable": false, "icon": "inventory\\Wood_Wand_Inventory.png"},
+  "Gold_Wand": {"id": 5, "stackable": false, "icon": "inventory\\Gold_Wand_Inventory.png"},
+  "Dark_Potion": {"id": 6, "stackable": true, "icon": "inventory\\Dark_Potion_Inventory.png"},
+  "Life_Potion": {"id": 7, "stackable": true, "icon": "inventory\\Life_Potion_Inventory.png"},
+  "Fire_Potion": {"id": 8, "stackable": true, "icon": "inventory\\Fire_Potion_Inventory.png"},
+  "Potion_Potion": {"id": 9, "stackable": true, "icon": "inventory\\Poison_Potion_Inventory.png"},
+  "Apple": {"id": 9, "stackable": true, "icon": "inventory\\Apple_Inventory.png"},
+  "Blubberry": {"id": 9, "stackable": true, "icon": "inventory\\Apple_Inventory.png"}
+}

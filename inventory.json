@@ -1,6 +1,6 @@
 {
-  "1": { "item": null, "quantity": 0 },
-  "2": { "item": null, "quantity": 0 },
+  "1": { "item": null, "quantity": 0, "topleft_x": 320, "topleft_y": 586 },
+  "2": { "item": null, "quantity": 0, "topleft_x": 320, "topleft_y": 586  },
   "3": { "item": null, "quantity": 0 },
   "4": { "item": null, "quantity": 0 },
   "5": { "item": null, "quantity": 0 },
