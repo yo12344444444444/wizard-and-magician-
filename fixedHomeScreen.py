@@ -310,12 +310,9 @@ def create_user(username,password):
            0 = doesn't exist and created a new user
     """
     packet = "create//" + username + "//" + password
-    print(packet)
     packet = packet.encode()
-    print(packet)
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_socket.bind((IP, PORT))
-    server_socket.send(packet)
+    server_socket.sendto(packet, (IP, PORT))
     packed_data, client_addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
     server_socket.close()
     # packed_data = 1
@@ -338,11 +335,11 @@ def enter_user(username,password):
     packet = packet.encode()
     print(packet)
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_socket.bind((IP, PORT))
-    server_socket.send(packet)
+    server_socket.sendto(packet, (IP, PORT))
     packed_data, client_addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
     server_socket.close()
-    packed_data = 1
+ #   packed_data = 1
+    print(packed_data)
     if packed_data[0] == 0:
         return False # the user doesn't exist
     return True
@@ -353,11 +350,13 @@ def main(ip, port):
     PORT = port
     pygame.init()
     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+    print()
     pygame.display.set_caption("game")
     screen_width, screen_height = pygame.display.get_surface().get_size()
+    print(screen_width, screen_height)
     if home_screen(screen, screen_width, screen_height):
-        return packed_data
+        return packed_data[1:]
     pygame.quit()
 
 if __name__ == "__main__":
-    main()
+    main('192.168.1.79', 8827)
