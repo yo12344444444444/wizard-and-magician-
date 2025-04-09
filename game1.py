@@ -11,26 +11,16 @@ health = 100
 DEFAULT_BUFFER_SIZE = 1024
 x, y, rect_width, rect_height = 200, 150, 48, 93
 a = False
-
-# Initialize pygame
 pygame.init()
-
-# Configurations
 frames_per_second = 30
 window_height = 800
 window_width = 1000
-
-# Colors
-WHITE = (255, 255, 255)
+WHITE = (0, 255, 0)
 BLUE = (0, 0, 0)
-
-# Creating window
 display = pygame.display.set_mode((window_width, window_height))
 clock = pygame.time.Clock()
 display.fill(WHITE)
 initial_coin = 0
-
-# Get player coin value
 while True:
     try:
         initial_coin = int(input("Enter your starting coin value (0-1023): "))
@@ -39,14 +29,10 @@ while True:
         print("Invalid input! Please enter a number between 0 and 1023.")
     except ValueError:
         print("Invalid input! Please enter a valid number.")
-
-# Player data
-players_pos = ["n", [22222, 222222]]  # Store player positions
-player_width, player_height = 48, 93
+players_pos = ["n", [22222, 222222]]
 
 
 def build_array_of_packets(arr_obj):
-    # Generate the binary packet properly, ensuring it's just binary (no - or other symbols)
     packet = f'{1:01b}' if arr_obj[0] else f'{0:01b}'
     packet += f'{ord(arr_obj[1]):07b}'.zfill(7)
     packet += f'{arr_obj[2]:017b}'.zfill(11)
@@ -61,16 +47,9 @@ def build_array_of_packets(arr_obj):
 
 
 def response_to_bytes(array_for_client):
-    # Combine the array of binary strings into one large string
     combined_bit_string = ''.join(array_for_client)
-
-    # Remove any non-binary characters (e.g., '-')
     combined_bit_string = ''.join(filter(lambda x: x in '01', combined_bit_string))
-
-    # Ensure the length of the string is a multiple of 8, otherwise, pad with zeros
     combined_bit_string = combined_bit_string.ljust((len(combined_bit_string) + 7) // 8 * 8, '0')
-
-    # Convert the cleaned binary string to a number and then to bytes
     number = int(combined_bit_string, 2)
     byte_value = number.to_bytes((len(combined_bit_string) + 7) // 8, 'big')
 
@@ -87,6 +66,7 @@ class ObjectPlacer:
     def __init__(self, pos, id):
         self.pos = pos
         self.img = pygame.image.load(f"graphic/{put(id)}")
+        self.img.set_colorkey((255, 255, 255))
         display.blit(self.img, pos)
 
 
@@ -111,6 +91,7 @@ def health_redcation(data):
 
 
 def get_data():
+    global decoded_objects
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     retries = 3
     response_a = MathUtils.build_array_of_packets(
@@ -122,9 +103,12 @@ def get_data():
             client_socket.sendto(response_in_bytes, (HOST, PORT))
             response, _ = client_socket.recvfrom(DEFAULT_BUFFER_SIZE)
             if response[0]:
-                health_redcation(response)
-            else:
-                decoded_objects = MathUtils.parse_binary_response(response)
+                #           health_redcation(response)
+                pass
+            decoded_objects = MathUtils.parse_binary_response(response)
+            # else:
+            #    pass
+            #  decoded_objects = MathUtils.parse_binary_response(response)
             return decoded_objects
         except ConnectionResetError as e:
             print(f"Connection reset on attempt {attempt + 1}: {e}")
@@ -139,9 +123,8 @@ def get_data():
 
 r = True
 while r:
-    # print(int(bin(initial_coin).encode(), 2))
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    client_socket.settimeout(0.2)
+    client_socket.settimeout(6)
     client_socket.sendto(bin(initial_coin).encode(), (HOST, PORT))
     response, _ = client_socket.recvfrom(DEFAULT_BUFFER_SIZE)
     print(response)
