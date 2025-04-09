@@ -9,7 +9,7 @@ import myEmenies
 from genericFunction import MathUtils
 
 # Constants
-HOST = '192.168.1.157'
+HOST = '192.1681.1.157'
 PORT = 8826
 DEFAULT_BUFFER_SIZE = 1024
 DETECTION_RANGE = 500
