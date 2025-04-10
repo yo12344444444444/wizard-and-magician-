@@ -1,115 +1,133 @@
 {
     "cells": {
         "1": {
-            "item": "1",
-            "quantity": 0,
+            "item": "8",
+            "quantity": 3,
             "topleft_x": 370,
-            "topleft_y": 586
+            "topleft_y": 586,
+            "mini_button_pressed?": false
         },
         "2": {
-            "item": "3",
+            "item": "5",
             "quantity": 0,
             "topleft_x": 479,
-            "topleft_y": 586
+            "topleft_y": 586,
+            "mini_button_pressed?": false
         },
         "3": {
-            "item": "9",
-            "quantity": 15,
-            "topleft_x": 584,
-            "topleft_y": 586
-        },
-        "4": {
             "item": "0",
             "quantity": 0,
+            "topleft_x": 584,
+            "topleft_y": 586,
+            "mini_button_pressed?": false
+        },
+        "4": {
+            "item": "1",
+            "quantity": 0,
             "topleft_x": 696,
-            "topleft_y": 586
+            "topleft_y": 586,
+            "mini_button_pressed?": false
         },
         "5": {
             "item": "0",
             "quantity": 0,
             "topleft_x": 803,
-            "topleft_y": 586
+            "topleft_y": 586,
+            "mini_button_pressed?": false
         },
         "6": {
             "item": "0",
             "quantity": 0,
             "topleft_x": 919,
-            "topleft_y": 586
+            "topleft_y": 586,
+            "mini_button_pressed?": false
         },
         "7": {
             "item": "0",
             "quantity": 0,
             "topleft_x": 370,
-            "topleft_y": 235
+            "topleft_y": 235,
+            "mini_button_pressed?": false
         },
         "8": {
             "item": "0",
             "quantity": 0,
             "topleft_x": 479,
-            "topleft_y": 235
+            "topleft_y": 235,
+            "mini_button_pressed?": false
         },
         "9": {
-            "item": "5",
+            "item": "3",
             "quantity": 0,
             "topleft_x": 584,
-            "topleft_y": 235
+            "topleft_y": 235,
+            "mini_button_pressed?": false
         },
         "10": {
             "item": "0",
             "quantity": 0,
             "topleft_x": 696,
-            "topleft_y": 235
+            "topleft_y": 235,
+            "mini_button_pressed?": false
         },
         "11": {
             "item": "0",
             "quantity": 0,
             "topleft_x": 370,
-            "topleft_y": 350
+            "topleft_y": 350,
+            "mini_button_pressed?": false
         },
         "12": {
-            "item": "8",
-            "quantity": 3,
+            "item": "9",
+            "quantity": 15,
             "topleft_x": 479,
-            "topleft_y": 350
+            "topleft_y": 350,
+            "mini_button_pressed?": false
         },
         "13": {
             "item": "0",
             "quantity": 0,
             "topleft_x": 584,
-            "topleft_y": 350
+            "topleft_y": 350,
+            "mini_button_pressed?": false
         },
         "14": {
             "item": "0",
             "quantity": 0,
             "topleft_x": 696,
-            "topleft_y": 350
+            "topleft_y": 350,
+            "mini_button_pressed?": false
         },
         "15": {
             "item": "0",
             "quantity": 0,
             "topleft_x": 370,
-            "topleft_y": 465
+            "topleft_y": 465,
+            "mini_button_pressed?": false
         },
         "16": {
             "item": "0",
             "quantity": 0,
             "topleft_x": 479,
-            "topleft_y": 465
+            "topleft_y": 465,
+            "mini_button_pressed?": false
         },
         "17": {
             "item": "0",
             "quantity": 0,
             "topleft_x": 584,
-            "topleft_y": 465
+            "topleft_y": 465,
+            "mini_button_pressed?": false
         },
         "18": {
             "item": "0",
             "quantity": 0,
             "topleft_x": 696,
-            "topleft_y": 465
+            "topleft_y": 465,
+            "mini_button_pressed?": false
         },
         "19": {
-            "cell": "3",
+            "cell": "4",
             "topleft_x": 166,
             "topleft_y": 586
         }

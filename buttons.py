@@ -14,7 +14,7 @@ class Button():
         # check mouseover and clicked conditions
         if self.rect.collidepoint(pos):
             if pygame.mouse.get_pressed()[0] == 1 and self.clicked == False:
-                print(pos)
+                # print(pos)
                 self.clicked = True
                 action = True
 
@@ -25,4 +25,7 @@ class Button():
         display.blit(self.image, (self.rect.x, self.rect.y))
 
         return action
+
+
+
 
