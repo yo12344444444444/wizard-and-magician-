@@ -1,22 +1,117 @@
 {
-  "1": { "item": null, "quantity": 0, "topleft_x": 320, "topleft_y": 586 },
-  "2": { "item": null, "quantity": 0, "topleft_x": 430, "topleft_y": 586 },
-  "3": { "item": null, "quantity": 0, "topleft_x": 535, "topleft_y": 586 },
-  "4": { "item": null, "quantity": 0, "topleft_x": 647, "topleft_y": 586 },
-  "5": { "item": null, "quantity": 0, "topleft_x": 760, "topleft_y": 586 },
-  "6": { "item": null, "quantity": 0, "topleft_x": 870, "topleft_y": 586 },
-  "7": { "item": null, "quantity": 0, "topleft_x": 320, "topleft_y": 235 },
-  "8": { "item": null, "quantity": 0, "topleft_x": 430, "topleft_y": 235 },
-  "9": { "item": null, "quantity": 0, "topleft_x": 535, "topleft_y": 235 },
-  "10": { "item": null, "quantity": 0, "topleft_x": 647, "topleft_y": 235 },
-  "11": { "item": null, "quantity": 0, "topleft_x": 320, "topleft_y": 350 },
-  "12": { "item": null, "quantity": 0, "topleft_x": 430, "topleft_y": 350 },
-  "13": { "item": null, "quantity": 0, "topleft_x": 535, "topleft_y": 350 },
-  "14": { "item": null, "quantity": 0, "topleft_x": 647, "topleft_y": 350 },
-  "15": { "item": null, "quantity": 0, "topleft_x": 320, "topleft_y": 465 },
-  "16": { "item": null, "quantity": 0, "topleft_x": 430, "topleft_y": 465 },
-  "17": { "item": null, "quantity": 0, "topleft_x": 535, "topleft_y": 465 },
-  "18": { "item": null, "quantity": 0, "topleft_x": 647, "topleft_y": 465 },
-  "19": { "cell": 1, "topleft_x": 160, "topleft_y": 586 }
-
+    "cells": {
+        "1": {
+            "item": "1",
+            "quantity": 0,
+            "topleft_x": 370,
+            "topleft_y": 586
+        },
+        "2": {
+            "item": "3",
+            "quantity": 0,
+            "topleft_x": 479,
+            "topleft_y": 586
+        },
+        "3": {
+            "item": "9",
+            "quantity": 15,
+            "topleft_x": 584,
+            "topleft_y": 586
+        },
+        "4": {
+            "item": "0",
+            "quantity": 0,
+            "topleft_x": 696,
+            "topleft_y": 586
+        },
+        "5": {
+            "item": "0",
+            "quantity": 0,
+            "topleft_x": 803,
+            "topleft_y": 586
+        },
+        "6": {
+            "item": "0",
+            "quantity": 0,
+            "topleft_x": 919,
+            "topleft_y": 586
+        },
+        "7": {
+            "item": "0",
+            "quantity": 0,
+            "topleft_x": 370,
+            "topleft_y": 235
+        },
+        "8": {
+            "item": "0",
+            "quantity": 0,
+            "topleft_x": 479,
+            "topleft_y": 235
+        },
+        "9": {
+            "item": "5",
+            "quantity": 0,
+            "topleft_x": 584,
+            "topleft_y": 235
+        },
+        "10": {
+            "item": "0",
+            "quantity": 0,
+            "topleft_x": 696,
+            "topleft_y": 235
+        },
+        "11": {
+            "item": "0",
+            "quantity": 0,
+            "topleft_x": 370,
+            "topleft_y": 350
+        },
+        "12": {
+            "item": "8",
+            "quantity": 3,
+            "topleft_x": 479,
+            "topleft_y": 350
+        },
+        "13": {
+            "item": "0",
+            "quantity": 0,
+            "topleft_x": 584,
+            "topleft_y": 350
+        },
+        "14": {
+            "item": "0",
+            "quantity": 0,
+            "topleft_x": 696,
+            "topleft_y": 350
+        },
+        "15": {
+            "item": "0",
+            "quantity": 0,
+            "topleft_x": 370,
+            "topleft_y": 465
+        },
+        "16": {
+            "item": "0",
+            "quantity": 0,
+            "topleft_x": 479,
+            "topleft_y": 465
+        },
+        "17": {
+            "item": "0",
+            "quantity": 0,
+            "topleft_x": 584,
+            "topleft_y": 465
+        },
+        "18": {
+            "item": "0",
+            "quantity": 0,
+            "topleft_x": 696,
+            "topleft_y": 465
+        },
+        "19": {
+            "cell": "3",
+            "topleft_x": 166,
+            "topleft_y": 586
+        }
+    }
 }
