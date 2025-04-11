@@ -1,6 +1,7 @@
 import pygame
 import buttons
 import json
+import socket
 
 INVENTORY_ICON = "graphic\Inventory_Icon.png"
 EXIT_ICON = "graphic\Exit_Icon.png"
@@ -22,6 +23,7 @@ BACK = (182,212,137)
 
 IP = '127.0.0.1'
 PORT = 8820
+DEFAULT_BUFFER_SIZE = 200
 
 clock = pygame.time.Clock()
 frames_per_second = 30
@@ -360,12 +362,41 @@ def items_from_datab_to_json():
     and then the amount the player have of this, example: 0,item1-amount1,item2-amount2,....
     then it put it in the json file
     """
-    pass
+    """
+    packet = "give items"
+    packet = packet.encode()
+    server_socket = socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
+    server_socket.bind((IP, PORT))
+    server_socket.send(packet)
+    data , server_addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
+    server_socket.close()
+    data = data.decode()
+    """
+    data = "0,1-1,12-1,3-1,7-24,9-15"
+    seperated_data = data.split(",")
+
+    with open("inventory.json", "r") as file_cells:
+        data_cells = json.load(file_cells)
+
+    for i in range(1,19):
+        try:
+            item,amount = seperated_data[i].split("-")
+            amount = int(amount)
+
+            data_cells["cells"][str(i)]["item"] = item
+            data_cells["cells"][str(i)]["quantity"] = amount
+        except Exception as e:
+            print(e)
+
+    with open("inventory.json", "w") as file_cells:
+        json.dump(data_cells, file_cells, indent=4)
+
 
 
 pygame.init()
 inventory_icon, mini_map_icon, exit_icon, chat_icon,current_holding = create_icons()
 running = True
+items_from_datab_to_json()
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
