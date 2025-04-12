@@ -85,5 +85,6 @@ class MathUtils:
                 coin_value = 0  # Default value if coin_value field is malformed or empty
 
             objects.append((bool(rotation), object_id, x_coord, y_coord, coin_value))
+        print(objects)
         return objects
 

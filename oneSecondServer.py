@@ -4,12 +4,10 @@ import time
 import sqlite3
 import math
 import random
-
-import myEmenies
 from genericFunction import MathUtils
 
 # Constants
-HOST = '192.1681.1.157'
+clint = '192.168.1.79'
 PORT = 8826
 DEFAULT_BUFFER_SIZE = 1024
 DETECTION_RANGE = 500
@@ -19,7 +17,7 @@ SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
 
 # Initialize server
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-server_socket.bind((HOST, PORT))
+server_socket.bind((clint, PORT))
 
 def get_players():
     conn = sqlite3.connect("DATABASE_GAME.db")
@@ -81,6 +79,7 @@ def update_bots():
 def handle_client(data, addr):
     try:
         player_data = MathUtils.parse_binary_response(data)
+        print(player_data)
     except Exception as e:
         print("Parse error:", e)
         return
@@ -105,7 +104,6 @@ def handle_client(data, addr):
         json.dump(y, f, indent=1)
 
     # Filter objects within range (optimized)
-  #  print(myEmenies.get_objects_near_player())
     arr_obj = []
     for obj_id, data in y["players"].items():
         x, y_pos = map(int, data["pose"].split(","))
@@ -117,13 +115,24 @@ def handle_client(data, addr):
         packet_bytes = MathUtils.response_to_bytes(packets)
         server_socket.sendto(packet_bytes, addr)
 
+def allowUtalk():
+    BUFFER_SIZE = 1024
+
+    print("Server is listening...")
+    r=True
+    while r:
+        data, addr = server_socket.recvfrom(BUFFER_SIZE)
+        print(f"Received from {addr}: {data.decode()}")
+
+        if data.decode().lower() == "hello":
+            server_socket.sendto(b"1", addr)
+            r = False
 def main():
     print("Fast UDP Server Running")
     last_bot_update = 0
 
     while True:
         data, addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
-        print(data)
         handle_client(data, addr)
 
         # Update bots every 1/30th of a second
@@ -131,5 +140,5 @@ def main():
             update_bots()
             last_bot_update = time.time()
 
-
+allowUtalk()
 main()

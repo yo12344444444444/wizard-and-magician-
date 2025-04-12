@@ -1,8 +1,6 @@
 import pygame
 import socket
 
-IP = '127.0.0.1'
-PORT = 8222
 DEFAULT_BUFFER_SIZE = 35
 
 HOME_SCREEN = 'screens\HomeScreen1.0.png'
@@ -103,7 +101,7 @@ def instructions2_screen(screen, screen_width, screen_height):
                 x = pygame.mouse.get_pos()[0]
                 y = pygame.mouse.get_pos()[1]
 
-                # return back (to instruction 1 screen)
+                # return (to instruction 1 screen)
                 if 1204 < x < 1262 and 640 < y < 700:
                     running = False
         screen.blit(image, (0, 0))
@@ -302,6 +300,7 @@ def signing_screen(screen, screen_width, screen_height):
 
 
 def create_user(username,password):
+    global packed_data
     """
     sends to the mainserver packet with the username and password like this:
     create // username // password
@@ -311,20 +310,18 @@ def create_user(username,password):
            0 = doesn't exist and created a new user
     """
     packet = "create//" + username + "//" + password
-    print(packet)
     packet = packet.encode()
-    print(packet)
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_socket.bind((IP, PORT))
-    server_socket.send(packet)
+    server_socket.sendto(packet, (IP, PORT))
     packed_data, client_addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
     server_socket.close()
     # packed_data = 1
-    if packed_data == 1:
+    if packed_data[0] == 1:
         return False # the username already exists
     return True
 
 def enter_user(username,password):
+    global packed_data
     """
     sends to the mainserver packet with the username and password like this:
     enter // username // password
@@ -338,23 +335,28 @@ def enter_user(username,password):
     packet = packet.encode()
     print(packet)
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_socket.bind((IP, PORT))
-    server_socket.send(packet)
+    server_socket.sendto(packet, (IP, PORT))
     packed_data, client_addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
     server_socket.close()
-    packed_data = 1
-    if packed_data == 0:
+ #   packed_data = 1
+    print(packed_data)
+    if packed_data[0] == 0:
         return False # the user doesn't exist
     return True
 
-def main():
+def main(ip, port):
+    global IP, PORT
+    IP = ip
+    PORT = port
     pygame.init()
     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+    print()
     pygame.display.set_caption("game")
     screen_width, screen_height = pygame.display.get_surface().get_size()
+    print(screen_width, screen_height)
     if home_screen(screen, screen_width, screen_height):
-        return True
+        return packed_data[1:]
     pygame.quit()
 
 if __name__ == "__main__":
-    main()
+    main('192.168.1.79', 8827)
