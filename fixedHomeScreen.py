@@ -11,6 +11,7 @@ INSTRUCTION2 = 'screens\InstructionsB1.0.jpg'
 SIGNING = 'screens\SigningScreen1.0.png'
 LOGIN = 'screens\LoginScreen1.0.png'
 
+
 # mouse:
 LEFT = 1
 SCROLL = 2
@@ -349,9 +350,11 @@ def enter_user(username,password):
 
 def main():
     pygame.init()
-    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+
+    screen_height = 720
+    screen_width = 1280
+    screen = pygame.display.set_mode((screen_width, screen_height))
     pygame.display.set_caption("game")
-    screen_width, screen_height = pygame.display.get_surface().get_size()
     if home_screen(screen, screen_width, screen_height):
         return True
     pygame.quit()
