@@ -7,7 +7,7 @@ DEFAULT_BUFFER_SIZE = 1024
 
 # התחברות למסד הנתונים עם טיפול בשגיאות
 try:
-    conn = sqlite3.connect("DATABASE_GAME.db", check_same_thread=False)
+    conn = sqlite3.connect("DATABASE_GAME_MAIN.db", check_same_thread=False)
     cursor = conn.cursor()
     print(" Successfully connected to the database.")
 except sqlite3.Error as e:
@@ -19,7 +19,7 @@ def add_player(username):
     for server_id in range(1, 5):  # סרברים 1 עד 4
         server_counts[server_id] = count_users_on_server(server_id)
     least_loaded_server = min(server_counts, key=server_counts.get)
-    conn = sqlite3.connect("DATABASE_GAME.db")
+    conn = sqlite3.connect("DATABASE_GAME_MAIN.db")
     cursor = conn.cursor()
     cursor.execute("INSERT INTO user_servers (username, server_id) VALUES (?, ?)",
                    (username, least_loaded_server))
@@ -30,7 +30,7 @@ def add_player(username):
     return least_loaded_server
 
 def count_users_on_server(server_id):
-    conn = sqlite3.connect("DATABASE_GAME.db")
+    conn = sqlite3.connect("DATABASE_GAME_MAIN.db")
     cursor = conn.cursor()
 
     cursor.execute("SELECT COUNT(*) FROM user_servers WHERE server_id = ?", (server_id,))
@@ -40,7 +40,7 @@ def count_users_on_server(server_id):
     return count
 
 def get_user_server(username):
-    conn = sqlite3.connect("DATABASE_GAME.db")
+    conn = sqlite3.connect("DATABASE_GAME_MAIN.db")
     cursor = conn.cursor()
     cursor.execute("SELECT server_id FROM user_servers WHERE username = ?", (username,))
     result = cursor.fetchone()
@@ -48,7 +48,7 @@ def get_user_server(username):
     return result[0] if result else None
 
 def get_server_ip(server_id):
-    conn = sqlite3.connect("DATABASE_GAME.db")
+    conn = sqlite3.connect("DATABASE_GAME_MAIN.db")
     cursor = conn.cursor()
     cursor.execute("SELECT server_ip FROM servers_ips WHERE server_num = ?", (server_id,))
     result = cursor.fetchone()
@@ -63,7 +63,7 @@ def check_user_and_get_ip_bits(username):
     אם לא קיים, מחזירה 0 ו-0.
     """
     try:
-        conn = sqlite3.connect("DATABASE_GAME.db")
+        conn = sqlite3.connect("DATABASE_GAME_MAIN.db")
         cursor = conn.cursor()
 
         # בדוק אם המשתמש קיים

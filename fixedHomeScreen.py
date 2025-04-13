@@ -1,6 +1,6 @@
 import pygame
 import socket
-
+from server import clientTest
 DEFAULT_BUFFER_SIZE = 35
 
 HOME_SCREEN = 'screens\HomeScreen1.0.png'
@@ -39,12 +39,15 @@ def home_screen(screen, screen_width, screen_height):
 
                 # to log in screen
                 elif 525 < x < 740 and 350 < y < 430:
-                    if loging_screen(screen, screen_width, screen_height):
-                        return True
+                    token= loging_screen(screen, screen_width, screen_height)
+                    if token:
+                        return token
 
                 # to sign up screen
                 elif 525 < x < 740 and 450 < y < 530:
-                    signing_screen(screen, screen_width, screen_height)
+                    token = signing_screen(screen, screen_width, screen_height)
+                    if token:
+                        return token
 
                 # exist the game
                 elif 1204 < x < 1262 and 640 < y < 700:
@@ -153,11 +156,11 @@ def loging_screen(screen, screen_width, screen_height):
                 elif 217 < x < 465 and 500 < y < 575:
                     username_input_active = False
                     password_input_active = False
-                    does_user_exist = enter_user(username_text,password_text)
-                    if not does_user_exist:
+                    token = enter_user(username_text,password_text)
+                    if not token:
                         error_text = "This User doesn't exist, check the Username or the Password"
                     else:
-                        return True
+                        return token
 
 
             elif username_input_active and event.type == pygame.KEYDOWN:
@@ -298,9 +301,12 @@ def signing_screen(screen, screen_width, screen_height):
 
         pygame.display.flip()
 
-
 def create_user(username,password):
-    global packed_data
+    token=clientTest.signup(username, password)
+
+    return token is not None
+
+#    global packed_data
     """
     sends to the mainserver packet with the username and password like this:
     create // username // password
@@ -309,19 +315,24 @@ def create_user(username,password):
     0 bit: 1 = exist and didn't do anything
            0 = doesn't exist and created a new user
     """
-    packet = "create//" + username + "//" + password
-    packet = packet.encode()
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_socket.sendto(packet, (IP, PORT))
-    packed_data, client_addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
-    server_socket.close()
+ #   packet = "create//" + username + "//" + password
+#    packet = packet.encode()
+#    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+#    server_socket.sendto(packet, (IP, PORT))
+#    packed_data, client_addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
+#    server_socket.close()
     # packed_data = 1
-    if packed_data[0] == 1:
-        return False # the username already exists
-    return True
+#    if packed_data[0] == 1:
+#        return False # the username already exists
+#    return True
 
 def enter_user(username,password):
-    global packed_data
+    token=clientTest.login(username, password)
+    if not token:
+        print("Login failed, exiting...")
+        return None
+    return token
+#    global packed_data
     """
     sends to the mainserver packet with the username and password like this:
     enter // username // password
@@ -330,19 +341,19 @@ def enter_user(username,password):
     0 bit: 1 = this user exist
            0 = this user doesn't exist
     """
-    packet = "enter//" + username + "//" + password
-    print(packet)
-    packet = packet.encode()
-    print(packet)
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_socket.sendto(packet, (IP, PORT))
-    packed_data, client_addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
-    server_socket.close()
+    #packet = "enter//" + username + "//" + password
+    #print(packet)
+    #packet = packet.encode()
+    #print(packet)
+    #server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    #server_socket.sendto(packet, (IP, PORT))
+    #packed_data, client_addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
+    #server_socket.close()
  #   packed_data = 1
-    print(packed_data)
-    if packed_data[0] == 0:
-        return False # the user doesn't exist
-    return True
+#    print(packed_data)
+#    if packed_data[0] == 0:
+#        return False # the user doesn't exist
+#    return True
 
 def main(ip, port):
     global IP, PORT
@@ -354,8 +365,9 @@ def main(ip, port):
     pygame.display.set_caption("game")
     screen_width, screen_height = pygame.display.get_surface().get_size()
     print(screen_width, screen_height)
-    if home_screen(screen, screen_width, screen_height):
-        return packed_data[1:]
+    token=home_screen(screen, screen_width, screen_height)
+    if token:
+        return token
     pygame.quit()
 
 if __name__ == "__main__":
