@@ -1,5 +1,6 @@
 import sqlite3
 import bcrypt
+import random
 
 # יצירת חיבור למסד הנתונים
 conn = sqlite3.connect("DATABASE_GAME.db")
@@ -100,7 +101,35 @@ cursor.execute("INSERT INTO bots (bot_type, position_x, position_y, health) VALU
 cursor.execute("INSERT INTO bots (bot_type, position_x, position_y, health) VALUES (?, ?, ?, ?);",
                ("melee", 24000, 38000, 120))
 
-# הכנסת map objects עם מיקום רנדומלי לדוגמה
+# Add players near the main player and far away
+cursor.execute("""
+INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status)
+VALUES 
+('player1', 'hashed_password_1', 100, 100, 100, 200, 'active'),
+('player2', 'hashed_password_2', 500, 500, 100, 200, 'active'),
+('player3', 'hashed_password_3', 1500, 1500, 100, 200, 'active');
+""")
+
+# Add bots near the main player and far away
+cursor.execute("""
+INSERT INTO bots (position_x, position_y, health, bot_type, last_direction_time)
+VALUES
+(120, 120, 80, 'melee', 1587001234),
+(300, 300, 80, 'ranged', 1587001244),
+(1500, 1500, 80, 'melee', 1587001254);
+""")
+
+# Add map objects near the main player and far away
+cursor.execute("""
+INSERT INTO map_objects (code, file, rotation, position_x, position_y)
+VALUES
+('tree', 'tree.png', 0, 100, 100),
+('rock', 'rock.png', 0, 200, 200),
+('bush', 'bush.png', 1, 1500, 1500);
+""")
+conn.commit()
+
+# JSON כמו שהבאת קודם
 map_objects_json = {
     "On map objects": {
         "a": {"file": "Apple_Tree.jpg", "rotation": False},
@@ -118,6 +147,21 @@ map_objects_json = {
         "m": {"file": "Yellow_Flower.jpg", "rotation": False}
     }
 }
+
+conn = sqlite3.connect("../DATABASE_GAME.db")
+cursor = conn.cursor()
+
+for key, obj in map_objects_json["On map objects"].items():
+    x = random.randint(0, 1000)
+    y = random.randint(0, 1000)
+    cursor.execute("""
+        INSERT INTO map_objects (code, file, rotation, position_x, position_y)
+        VALUES (?, ?, ?, ?, ?)
+    """, (key, obj["file"], obj["rotation"], x, y))
+
+conn.commit()
+conn.close()
+print("Objects inserted.")
 
 # לדוגמה - מיקומים בין 21000-25000 ב-x ו-38000-42000 ב-y
 x_positions = [21500, 22000, 22500, 23000, 23500, 24000, 24500]

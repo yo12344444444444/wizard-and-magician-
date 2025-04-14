@@ -7,8 +7,8 @@ import random
 from genericFunction import MathUtils
 
 # Constants
-HOST = '0.0.0.0'
-PORT = 8826
+clint = '127.0.0.1'
+PORT = 8827
 DEFAULT_BUFFER_SIZE = 1024
 DETECTION_RANGE = 500
 BOT_SPEED = 0.75
@@ -17,7 +17,7 @@ SCREEN_WIDTH, SCREEN_HEIGHT = 800, 600
 
 # Initialize server
 server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-server_socket.bind((HOST, PORT))
+server_socket.bind((clint, PORT))
 
 def get_players():
     conn = sqlite3.connect("DATABASE_GAME.db")
@@ -28,7 +28,7 @@ def get_players():
     return data
 
 def get_bots(conn, cursor):
-    cursor.execute("SELECT bot_id, position_x, position_y,last_direction_time FROM bots")
+    cursor.execute("SELECT bot_id, position_x, position_y, last_direction_time FROM bots")
     return cursor.fetchall()
 
 def update_bots():
@@ -41,7 +41,7 @@ def update_bots():
     updates = []
 
     for bot in bots:
-        bot_id, bot_x, bot_y, dir_x, dir_y, last_dir_time = bot
+        bot_id, bot_x, bot_y, last_dir_time = bot
         closest_player = None
         min_dist = float("inf")
 
@@ -62,15 +62,15 @@ def update_bots():
                 dir_x = random.choice([-1, 1]) * BOT_SPEED
                 dir_y = random.choice([-1, 1]) * BOT_SPEED
                 last_dir_time = current_time
-            dx, dy = dir_x, dir_y
 
-        new_x = max(10, min(bot_x + dx, SCREEN_WIDTH - 10))
-        new_y = max(10, min(bot_y + dy, SCREEN_HEIGHT - 10))
+        new_x = max(10, min(bot_x, SCREEN_WIDTH - 10))
+        new_y = max(10, min(bot_y , SCREEN_HEIGHT - 10))
 
-        updates.append((new_x, new_y, dir_x, dir_y, last_dir_time, bot_id))
-
+        updates.append((new_x, new_y, last_dir_time, bot_id))
+        print(updates)
+       # MathUtils.parse_binary_response()
     cursor.executemany(
-        "UPDATE bots SET position_x=?, position_y=?,last_direction_time=? WHERE bot_id=?",
+        "UPDATE bots SET position_x=?, position_y=?, last_direction_time=? WHERE bot_id=?",
         updates
     )
     conn.commit()
@@ -79,6 +79,7 @@ def update_bots():
 def handle_client(data, addr):
     try:
         player_data = MathUtils.parse_binary_response(data)
+        print(player_data)
     except Exception as e:
         print("Parse error:", e)
         return
@@ -114,21 +115,30 @@ def handle_client(data, addr):
         packet_bytes = MathUtils.response_to_bytes(packets)
         server_socket.sendto(packet_bytes, addr)
 
+def allowUtalk():
+    BUFFER_SIZE = 1024
+
+    print("Server is listening...")
+    r=True
+    while r:
+        data, addr = server_socket.recvfrom(BUFFER_SIZE)
+        print(f"Received from {addr}: {data.decode()}")
+
+        if data.decode().lower() == "hello":
+            server_socket.sendto(b"1", addr)
+            r = False
 def main():
     print("Fast UDP Server Running")
     last_bot_update = 0
 
     while True:
-        try:
-            data, addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
-            handle_client(data, addr)
+        data, addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
+        handle_client(data, addr)
 
-            # Update bots every 1/30th of a second
-            if time.time() - last_bot_update > 1 / 30:
-                update_bots()
-                last_bot_update = time.time()
+        # Update bots every 1/30th of a second
+        if time.time() - last_bot_update > 1 / 30:
+            update_bots()
+            last_bot_update = time.time()
 
-        except Exception as e:
-            print("Error:", e)
-
+allowUtalk()
 main()
