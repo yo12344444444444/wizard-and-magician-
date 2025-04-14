@@ -6,6 +6,21 @@ from functools import wraps
 from flasgger import Swagger
 
 app = Flask(__name__)
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your_secret_key'
+app.config['SWAGGER'] = {
+    'title': 'Game API',
+    'uiversion': 3,
+    'securityDefinitions': {
+        'BearerAuth': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header',
+            'description': 'Enter token with **Bearer** prefix. Example: "Bearer your_token_here"'
+        }
+    },
+    'security': [{'BearerAuth': []}]
+}
 swagger = Swagger(app)
 app.config['SECRET_KEY'] = 'your_secret_key'
 DATABASE = ('../DATABASE_GAME.db')
@@ -296,99 +311,102 @@ def signup():
 @token_required
 def game_state(user_id):
     """
-    Get updated game state for the player
-    ---
-    security:
-      - BearerAuth: []
-    tags:
-      - Game
-    consumes:
-      - application/json
-    parameters:
-      - name: Authorization
-        in: header
-        type: string
-        required: true
-        description: Bearer token (e.g., "Bearer <your_token>")
-      - in: body
-        name: player_data
-        required: true
-        schema:
-          type: object
-          required:
-            - direction
-            - x
-            - y
-            - screen_width
-            - screen_height
-          properties:
-            direction:
-              type: string
-              example: "up"
-            x:
-              type: integer
-              example: 120
-            y:
-              type: integer
-              example: 80
-            screen_width:
-              type: integer
-              example: 1000
-            screen_height:
-              type: integer
-              example: 800
-    responses:
-      200:
-        description: Game state returned successfully
-        schema:
-          type: object
-          properties:
-            players:
-              type: array
-              items:
-                type: object
-                properties:
-                  id:
-                    type: string
-                  x:
-                    type: integer
-                  y:
-                    type: integer
-            bots:
-              type: array
-              items:
-                type: object
-                properties:
-                  id:
-                    type: string
-                  x:
-                    type: integer
-                  y:
-                    type: integer
-            objects:
-              type: array
-              items:
-                type: object
-                properties:
-                  id:
-                    type: string
-                  x:
-                    type: integer
-                  y:
-                    type: integer
-      401:
-        description: Unauthorized - token missing or invalid
-        schema:
-          type: object
-          properties:
-            message:
-              type: string
-              example: Invalid or expired token
-    """
+        Get updated game state for the player
+        ---
+        security:
+          - BearerAuth: []
+        tags:
+          - Game
+        consumes:
+          - application/json
+        parameters:
+          - name: Authorization
+            in: header
+            type: string
+            required: true
+            description: Bearer token (e.g., "Bearer <your_token>")
+          - in: body
+            name: player_data
+            required: true
+            schema:
+              type: object
+              required:
+                - direction
+                - x
+                - y
+                - screen_width
+                - screen_height
+              properties:
+                direction:
+                  type: string
+                  example: "up"
+                x:
+                  type: integer
+                  example: 120
+                y:
+                  type: integer
+                  example: 80
+                screen_width:
+                  type: integer
+                  example: 1000
+                screen_height:
+                  type: integer
+                  example: 800
+        responses:
+          200:
+            description: Game state returned successfully
+            schema:
+              type: object
+              properties:
+                players:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      x:
+                        type: integer
+                      y:
+                        type: integer
+                bots:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      x:
+                        type: integer
+                      y:
+                        type: integer
+                objects:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      x:
+                        type: integer
+                      y:
+                        type: integer
+          401:
+            description: Unauthorized - token missing or invalid
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: Invalid or expired token
+        """
     data = request.get_json()
     screen_width = data.get('x')
     screen_height = data.get('y')
+    return jsonify(get_game_state(user_id, screen_width, screen_height)[0])
 
+
+def get_game_state(user_id,screen_width,screen_height):
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -467,6 +485,261 @@ def game_state(user_id):
         'bots': bots,
         'objects': objects
     })
+
+
+@app.route('/movement', methods=['POST'])
+@token_required
+def movement(user_id):
+    """
+    Move Player and return updated game state
+    ---
+    security:
+      - BearerAuth: []
+    tags:
+      - Game
+    consumes:
+      - application/json
+    parameters:
+      - name: Authorization
+        in: header
+        type: string
+        required: true
+        description: Bearer token (e.g., "Bearer <your_token>")
+      - in: body
+        name: player_data
+        required: true
+        schema:
+          type: object
+          required:
+            - direction
+            - x
+            - y
+            - screen_width
+            - screen_height
+          properties:
+            direction:
+              type: string
+              example: "d"
+            x:
+              type: integer
+              example: 120
+            y:
+              type: integer
+              example: 80
+            screen_width:
+              type: integer
+              example: 1000
+            screen_height:
+              type: integer
+              example: 800
+    responses:
+      200:
+        description: Game state after movement
+      400:
+        description: Invalid direction
+      404:
+        description: Player not found
+    """
+    data = request.get_json()
+    direction = data.get('direction')
+    screen_width = data.get('screen_width')
+    screen_height = data.get('screen_height')
+    move_amount = 1
+
+    if direction not in ['w', 'a', 's', 'd']:
+        return jsonify({'error': 'Invalid direction'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT position_x, position_y FROM players WHERE player_id = ?", (user_id,))
+    player = cursor.fetchone()
+
+    if not player:
+        conn.close()
+        return jsonify({'error': 'Player not found'}), 404
+
+    x, y = player['position_x'], player['position_y']
+
+    if direction == 'w':
+        y -= move_amount
+    elif direction == 's':
+        y += move_amount
+    elif direction == 'a':
+        x -= move_amount
+    elif direction == 'd':
+        x += move_amount
+
+    cursor.execute("UPDATE players SET position_x = ?, position_y = ? WHERE player_id = ?", (x, y, user_id))
+    conn.commit()
+    conn.close()
+
+    response = get_game_state(user_id, screen_width, screen_height)
+    return response
+
+# Function to check for collision and return the affected user_id
+def check_collision(user_id, x, y):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Check if the given position collides with another player
+    cursor.execute("SELECT * FROM players WHERE player_id != ? AND position_x = ? AND position_y = ?", (user_id, x, y))
+    other_player = cursor.fetchone()
+    if other_player:
+        conn.close()
+        return {'collision': True, 'type': 'player', 'user_id': other_player['player_id']}
+
+    # Check if the given position collides with a bot
+    cursor.execute("SELECT * FROM bots WHERE position_x = ? AND position_y = ?", (x, y))
+    bot = cursor.fetchone()
+    conn.close()
+
+    if bot:
+        return {'collision': True, 'type': 'bot', 'user_id': bot['bot_id']}
+
+    # If no collision found, return false
+    return {'collision': False}
+
+
+@app.route('/attack', methods=['POST'])
+@token_required
+def attack(user_id):
+    """
+            attack
+            ---
+            security:
+              - BearerAuth: []
+            tags:
+              - Game
+            consumes:
+              - application/json
+            parameters:
+              - name: Authorization
+                in: header
+                type: string
+                required: true
+                description: Bearer token (e.g., "Bearer <your_token>")
+              - in: body
+                name: player_data
+                required: true
+                schema:
+                  type: object
+                  required:
+                    - x
+                    - y
+                    - weapon type
+                  properties:
+                    x:
+                      type: integer
+                      example: 120
+                    y:
+                      type: integer
+                      example: 80
+                    weapon type:
+                      type: string
+                      example: Stone_Sword
+            responses:
+              200:
+                description: Game state returned successfully
+                schema:
+                  type: object
+                  properties:
+                    players:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          x:
+                            type: integer
+                          y:
+                            type: integer
+                    bots:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          x:
+                            type: integer
+                          y:
+                            type: integer
+                    objects:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          x:
+                            type: integer
+                          y:
+                            type: integer
+              401:
+                description: Unauthorized - token missing or invalid
+                schema:
+                  type: object
+                  properties:
+                    message:
+                      type: string
+                      example: Invalid or expired token
+            """
+    data = request.get_json()
+    x = data.get('x')
+    y = data.get('y')
+    weapon_type = data.get('weapon_type')
+
+    # Check for collision at the given coordinates
+    collision_result = check_collision(user_id, x, y)
+
+    if collision_result['collision']:
+        target_type = collision_result['type']
+        target_user_id = collision_result['user_id']
+
+        if weapon_type == 'Stone_Sword':
+            damage = 10  # Corrected value for Stone_Sword
+        elif weapon_type == 'Iron_Sword':
+            damage = 15  # Corrected value for Iron_Sword
+        elif weapon_type == 'Gold_Sword':
+            damage = 20  # Corrected value for Gold_Sword
+        elif weapon_type == 'Wood_Wand':
+            damage = 10  # Corrected value for Wood_Wand
+        elif weapon_type == 'Gold_Wand':
+            damage = 20  # Corrected value for Gold_Wand
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        if target_type == 'player':
+            cursor.execute("SELECT health FROM players WHERE player_id = ?", (target_user_id,))
+            player = cursor.fetchone()
+
+            if player:
+                new_health = player['health'] - damage
+                cursor.execute("UPDATE players SET health = ? WHERE player_id = ?", (new_health, target_user_id))
+                conn.commit()
+                conn.close()
+                return jsonify({'message': 'Player health updated', 'new_health': new_health, 'target': 'player'}), 200
+            else:
+                conn.close()
+                return jsonify({'error': 'Player not found'}), 404
+
+        elif target_type == 'bot':
+            cursor.execute("SELECT health FROM bots WHERE bot_id = ?", (target_user_id,))
+            bot = cursor.fetchone()
+
+            if bot:
+                new_health = bot['health'] - damage
+                cursor.execute("UPDATE bots SET health = ? WHERE bot_id = ?", (new_health, target_user_id))
+                conn.commit()
+                conn.close()
+                return jsonify({'message': 'Bot health updated', 'new_health': new_health, 'target': 'bot'}), 200
+            else:
+                conn.close()
+                return jsonify({'error': 'Bot not found'}), 404
+
+    return jsonify({'collision': False}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
