@@ -350,6 +350,76 @@ def put_icons_on_screen(display,inventory_icon, mini_map_icon, exit_icon, chat_i
     draw_current_holding(display)
     return True
 
+
+def check_inventory_fullness():
+    """
+    checks if the inventory is full or not.
+    if he is full return true.
+    if he is not full return false.
+    """
+    with open("inventory.json", "r") as file_cells:
+        data_cells = json.load(file_cells)
+
+    for i in range(1,19):
+        if data_cells["cells"][str(i)]["item"] == "0":
+            return False
+    return True
+
+
+def item_exist_in_inventory(item):
+    """
+    check if the item exist in the inventory in case it is stackable
+    param item: the id of the item
+    if it does return true and the cell
+    if it doesn't return false and zero
+    """
+    with open("inventory.json", "r") as file_cells:
+        data_cells = json.load(file_cells)
+
+    for i in range(1,19):
+        if data_cells["cells"][str(i)]["item"] == str(item):
+            return True, i
+
+    return False, 0
+
+
+def add_item(item, amount):
+    """
+    param item: the id of the item
+    param amount: the amount of the item
+    add the item to inventory
+
+    if the item cannot be added returns false.
+    if it was added successfully returns true.
+    """
+    with open("items.json", "r") as file_items:
+        data_items = json.load(file_items)
+    with open("inventory.json", "r") as file_cells:
+        data_cells = json.load(file_cells)
+
+    if data_items["items"][str(item)]["stackable"]:
+        bool, cell = item_exist_in_inventory(item)
+        if bool:
+                quantity = data_cells["cells"][str(cell)]["quantity"]
+                data_cells["cells"][str(cell)]["quantity"] = int(int(quantity) + int(amount))
+
+    if check_inventory_fullness():
+        print("full :(")
+        return False
+
+    for i in range(1, 19):
+        if data_cells["cells"][str(i)]["item"] == "0":
+            print("found place", i, str(item), int(amount))
+            data_cells["cells"][str(i)]["item"] = str(item)
+            data_cells["cells"][str(i)]["quantity"] = int(amount)
+            break
+
+    with open("inventory.json", "w") as file_cells:
+        json.dump(data_cells, file_cells, indent=4)
+    return True
+
+
+
 # תקשורת עם השרת:
 
 def items_from_datab_to_json():
@@ -379,6 +449,10 @@ def items_from_datab_to_json():
         data_cells = json.load(file_cells)
 
     for i in range(1,19):
+        data_cells["cells"][str(i)]["item"] = "0"
+        data_cells["cells"][str(i)]["quantity"] = 0
+
+    for i in range(1,19):
         try:
             item,amount = seperated_data[i].split("-")
             amount = int(amount)
@@ -387,6 +461,7 @@ def items_from_datab_to_json():
             data_cells["cells"][str(i)]["quantity"] = amount
         except Exception as e:
             print(e)
+
 
     with open("inventory.json", "w") as file_cells:
         json.dump(data_cells, file_cells, indent=4)

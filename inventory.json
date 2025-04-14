@@ -1,46 +1,46 @@
 {
     "cells": {
         "1": {
-            "item": "0",
-            "quantity": 0,
+            "item": "1",
+            "quantity": 1,
             "topleft_x": 370,
             "topleft_y": 586,
             "mini_button_pressed?": false
         },
         "2": {
-            "item": "0",
-            "quantity": 0,
+            "item": "12",
+            "quantity": 1,
             "topleft_x": 479,
             "topleft_y": 586,
             "mini_button_pressed?": false
         },
         "3": {
-            "item": "0",
-            "quantity": 0,
+            "item": "1",
+            "quantity": 1,
             "topleft_x": 584,
             "topleft_y": 586,
             "mini_button_pressed?": false
         },
         "4": {
-            "item": "0",
-            "quantity": 0,
+            "item": "7",
+            "quantity": 24,
             "topleft_x": 696,
             "topleft_y": 586,
             "mini_button_pressed?": false
         },
         "5": {
-            "item": "0",
-            "quantity": 0,
+            "item": "9",
+            "quantity": 15,
             "topleft_x": 803,
             "topleft_y": 586,
             "mini_button_pressed?": false
         },
         "6": {
-            "item": "0",
-            "quantity": 0,
+            "item": "3",
+            "quantity": 1,
             "topleft_x": 919,
             "topleft_y": 586,
-            "mini_button_pressed?": false
+            "mini_button_pressed?": true
         },
         "7": {
             "item": "0",
@@ -117,7 +117,7 @@
             "quantity": 0,
             "topleft_x": 584,
             "topleft_y": 465,
-            "mini_button_pressed?": true
+            "mini_button_pressed?": false
         },
         "18": {
             "item": "0",
