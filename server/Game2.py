@@ -1,5 +1,4 @@
 from pickle import GLOBAL
-
 import pygame
 import sys
 import socket
@@ -7,10 +6,10 @@ import json
 from genericFunction import MathUtils
 from server import clientTest
 
-
 def main(token):
     global Token
-    Token=token
+    Token = token
+
     tolernsStoneSword = 10
     PORT = 8827
     health = 100
@@ -33,13 +32,10 @@ def main(token):
         packet = f'{1:01b}' if arr_obj[0] else f'{0:01b}'
         packet += f'{ord(arr_obj[1]):07b}'.zfill(7)
         packet += f'{arr_obj[2]:017b}'.zfill(11)
-        #  print(packet)
         packet += f'{arr_obj[3]:017b}'.zfill(11)
         packet += f'{arr_obj[4]:010b}'.zfill(10)
-        # Make sure no non-binary characters are present
         if not all(c in '01' for c in packet):
             raise ValueError(f"Invalid binary string: {packet}")
-
         return packet
 
     def response_to_bytes(array_for_client):
@@ -48,13 +44,12 @@ def main(token):
         combined_bit_string = combined_bit_string.ljust((len(combined_bit_string) + 7) // 8 * 8, '0')
         number = int(combined_bit_string, 2)
         byte_value = number.to_bytes((len(combined_bit_string) + 7) // 8, 'big')
-
         return byte_value
 
     def put(id):
         with open("Objects.json", "r") as f:
             y = json.load(f)
-        return y["On map objects"].get(id, {}).get('file', "Walking_Front_1.jpg")  # Default fallback
+        return y["On map objects"].get(id, {}).get('file', "Walking_Front_1.jpg")
 
     class ObjectPlacer:
         def __init__(self, pos, id):
@@ -77,14 +72,23 @@ def main(token):
             objects.append((bool(rotation), object_id, x_coord, y_coord))
         return objects
 
-def get_data():
-    return clientTest.get_game_state(Token,1920,1080)
+    # כאן אנחנו משתמשים ב-Token אחרי שהוא כבר הוגדר
+    game_objects = get_data()
 
-
-game_objects = get_data()
-# Adjust object positions based on camera offset
-arr = (
+    arr = (
         [{'category': 'player', **p} for p in game_objects['players']] +
         [{'category': 'bot', **b} for b in game_objects['bots']] +
         [{'category': 'object', **o} for o in game_objects['objects']]
-)
+    )
+
+    # תוכל להמשיך מפה - למשל להציג אובייקטים:
+    for obj in arr:
+        if obj['category'] == 'object':
+            ObjectPlacer((obj['x'], obj['y']), obj['id'])
+
+def get_data():
+    return clientTest.get_game_state(Token, 1920, 1080)
+
+# קריאה ל-main עם טוקן
+# לדוגמה:
+# main("your_jwt_token_here")

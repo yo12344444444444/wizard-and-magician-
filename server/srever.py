@@ -3,8 +3,10 @@ import sqlite3
 from jose import jwt  # Replace PyJWT with jose.jwt
 import datetime
 from functools import wraps
+from flasgger import Swagger
 
 app = Flask(__name__)
+swagger = Swagger(app)
 app.config['SECRET_KEY'] = 'your_secret_key'
 DATABASE = ('../DATABASE_GAME.db')
 
@@ -33,6 +35,42 @@ def home():
 
 @app.route('/login', methods=['POST'])
 def login():
+    """
+    User login
+    ---
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            username:
+              type: string
+              example: myuser
+            password:
+              type: string
+              example: mypass
+    responses:
+      200:
+        description: Login successful
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: Login successful
+      401:
+        description: Invalid credentials
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: Invalid credentials
+    """
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
@@ -43,35 +81,66 @@ def login():
     user = cursor.fetchone()
 
     if user:
-        cursor.execute("UPDATE players SET status = 'active' WHERE player_id = ?", (user['player_id'],))
-        conn.commit()
-        conn.close()
+     cursor.execute("UPDATE players SET status = 'active' WHERE player_id = ?", (user['player_id'],))
+     conn.commit()
+     conn.close()
 
-        token = jwt.encode({
-            'user_id': user['player_id'],
-            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=10)
-        }, app.config['SECRET_KEY'], algorithm='HS256')
+     token = jwt.encode({
+         'user_id': user['player_id'],
+         'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=10)
+     }, app.config['SECRET_KEY'], algorithm='HS256')
 
-        return jsonify({
-            'message': 'Login successful',
-            'token': token,
-            'user': {
-                'id': user['player_id'],
-                'username': user['username'],
-                'position_x': user['position_x'],
-                'position_y': user['position_y'],
-                'health': user['health'],
-                'coins': user['coins'],
-                'status': 'active'
-            }
-        })
+     return jsonify({
+         'message': 'Login successful',
+         'token': token,
+         'user': {
+             'id': user['player_id'],
+             'username': user['username'],
+             'position_x': user['position_x'],
+             'position_y': user['position_y'],
+             'health': user['health'],
+             'coins': user['coins'],
+             'status': 'active'
+         }
+     })
     else:
-        conn.close()
-        return jsonify({'error': 'Invalid username or password'}), 401
+     conn.close()
+     return jsonify({'error': 'Invalid username or password'}), 401
 
 @app.route('/logout', methods=['POST'])
 @token_required
 def logout(user_id):
+    """
+        Logs out the current user
+        ---
+        security:
+          - BearerAuth: []
+        tags:
+          - Authentication
+        parameters:
+          - name: Authorization
+            in: header
+            type: string
+            required: true
+            description: Bearer token (e.g., "Bearer <your_token>")
+        responses:
+          200:
+            description: Logout successful
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: Logout successful
+          401:
+            description: Unauthorized - invalid or missing token
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: Invalid or expired token
+        """
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("UPDATE players SET status = 'inactive' WHERE player_id = ?", (user_id,))
@@ -83,6 +152,52 @@ def logout(user_id):
 @app.route('/get_player', methods=['GET'])
 @token_required
 def get_player(user_id):
+    """
+        Get player details
+        ---
+        security:
+          - BearerAuth: []
+        tags:
+          - Player
+        parameters:
+          - name: Authorization
+            in: header
+            type: string
+            required: true
+            description: Bearer token (e.g., "Bearer <your_token>")
+        responses:
+          200:
+            description: Player data retrieved successfully
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: Player123
+                level:
+                  type: integer
+                  example: 5
+                coins:
+                  type: integer
+                  example: 120
+                location:
+                  type: object
+                  properties:
+                    x:
+                      type: integer
+                      example: 100
+                    y:
+                      type: integer
+                      example: 200
+          401:
+            description: Unauthorized - invalid or missing token
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: Invalid or expired token
+        """
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM players WHERE player_id = ?", (user_id,))
@@ -90,20 +205,65 @@ def get_player(user_id):
     conn.close()
 
     if player:
-        return jsonify({
-            'player_id': player['player_id'],
-            'username': player['username'],
-            'position_x': player['position_x'],
-            'position_y': player['position_y'],
-            'health': player['health'],
-            'coins': player['coins'],
-            'status': player['status']
-        })
+     return jsonify({
+         'player_id': player['player_id'],
+         'username': player['username'],
+         'position_x': player['position_x'],
+         'position_y': player['position_y'],
+         'health': player['health'],
+         'coins': player['coins'],
+         'status': player['status']
+     })
     else:
-        return jsonify({'error': 'Player not found'}), 404
+     return jsonify({'error': 'Player not found'}), 404
 
 @app.route('/signup', methods=['POST'])
 def signup():
+    """
+    Register a new user
+    ---
+    tags:
+      - Authentication
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - username
+            - email
+            - password
+          properties:
+            username:
+              type: string
+              example: new_user
+            email:
+              type: string
+              example: user@example.com
+            password:
+              type: string
+              example: secret123
+    responses:
+      201:
+        description: Signup successful
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: User created successfully
+      400:
+        description: Bad request or user already exists
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: Username already exists
+    """
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
@@ -111,30 +271,120 @@ def signup():
     conn = get_db_connection()
     cursor = conn.cursor()
     try:
-        cursor.execute("INSERT INTO players (username, password_hash) VALUES (?, ?)", (username, password))
-        conn.commit()
-        new_id = cursor.lastrowid
-        cursor.execute("UPDATE players SET status = 'active' WHERE player_id = ?", (new_id,))
-        conn.commit()
+     cursor.execute("INSERT INTO players (username, password_hash) VALUES (?, ?)", (username, password))
+     conn.commit()
+     new_id = cursor.lastrowid
+     cursor.execute("UPDATE players SET status = 'active' WHERE player_id = ?", (new_id,))
+     conn.commit()
     except sqlite3.IntegrityError:
-        conn.close()
-        return jsonify({'error': 'Username already exists'}), 409
+     conn.close()
+     return jsonify({'error': 'Username already exists'}), 409
 
     token = jwt.encode({
-        'user_id': new_id,
-        'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=10)
+     'user_id': new_id,
+     'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=10)
     }, app.config['SECRET_KEY'], algorithm='HS256')
 
     conn.close()
     return jsonify({
-        'message': 'User signed up successfully',
-        'token': token,
-        'player_id': new_id
+     'message': 'User signed up successfully',
+     'token': token,
+     'player_id': new_id
     })
 
 @app.route('/game_state', methods=['POST'])
 @token_required
 def game_state(user_id):
+    """
+    Get updated game state for the player
+    ---
+    security:
+      - BearerAuth: []
+    tags:
+      - Game
+    consumes:
+      - application/json
+    parameters:
+      - name: Authorization
+        in: header
+        type: string
+        required: true
+        description: Bearer token (e.g., "Bearer <your_token>")
+      - in: body
+        name: player_data
+        required: true
+        schema:
+          type: object
+          required:
+            - direction
+            - x
+            - y
+            - screen_width
+            - screen_height
+          properties:
+            direction:
+              type: string
+              example: "up"
+            x:
+              type: integer
+              example: 120
+            y:
+              type: integer
+              example: 80
+            screen_width:
+              type: integer
+              example: 1000
+            screen_height:
+              type: integer
+              example: 800
+    responses:
+      200:
+        description: Game state returned successfully
+        schema:
+          type: object
+          properties:
+            players:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  x:
+                    type: integer
+                  y:
+                    type: integer
+            bots:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  x:
+                    type: integer
+                  y:
+                    type: integer
+            objects:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  x:
+                    type: integer
+                  y:
+                    type: integer
+      401:
+        description: Unauthorized - token missing or invalid
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: Invalid or expired token
+    """
     data = request.get_json()
     screen_width = data.get('x')
     screen_height = data.get('y')
