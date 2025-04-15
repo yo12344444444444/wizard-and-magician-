@@ -3,7 +3,7 @@ import bcrypt
 import random
 
 # יצירת חיבור למסד הנתונים
-conn = sqlite3.connect("DATABASE_GAME.db")
+conn = sqlite3.connect("../DATABASE_GAME.db")
 cursor = conn.cursor()
 
 # מחיקת טבלאות ישנות אם קיימות
@@ -34,9 +34,11 @@ CREATE TABLE bots (
     position_y INTEGER NOT NULL,
     health INTEGER DEFAULT 100,
     bot_type TEXT CHECK(bot_type IN ('melee', 'ranged')) NOT NULL,
-    last_direction_time INTEGER DEFAULT 0
+    last_direction_time INTEGER DEFAULT 0,
+    last_attack_time INTEGER DEFAULT 0
 );
 ''')
+
 
 # טבלת items
 cursor.execute("""
@@ -67,18 +69,6 @@ def hash_password(password):
     hashed_password = bcrypt.hashpw(password.encode(), salt)
     return hashed_password
 
-# אימות סיסמא
-def verify_password(username, password):
-    conn = sqlite3.connect("DATABASE_GAME.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT password_hash FROM players WHERE username = ?", (username,))
-    result = cursor.fetchone()
-    conn.close()
-    if result:
-        stored_hash = result[0]
-        return bcrypt.checkpw(password.encode(), stored_hash.encode())
-    return False
-
 # הכנסת שחקנים
 cursor.execute(
     "INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status) VALUES (?, ?, ?, ?, ?, ?, ?);",
@@ -95,13 +85,13 @@ cursor.execute("INSERT INTO items (player_id, item_name, quantity) VALUES (2, 'B
 
 # הכנסת בוטים
 cursor.execute("INSERT INTO bots (bot_type, position_x, position_y, health) VALUES (?, ?, ?, ?);",
-               ("melee", 22000, 39000, 100))
+               ("melee", 300, 300, 100))
 cursor.execute("INSERT INTO bots (bot_type, position_x, position_y, health) VALUES (?, ?, ?, ?);",
-               ("ranged", 23000, 40000, 80))
+               ("ranged", 120, 120, 100))
 cursor.execute("INSERT INTO bots (bot_type, position_x, position_y, health) VALUES (?, ?, ?, ?);",
                ("melee", 24000, 38000, 120))
 
-# Add players near the main player and far away
+# הוספת שחקנים עם מיקומים שונים
 cursor.execute("""
 INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status)
 VALUES 
@@ -110,7 +100,7 @@ VALUES
 ('player3', 'hashed_password_3', 1500, 1500, 100, 200, 'active');
 """)
 
-# Add bots near the main player and far away
+# הוספת בוטים עם מיקומים שונים
 cursor.execute("""
 INSERT INTO bots (position_x, position_y, health, bot_type, last_direction_time)
 VALUES
@@ -119,7 +109,7 @@ VALUES
 (1500, 1500, 80, 'melee', 1587001254);
 """)
 
-# Add map objects near the main player and far away
+# הוספת אובייקטים במפה
 cursor.execute("""
 INSERT INTO map_objects (code, file, rotation, position_x, position_y)
 VALUES
@@ -129,7 +119,7 @@ VALUES
 """)
 conn.commit()
 
-# JSON כמו שהבאת קודם
+# הוספת אובייקטים נוספים במפה מתוך JSON
 map_objects_json = {
     "On map objects": {
         "a": {"file": "Apple_Tree.jpg", "rotation": False},
@@ -148,9 +138,6 @@ map_objects_json = {
     }
 }
 
-conn = sqlite3.connect("../DATABASE_GAME.db")
-cursor = conn.cursor()
-
 for key, obj in map_objects_json["On map objects"].items():
     x = random.randint(0, 1000)
     y = random.randint(0, 1000)
@@ -159,11 +146,7 @@ for key, obj in map_objects_json["On map objects"].items():
         VALUES (?, ?, ?, ?, ?)
     """, (key, obj["file"], obj["rotation"], x, y))
 
-conn.commit()
-conn.close()
-print("Objects inserted.")
-
-# לדוגמה - מיקומים בין 21000-25000 ב-x ו-38000-42000 ב-y
+# הוספת אובייקטים נוספים עם מיקומים ספציפיים
 x_positions = [21500, 22000, 22500, 23000, 23500, 24000, 24500]
 y_positions = [38500, 39000, 39500, 40000, 40500, 41000, 41500]
 
