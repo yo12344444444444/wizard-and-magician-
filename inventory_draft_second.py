@@ -1,6 +1,7 @@
 import pygame
 import buttons
 import json
+import socket
 
 INVENTORY_ICON = "graphic\Inventory_Icon.png"
 EXIT_ICON = "graphic\Exit_Icon.png"
@@ -14,20 +15,28 @@ CHAT_WINDOW_LAYER_2 = "graphic\Chat_Second_Layer.png"
 CURRENT_HOLDING = "graphic\Current_Holding.png"
 MINI_BUTTON_PRESSED = "graphic\Mini_Button_Pressed.png"
 MINI_BUTTON_NOT_PRESSED = "graphic\Mini_Button_Not_Pressed.png"
-WHITE = (255, 255, 255)
-BACK = (182, 212, 137)
 
+# colors:
+WHITE = (255,255,255)
+BACK = (182,212,137)
+
+
+IP = '127.0.0.1'
+PORT = 8820
+DEFAULT_BUFFER_SIZE = 200
+
+clock = pygame.time.Clock()
 frames_per_second = 30
 window_height = 720
 window_width = 1280
 
-INVENTORY_OPEN = 0  # BOOLEAN OF NUMBERS- odd=full_inventory, even=not full inventory
-CHAT_OPEN = 0  # BOOLEAN OF NUMBERS- odd=open, even=close
+# flags:
+INVENTORY_OPEN = 0 #BOOLEAN OF NUMBERS- odd=full_inventory, even=not full inventory
+CHAT_OPEN = 0 #BOOLEAN OF NUMBERS- odd=open, even=close
+CLICKED = False
+
 display = pygame.display.set_mode((window_width, window_height))
 display.fill(BACK)
-
-reset_mini_buttons = False  # דגל לדחיית איפוס הכפתורים
-
 
 def open_chat():
     """
@@ -102,8 +111,9 @@ def mini_button_change(cell_num):
         data_cells = json.load(file_cells)
 
     data_cells["cells"][str(cell_num)]["mini_button_pressed?"] = True
+
     with open("inventory.json", "w") as file_cells:
-        json.dump(data_cells, file_cells, indent=4)
+        json.dump(data_cells, (file_cells), indent=4)
 
 
 def both_mini_button_pressed():
@@ -116,7 +126,7 @@ def both_mini_button_pressed():
     cell_num2 = 0
     with open("inventory.json", "r") as file_cells:
         data_cells = json.load(file_cells)
-    for i in range(1, 19):
+    for i in range(1,19):
         if data_cells["cells"][str(i)]["mini_button_pressed?"] and cell_num1 == 0:
             cell_num1 = i
         if data_cells["cells"][str(i)]["mini_button_pressed?"] and cell_num1 != 0 and cell_num1 != i:
@@ -148,23 +158,25 @@ def switch_items_in_inventory(cell_num1, cell_num2):
     data_cells["cells"][str(cell_num2)]["item"] = item1
     data_cells["cells"][str(cell_num2)]["quantity"] = quantity1
 
-    global reset_mini_buttons
-    reset_mini_buttons = True  # סמון לדחיית איפוס הכפתורים
+    for cell in data_cells["cells"].values():
+        cell["mini_button_pressed?"] = False
 
     with open("inventory.json", "w") as file_cells:
         json.dump(data_cells, file_cells, indent=4)
 
+    print(data_cells)
 
-def print_not_full_inventory(display):
+
+def print_not_full_inventory(dispaly):
     """
-    prints in the small inventory the items, the amount, and the mini button
+    prints in the small inventory the items, the anoumt
     """
     font = pygame.font.Font(None, 25)
     with open("inventory.json", "r") as file_cells:
         data_cells = json.load(file_cells)
     with open("items.json", "r") as file_items:
         data_items = json.load(file_items)
-    for i in range(1, 7):
+    for i in range(1,7):
 
         cell = data_cells["cells"][str(i)]
         item = cell["item"]
@@ -183,19 +195,20 @@ def print_not_full_inventory(display):
         # draw the amount:
         if data_items["items"][item]["stackable"]:
             amount = font.render(str(quantity), True, WHITE)
-            display.blit(amount, (x + 77, y + 3))
+            dispaly.blit(amount, (x+77,y+3))
 
 
-def print_full_inventory(display):
+def print_full_inventory(dispaly):
     """
     prints in the full inventory the items
+    :return:
     """
     font = pygame.font.Font(None, 25)
     with open("inventory.json", "r") as file_cells:
         data_cells = json.load(file_cells)
     with open("items.json", "r") as file_items:
         data_items = json.load(file_items)
-    for i in range(1, 19):
+    for i in range(1,19):
 
         cell = data_cells["cells"][str(i)]
         item = cell["item"]
@@ -214,13 +227,14 @@ def print_full_inventory(display):
         # draw the amount:
         if data_items["items"][item]["stackable"]:
             amount = font.render(str(quantity), True, WHITE)
-            display.blit(amount, (x + 77, y + 3))
+            dispaly.blit(amount, (x+77,y+3))
 
 
 def draw_current_holding(display):
     """
     drawing the current holding
     """
+
     font = pygame.font.Font(None, 25)
     with open("inventory.json", "r") as file_cells:
         data_cells = json.load(file_cells)
@@ -250,9 +264,11 @@ def draw_mini_buttons(display):
     """
     draws the mini button when you open the full inventory
     """
-    global reset_mini_buttons
+    global CLICKED
     with open("inventory.json", "r") as file_cells:
         data_cells = json.load(file_cells)
+
+
 
     for i in range(1, 19):
 
@@ -270,6 +286,7 @@ def draw_mini_buttons(display):
                 button = buttons.Button(x, y + 85, button_image)
             button.draw(display)
         else:
+
             button_image = pygame.image.load(MINI_BUTTON_NOT_PRESSED).convert()
             if 1 <= i <= 6:
                 button = buttons.Button(x, y + 103, button_image)
@@ -280,19 +297,6 @@ def draw_mini_buttons(display):
                 bool, cell1, cell2 = both_mini_button_pressed()
                 if bool:
                     switch_items_in_inventory(cell1, cell2)
-                    reset_mini_buttons = False  # לאחר סוויץ' איפוס הכפתורים יתבצע אחרי דחייה.
-                else:
-                    reset_mini_buttons = True  # אם לא התבצע סוויץ', דוחה איפוס
-                    # מחכים להבא, לא לאפס את הכפתורים כרגע
-                if reset_mini_buttons:
-                    with open("inventory.json", "r") as file_cells:
-                        data_cells = json.load(file_cells)
-
-                    for i in range(1, 19):
-                        data_cells["cells"][str(i)]["mini_button_pressed?"] = False
-                    with open("inventory.json", "w") as file_cells:
-                        json.dump(data_cells, file_cells, indent=4)
-                    reset_mini_buttons = False  #
 
 
 def create_icons():
@@ -330,7 +334,6 @@ def put_icons_on_screen(display,inventory_icon, mini_map_icon, exit_icon, chat_i
     """
     global INVENTORY_OPEN
     global CHAT_OPEN
-
     if inventory_icon.draw(display):
         INVENTORY_OPEN += 1
     if INVENTORY_OPEN % 2 == 1:
@@ -348,9 +351,69 @@ def put_icons_on_screen(display,inventory_icon, mini_map_icon, exit_icon, chat_i
     draw_current_holding(display)
     return True
 
+
+def check_inventory_fullness():
+    """
+    checks if the inventory is full or not.
+    if he is full return true.
+    if he is not full return false.
+    """
+    with open("inventory.json", "r") as file_cells:
+        data_cells = json.load(file_cells)
+
+    for i in range(1,19):
+        if data_cells["cells"][str(i)]["items"] == "0":
+            return False
+    return True
+
+
+# תקשורת עם השרת:
+
+def items_from_datab_to_json():
+    """
+    function that sends to the second server message- "give items"
+    and gets from the second server a packet like this:
+    0,1-23,12-1,3-4,....
+    the packet is seperated with ","
+    first place is always zero but from then every place symbolize the id of the item(look in items.json)
+    and then the amount the player have of this, example: 0,item1-amount1,item2-amount2,....
+    then it put it in the json file
+    """
+    """
+    packet = "give items"
+    packet = packet.encode()
+    server_socket = socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
+    server_socket.bind((IP, PORT))
+    server_socket.send(packet)
+    data , server_addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
+    server_socket.close()
+    data = data.decode()
+    """
+    data = "0,1-1,12-1,3-1,7-24,9-15"
+    seperated_data = data.split(",")
+
+    with open("inventory.json", "r") as file_cells:
+        data_cells = json.load(file_cells)
+
+    for i in range(1,19):
+        try:
+            item,amount = seperated_data[i].split("-")
+            amount = int(amount)
+
+            data_cells["cells"][str(i)]["item"] = item
+            data_cells["cells"][str(i)]["quantity"] = amount
+        except Exception as e:
+            print(e)
+
+    with open("inventory.json", "w") as file_cells:
+        json.dump(data_cells, file_cells, indent=4)
+
+
+
 pygame.init()
 inventory_icon, mini_map_icon, exit_icon, chat_icon,current_holding = create_icons()
 running = True
+items_from_datab_to_json()
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -359,4 +422,5 @@ while running:
     if not put_icons_on_screen(display,inventory_icon, mini_map_icon, exit_icon, chat_icon,current_holding):
         running = False
     pygame.display.flip()
+    clock.tick(30)
 pygame.quit()
