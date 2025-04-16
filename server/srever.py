@@ -832,5 +832,103 @@ def check_object():
     else:
         return jsonify({'found': False}), 404
 
+@app.route('/add-to-inventory', methods=['POST'])
+def add_to_inventory():
+    """
+    הוספת חפץ לאינבנטורי אם יש מקום והוא אינו tree או bush
+    ---
+    tags:
+      - Game
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: data
+        required: true
+        schema:
+          type: object
+          required:
+            - object_name
+            - player_id
+            - slot_index
+            - has_space_in_inventory
+          properties:
+            object_name:
+              type: string
+              example: "potion_red"
+            player_id:
+              type: integer
+              example: 1
+            slot_index:
+              type: integer
+              example: 3
+            has_space_in_inventory:
+              type: boolean
+              example: true
+    responses:
+      200:
+        description: תוצאת ניסיון ההוספה לאינבנטורי
+    """
+    data = request.get_json()
+    object_name = data.get('object_name')
+    has_space = data.get('has_space_in_inventory')
+    player_id = data.get('player_id')
+    slot_index = data.get('slot_index')
+
+    if None in (object_name, has_space, player_id, slot_index):
+        return jsonify({'error': 'Missing data'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # שליפת האובייקט לפי הקוד
+    cursor.execute("""
+        SELECT * FROM map_objects WHERE name = ?
+    """, (object_name,))
+    obj = cursor.fetchone()
+
+    if not obj:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Object not found'}), 404
+
+    if not has_space:
+        conn.close()
+        return jsonify({'success': False, 'message': 'No space in inventory'}), 200
+
+    if obj['code'] in ['tree', 'bush']:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Object cannot be added to inventory'}), 200
+
+    # בדיקה אם האובייקט כבר קיים בתא הזה של השחקן
+    cursor.execute("""
+        SELECT * FROM inventory
+        WHERE player_id = ? AND name = ? AND slot_index = ?
+    """, (player_id, obj['code'], slot_index))
+    existing_item = cursor.fetchone()
+
+    if existing_item:
+        # הגדלת כמות ב-1
+        cursor.execute("""
+            UPDATE inventory
+            SET quantity = quantity + 1
+            WHERE inventory_id = ?
+        """, (existing_item['inventory_id'],))
+    else:
+        # יצירת פריט חדש עם כמות 1
+        cursor.execute("""
+            INSERT INTO inventory (player_id, name, slot_index, quantity)
+            VALUES (?, ?, ?, 1)
+        """, (player_id, obj['code'], slot_index))
+
+    # הסרה מהמפה
+    cursor.execute("""
+        DELETE FROM map_objects WHERE object_id = ?
+    """, (obj['object_id'],))
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({'success': True, 'message': f'{object_name} added to inventory'}), 200
+
 if __name__ == '__main__':
     app.run(debug=True)
