@@ -121,22 +121,23 @@ conn.commit()
 
 # הוספת אובייקטים נוספים במפה מתוך JSON
 map_objects_json = {
-    "On map objects": {
-        "a": {"file": "Apple_Tree.jpg", "rotation": False},
-        "b": {"file": "Tree.jpg", "rotation": False},
-        "c": {"file": "Blueberry_Bush.jpg", "rotation": False},
-        "d": {"file": "Bush.jpg", "rotation": False},
-        "e": {"file": "Grass.jpg", "rotation": False},
-        "f": {"file": "Iron.jpg", "rotation": False},
-        "g": {"file": "Gold.jpg", "rotation": False},
-        "h": {"file": "Stones.jpg", "rotation": False},
-        "i": {"file": "Blue_Flower.jpg", "rotation": False},
-        "j": {"file": "Pink_Flower.jpg", "rotation": False},
-        "k": {"file": "Purple_Flower.jpg", "rotation": False},
-        "l": {"file": "Red_Flower.jpg", "rotation": False},
-        "m": {"file": "Yellow_Flower.jpg", "rotation": False}
-    }
+      "On map objects": {
+        "a": { "file": "Apple_Tree.jpg", "rotation": False },
+        "b": { "file": "Tree.jpg", "rotation": False },
+        "c": { "file": "Blueberry_Bush.jpg", "rotation": False },
+        "d": { "file": "Bush.jpg", "rotation": False },
+        "e": { "file": "Grass.jpg", "rotation": False },
+        "f": { "file": "Iron_Sword.jpg", "rotation": False },
+        "g": { "file": "Gold_Sword.jpg", "rotation": False },
+        "h": { "file": "Stones_Sword.jpg", "rotation": False },
+        "i": { "file": "Blue_Flower.jpg", "rotation": False },
+        "j": { "file": "Pink_Flower.jpg", "rotation": False },
+        "k": { "file": "Purple_Flower.jpg", "rotation": False },
+        "l": { "file": "Red_Flower.jpg", "rotation": False },
+        "m": { "file": "Yellow_Flower.jpg", "rotation": False }
+      }
 }
+
 
 for key, obj in map_objects_json["On map objects"].items():
     x = random.randint(0, 1000)

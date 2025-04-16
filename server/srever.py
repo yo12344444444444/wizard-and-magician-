@@ -7,7 +7,6 @@ from flasgger import Swagger
 import time
 
 app = Flask(__name__)
-app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['SWAGGER'] = {
     'title': 'Game API',
@@ -733,9 +732,7 @@ def attack(user_id):
 
     return jsonify({'collision': False}), 200
 
-import time
-
-def check_and_apply_bot_attack(player_id):
+def was_player_hit(player_id):
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -779,6 +776,61 @@ def check_and_apply_bot_attack(player_id):
     conn.close()
 
     return {'was_attacked': was_attacked}
+@app.route('/check-object', methods=['POST'])
+def check_object():
+    """
+    בדיקת אובייקט לפי מיקום
+    ---
+    tags:
+      - Game
+    consumes:
+      - application/json
+    parameters:
+      - in: body
+        name: coordinates
+        required: true
+        schema:
+          type: object
+          required:
+            - x
+            - y
+          properties:
+            x:
+              type: integer
+              example: 100
+            y:
+              type: integer
+              example: 200
+    responses:
+      200:
+        description: נמצא אובייקט
+      404:
+        description: לא נמצא אובייקט
+    """
+    data = request.get_json()
+    x = data.get('x')
+    y = data.get('y')
+
+    if x is None or y is None:
+        return jsonify({'error': 'Missing coordinates'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT code, file FROM map_objects WHERE position_x = ? AND position_y = ?
+    """, (x, y))
+    obj = cursor.fetchone()
+    conn.close()
+
+    if obj:
+        return jsonify({
+            'found': True,
+            'code': obj['code'],
+            'file': obj['file']
+        }), 200
+    else:
+        return jsonify({'found': False}), 404
 
 if __name__ == '__main__':
     app.run(debug=True)
