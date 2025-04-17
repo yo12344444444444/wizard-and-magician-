@@ -4,7 +4,7 @@ import socket
 import json
 from genericFunction import MathUtils
 
-tolernsStoneSword = 100
+tolernsStoneSword = 10
 HOST = '127.0.0.1'
 PORT = 8822
 DEFAULT_BUFFER_SIZE = 1024
@@ -45,7 +45,7 @@ player_width, player_height = 48, 93
 
 
 def build_array_of_packets(arr_obj):
-    # Generate the binary packet properly, ensuring it's just binary (no `-` or other symbols)
+    # Generate the binary packet properly, ensuring it's just binary (no - or other symbols)
     packet = f'{1:01b}' if arr_obj[0] else f'{0:01b}'
     packet += f'{ord(arr_obj[1]):07b}'.zfill(7)
     packet += f'{arr_obj[2]:017b}'.zfill(11)
@@ -125,19 +125,12 @@ def get_data():
                 print("Max retries reached. Returning empty list.")
                 return []
         finally:
-            client_socket.close()  # Close socket **after** all attempts
+            client_socket.close()  # Close socket *after* all attempts
 
 # Main game loop
 running = True
 camera_x, camera_y = 0, 0  # Camera position
-def inRadius(obj, radius=100):
-    """Check if an object is within a given radius of the player."""
-    obj_x, obj_y = obj[2], obj[3]
-    player_x, player_y = players_pos[1]
 
-    distance_squared = (obj_x - player_x) ** 2 + (obj_y - player_y) ** 2
-    print(distance_squared <= radius ** 2)
-    return distance_squared <= radius ** 2
 while running:
     clock.tick(frames_per_second)
     display.fill(WHITE)
@@ -179,10 +172,10 @@ while running:
 
                 if (
                     screen_x - tolernsStoneSword <= x <= screen_x + 48 + tolernsStoneSword and
-                    screen_y - tolernsStoneSword <= y <= screen_y + 110 + tolernsStoneSword and (inRadius(obj, tolernsStoneSword))):
+                    screen_y - tolernsStoneSword <= y <= screen_y + 0 + tolernsStoneSword
+                ):
                     MathUtils.killObj(obj[1])  # Kill the object by ID
-                    arr = MathUtils.getObjects()  # Refresh list after kill
-                    break
+                    break  # Exit loop after first kill
 
     # Handle movement (keys are checked inside the event loop now)
     keys = pygame.key.get_pressed()
