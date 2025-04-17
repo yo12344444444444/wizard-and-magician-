@@ -94,6 +94,7 @@ cursor.execute(
     "INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status, speed) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
     ("Player2", hash_password("mysecurepass"), 21600, 38400, 100, 200, 'active', 1))
 
+
 # פריטים
 cursor.execute("INSERT INTO items (player_id, name, slot_index, quantity) VALUES (1, 'Sword', 0, 1);")
 cursor.execute("INSERT INTO items (player_id, name, slot_index, quantity) VALUES (1, 'HealthPotion', 1, 3);")

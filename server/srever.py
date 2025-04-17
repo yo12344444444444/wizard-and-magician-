@@ -1191,5 +1191,6 @@ def buy_object(user_id):
 
     return jsonify({'message': f'{object_name} added to inventory. {amount} money deducted.'}), 200
 
+
 if __name__ == '__main__':
     app.run(debug=True)
