@@ -75,6 +75,10 @@ CREATE TABLE inventory (
     FOREIGN KEY (player_id) REFERENCES players(player_id)
 );
 """)
+cursor.execute("""
+CREATE UNIQUE INDEX IF NOT EXISTS unique_inventory_player_object 
+ON inventory (player_id, name);
+""")
 
 # סיסמאות
 def hash_password(password):

@@ -1102,5 +1102,94 @@ def use_object(user_id):
     conn.close()
     return jsonify({'effect': effect}), 200
 
+@app.route('/buy_object', methods=['POST'])
+@token_required
+def buy_object(user_id):
+    """
+    Buy an object and add it to the player's inventory
+    ---
+    security:
+      - BearerAuth: []
+    tags:
+      - Game
+    consumes:
+      - application/json
+    parameters:
+      - name: Authorization
+        in: header
+        type: string
+        required: true
+        description: Bearer token (e.g., "Bearer <your_token>")
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - object_name
+            - amount
+            - slot_index
+          properties:
+            object_name:
+              type: string
+              example: "apple"
+            amount:
+              type: integer
+              example: 20
+            slot_index:
+              type: integer
+              example: 2
+    responses:
+      200:
+        description: Object added to inventory
+      400:
+        description: Not enough money
+      404:
+        description: Player not found
+    """
+    data = request.get_json()
+    object_name = data.get('object_name')
+    amount = data.get('amount')
+    slot_index = data.get('slot_index')
+
+    if object_name is None or amount is None or slot_index is None:
+        return jsonify({'error': 'Missing required fields'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Check current player money
+    cursor.execute("SELECT coins FROM players WHERE player_id = ?", (user_id,))
+    player = cursor.fetchone()
+
+    if not player:
+        conn.close()
+        return jsonify({'error': 'Player not found'}), 404
+
+    current_money = player['coins']
+
+    if current_money < amount:
+        conn.close()
+        return jsonify({'error': 'Not enough money'}), 400
+
+    # Subtract money
+    cursor.execute("UPDATE players SET coins = coins - ? WHERE player_id = ?", (amount, user_id))
+
+    # Add object to inventory
+    cursor.execute(
+        """
+        INSERT INTO inventory (player_id, name, slot_index, quantity)
+        VALUES (?, ?, ?, 1)
+        ON CONFLICT(player_id, name)
+        DO UPDATE SET quantity = quantity + 1
+        """,
+        (user_id, object_name, slot_index)
+    )
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': f'{object_name} added to inventory. {amount} money deducted.'}), 200
+
 if __name__ == '__main__':
     app.run(debug=True)
