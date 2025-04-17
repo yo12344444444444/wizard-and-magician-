@@ -12,7 +12,7 @@ cursor.execute("DROP TABLE IF EXISTS bots;")
 cursor.execute("DROP TABLE IF EXISTS map_objects;")
 cursor.execute("DROP TABLE IF EXISTS inventory;")  # נוספה
 
-# טבלת players
+# טבלת players עם עמודת מהירות
 cursor.execute("""
 CREATE TABLE players (
     player_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,7 +22,8 @@ CREATE TABLE players (
     position_y INTEGER NOT NULL DEFAULT 0,
     health INTEGER NOT NULL DEFAULT 100,
     coins INTEGER NOT NULL DEFAULT 200,
-    status TEXT NOT NULL DEFAULT 'active'
+    status TEXT NOT NULL DEFAULT 'active',
+    speed INTEGER NOT NULL DEFAULT 3
 );
 """)
 
@@ -70,7 +71,7 @@ CREATE TABLE inventory (
     player_id INTEGER NOT NULL,
     name TEXT NOT NULL,
     slot_index INTEGER NOT NULL,
-    quantity INTEGER NOT NULL DEFAULT 1,
+    quantity INTEGER NOT NULL DEFAULT 0,
     FOREIGN KEY (player_id) REFERENCES players(player_id)
 );
 """)
@@ -81,13 +82,13 @@ def hash_password(password):
     hashed_password = bcrypt.hashpw(password.encode(), salt)
     return hashed_password
 
-# הכנסת שחקנים
+# הכנסת שחקנים עם מהירות
 cursor.execute(
-    "INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status) VALUES (?, ?, ?, ?, ?, ?, ?);",
-    ("Player1", hash_password("password123"), 21600, 38400, 100, 200, 'active'))
+    "INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status, speed) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
+    ("Player1", hash_password("password123"), 21600, 38400, 100, 200, 'active', 1))
 cursor.execute(
-    "INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status) VALUES (?, ?, ?, ?, ?, ?, ?);",
-    ("Player2", hash_password("mysecurepass"), 21600, 38400, 100, 200, 'active'))
+    "INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status, speed) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
+    ("Player2", hash_password("mysecurepass"), 21600, 38400, 100, 200, 'active', 1))
 
 # פריטים
 cursor.execute("INSERT INTO items (player_id, name, slot_index, quantity) VALUES (1, 'Sword', 0, 1);")
@@ -104,11 +105,11 @@ cursor.execute("INSERT INTO bots (bot_type, position_x, position_y, health) VALU
 
 # שחקנים נוספים
 cursor.execute("""
-INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status)
+INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status, speed)
 VALUES 
-('player1', 'hashed_password_1', 100, 100, 100, 200, 'active'),
-('player2', 'hashed_password_2', 500, 500, 100, 200, 'active'),
-('player3', 'hashed_password_3', 1500, 1500, 100, 200, 'active');
+('player1', 'hashed_password_1', 100, 100, 100, 200, 'active', 1),
+('player2', 'hashed_password_2', 500, 500, 100, 200, 'active', 1),
+('player3', 'hashed_password_3', 1500, 1500, 100, 200, 'active', 1);
 """)
 
 # בוטים נוספים
@@ -131,22 +132,23 @@ VALUES
 
 map_objects_json = {
     "On map objects": {
-        "a": { "file": "Apple_Tree.jpg", "rotation": False },
-        "b": { "file": "Tree.jpg", "rotation": False },
-        "c": { "file": "Blueberry_Bush.jpg", "rotation": False },
-        "d": { "file": "Bush.jpg", "rotation": False },
-        "e": { "file": "Grass.jpg", "rotation": False },
-        "f": { "file": "Iron_Sword.jpg", "rotation": False },
-        "g": { "file": "Gold_Sword.jpg", "rotation": False },
-        "h": { "file": "Stones_Sword.jpg", "rotation": False },
-        "i": { "file": "Blue_Flower.jpg", "rotation": False },
-        "j": { "file": "Pink_Flower.jpg", "rotation": False },
-        "k": { "file": "Purple_Flower.jpg", "rotation": False },
-        "l": { "file": "Red_Flower.jpg", "rotation": False },
-        "m": { "file": "Yellow_Flower.jpg", "rotation": False }
+        "apple_tree": {"file": "Apple_Tree.jpg", "rotation": False},
+        "tree": {"file": "Tree.jpg", "rotation": False},
+        "blueberry_bush": {"file": "Blueberry_Bush.jpg", "rotation": False},
+        "bush": {"file": "Bush.jpg", "rotation": False},
+        "grass": {"file": "Grass.jpg", "rotation": False},
+        "iron_sword": {"file": "Iron_Sword.jpg", "rotation": False},
+        "gold_sword": {"file": "Gold_Sword.jpg", "rotation": False},
+        "stone_sword": {"file": "Stones_Sword.jpg", "rotation": False},
+        "blue_flower": {"file": "Blue_Flower.jpg", "rotation": False},
+        "pink_flower": {"file": "Pink_Flower.jpg", "rotation": False},
+        "purple_flower": {"file": "Purple_Flower.jpg", "rotation": False},
+        "red_flower": {"file": "Red_Flower.jpg", "rotation": False},
+        "yellow_flower": {"file": "Yellow_Flower.jpg", "rotation": False}
     }
 }
 
+# יצירת אובייקטים אקראיים
 for key, obj in map_objects_json["On map objects"].items():
     x = random.randint(0, 1000)
     y = random.randint(0, 1000)
@@ -155,6 +157,13 @@ for key, obj in map_objects_json["On map objects"].items():
         VALUES (?, ?, ?, ?, ?)
     """, (key, obj["file"], obj["rotation"], x, y))
 
+# ✅ הוספת אובייקט מיוחד בנקודה (0, 0)
+cursor.execute("""
+    INSERT INTO map_objects (name, file, rotation, position_x, position_y)
+    VALUES (?, ?, ?, ?, ?)
+""", ('rock', 'rock.png', False, 0, 1))
+
+# הוספת אובייקטים עם מיקומים קבועים
 x_positions = [21500, 22000, 22500, 23000, 23500, 24000, 24500]
 y_positions = [38500, 39000, 39500, 40000, 40500, 41000, 41500]
 
@@ -169,4 +178,4 @@ for idx, (code, data) in enumerate(map_objects_json["On map objects"].items()):
 conn.commit()
 conn.close()
 
-print("✅ Database successfully created with map object positions and inventory table!")
+print("✅ Database successfully created with map object positions, inventory table, and speed column in players!")

@@ -5,6 +5,7 @@ import datetime
 from functools import wraps
 from flasgger import Swagger
 import time
+import random
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -306,107 +307,88 @@ def signup():
      'token': token,
      'player_id': new_id
     })
-
 @app.route('/game_state', methods=['POST'])
 @token_required
 def game_state(user_id):
     """
-        Get updated game state for the player
-        ---
-        security:
-          - BearerAuth: []
-        tags:
-          - Game
-        consumes:
-          - application/json
-        parameters:
-          - name: Authorization
-            in: header
-            type: string
-            required: true
-            description: Bearer token (e.g., "Bearer <your_token>")
-          - in: body
-            name: player_data
-            required: true
-            schema:
-              type: object
-              required:
-                - direction
-                - x
-                - y
-                - screen_width
-                - screen_height
-              properties:
-                direction:
-                  type: string
-                  example: "up"
-                x:
-                  type: integer
-                  example: 120
-                y:
-                  type: integer
-                  example: 80
-                screen_width:
-                  type: integer
-                  example: 1000
-                screen_height:
-                  type: integer
-                  example: 800
-        responses:
-          200:
-            description: Game state returned successfully
-            schema:
-              type: object
-              properties:
-                players:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      id:
-                        type: string
-                      x:
-                        type: integer
-                      y:
-                        type: integer
-                bots:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      id:
-                        type: string
-                      x:
-                        type: integer
-                      y:
-                        type: integer
-                objects:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      id:
-                        type: string
-                      x:
-                        type: integer
-                      y:
-                        type: integer
-          401:
-            description: Unauthorized - token missing or invalid
-            schema:
-              type: object
-              properties:
-                message:
-                  type: string
-                  example: Invalid or expired token
-        """
+    Get updated game state for the player
+    ---
+    security:
+      - BearerAuth: []
+    tags:
+      - Game
+    consumes:
+      - application/json
+    parameters:
+      - name: Authorization
+        in: header
+        type: string
+        required: true
+        description: Bearer token (e.g., "Bearer <your_token>")
+      - in: body
+        name: player_data
+        required: true
+        schema:
+          type: object
+          required:
+            - direction
+            - x
+            - y
+            - screen_width
+            - screen_height
+          properties:
+            direction:
+              type: string
+              example: "up"
+            x:
+              type: integer
+              example: 120
+            y:
+              type: integer
+              example: 80
+            screen_width:
+              type: integer
+              example: 1000
+            screen_height:
+              type: integer
+              example: 800
+    responses:
+      200:
+        description: Game state returned successfully
+      401:
+        description: Unauthorized - token missing or invalid
+    """
     data = request.get_json()
     screen_width = data.get('screen_width')
     screen_height = data.get('screen_height')
-    return get_game_state(user_id, screen_width, screen_height)
+
+    # בדוק אם השחקן הותקף ע"י בוטים או שחקנים אחרים
+    attack_result = was_player_hit(user_id)
+
+    # קבל את מצב המשחק הכללי
+    game_state_data = get_game_state(user_id, screen_width, screen_height)
+
+    # בדוק אם הייתה שגיאה ב־get_game_state
+    if "error" in game_state_data:
+        return jsonify(game_state_data), 404
+
+    # הוסף מידע על השחקן
+    player_status = {
+        'was_attacked': attack_result.get('was_attacked', False),
+        'new_health': attack_result.get('new_health')
+    }
+
+    # אם השחקן מת - נוסיף גם מיקום חדש
+    if 'respawn_position' in attack_result:
+        player_status['respawn_position'] = attack_result['respawn_position']
+
+    game_state_data['player_status'] = player_status
+
+    return jsonify(game_state_data), 200
 
 
-def get_game_state(user_id,screen_width,screen_height):
+
+def get_game_state(user_id, screen_width, screen_height):
     conn = get_db_connection()
     cursor = conn.cursor()
 
@@ -414,7 +396,7 @@ def get_game_state(user_id,screen_width,screen_height):
     main_player = cursor.fetchone()
     if not main_player:
         conn.close()
-        return jsonify({'error': 'Player not found'}), 404
+        return {'error': 'Player not found'}
 
     half_width = screen_width / 2
     half_height = screen_height / 2
@@ -480,12 +462,11 @@ def get_game_state(user_id,screen_width,screen_height):
     ]
 
     conn.close()
-    return jsonify({
+    return {
         'players': players,
         'bots': bots,
         'objects': objects
-    })
-
+    }
 
 @app.route('/movement', methods=['POST'])
 @token_required
@@ -544,37 +525,58 @@ def movement(user_id):
     direction = data.get('direction')
     screen_width = data.get('screen_width')
     screen_height = data.get('screen_height')
-    move_amount = 1
 
-    if direction not in ['w', 'a', 's', 'd']:
-        return jsonify({'error': 'Invalid direction'}), 400
-
+    # קבלת המהירות מהטבלה של השחקן
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT position_x, position_y FROM players WHERE player_id = ?", (user_id,))
+    cursor.execute("SELECT position_x, position_y, speed FROM players WHERE player_id = ?", (user_id,))
     player = cursor.fetchone()
 
     if not player:
         conn.close()
         return jsonify({'error': 'Player not found'}), 404
 
-    x, y = player['position_x'], player['position_y']
+    x, y, speed = player['position_x'], player['position_y'], player['speed']
+    move_amount = speed  # המהירות תהיה לפי הערך בטבלה
 
-    if direction == 'w':
-        y -= move_amount
-    elif direction == 's':
+    if direction not in ['w', 'a', 's', 'd']:
+        return jsonify({'error': 'Invalid direction'}), 400
+
+    #  עדכון המיקום של השחקן לפי המהירות וגם בדיקה שלא יצא מגבולות המסך
+    if direction == 'w' and y + move_amount <= screen_height * 40:
         y += move_amount
-    elif direction == 'a':
+    elif direction == 's' and y - move_amount >= 0:
+        y -= move_amount
+    elif direction == 'a' and x - move_amount >= 0:
         x -= move_amount
-    elif direction == 'd':
+    elif direction == 'd' and x + move_amount <= screen_width * 40:
         x += move_amount
 
+    print(f"player location: x: {x}, y: {y}, speed: {speed}")
+
+    # עדכון מיקום השחקן
     cursor.execute("UPDATE players SET position_x = ?, position_y = ? WHERE player_id = ?", (x, y, user_id))
     conn.commit()
     conn.close()
 
-    response = get_game_state(user_id, screen_width, screen_height)
-    return response
+    # בדיקת אובייקט במיקום החדש
+    obj = check_object_at_posiion(x, y)
+
+    # קבלת מצב המשחק (פונקציה צריכה להחזיר dict)
+    game_data = get_game_state(user_id, screen_width, screen_height)
+
+    # הוספת אובייקט אם נמצא
+    if obj:
+        print("found")
+        game_data['object_found'] = {
+            'name': obj['name'],
+            'file': obj['file']
+        }
+
+    import json
+    print(json.dumps(game_data, indent=2))
+    return jsonify(game_data), 200
+
 
 def is_within_area(center_x, center_y, point_x, point_y, width, height):
     half_w = width // 2
@@ -605,7 +607,6 @@ def check_collision(user_id, x, y):
 
     conn.close()
     return {'collision': False}
-
 
 @app.route('/attack', methods=['POST'])
 @token_required
@@ -665,7 +666,6 @@ def attack(user_id):
         target_type = collision_result['type']
         target_user_id = collision_result['user_id']
 
-        # קביעת נזק לפי סוג נשק
         weapon_damage = {
             'Stone_Sword': 10,
             'Iron_Sword': 15,
@@ -673,7 +673,7 @@ def attack(user_id):
             'Wood_Wand': 10,
             'Gold_Wand': 20
         }
-        damage = weapon_damage.get(weapon_type, 5)  # ברירת מחדל
+        damage = weapon_damage.get(weapon_type, 5)
 
         conn = get_db_connection()
         cursor = conn.cursor()
@@ -681,56 +681,101 @@ def attack(user_id):
         if target_type == 'player':
             cursor.execute("SELECT health FROM players WHERE player_id = ?", (target_user_id,))
             player = cursor.fetchone()
+            if not player:
+                conn.close()
+                return jsonify({'error': 'Player not found'}), 404
 
-            if player:
-                new_health = player['health'] - damage
+            new_health = player['health'] - damage
+            # ברירת מחדל respawn למרכז (50,50) — אפשר לשנות
+            respawn_x, respawn_y = 50, 50
 
-                if new_health <= 0:
-                    # שחקן מת – מאפסים אותו
-                    cursor.execute("""
+            if new_health <= 0:
+                cursor.execute("""
                         UPDATE players
-                        SET health = ?, position_x = ?, position_y = ?, coins = 0
+                          SET health = ?, position_x = ?, position_y = ?, coins = 0
                         WHERE player_id = ?
-                    """, (100, 50, 50,target_user_id))
-                    conn.commit()
-                    conn.close()
-                    return jsonify({'message': 'Player died and respawned', 'target': 'player'}), 200
+                    """, (100, respawn_x, respawn_y, target_user_id))
+                conn.commit()
+                conn.close()
 
-                else:
-                    cursor.execute("UPDATE players SET health = ? WHERE player_id = ?",
-                                   (new_health, target_user_id))
-                    conn.commit()
-                    conn.close()
-                    return jsonify({'message': 'Player damaged', 'new_health': new_health, 'target': 'player'}), 200
+                drops = generate_drops()
 
-            conn.close()
-            return jsonify({'error': 'Player not found'}), 404
+                response_data = {
+                    'message': 'Bot died and respawned',
+                    'target': 'bot',
+                    'new_health': 100,
+                    'respawn_position': {'x': respawn_x, 'y': respawn_y},
+                    'drops': drops
+                }
+                print(f"Response sent to client: {response_data}")
+                return jsonify(response_data), 200
+
+            else:
+                cursor.execute(
+                    "UPDATE players SET health = ? WHERE player_id = ?",
+                    (new_health, target_user_id)
+                )
+                conn.commit()
+                conn.close()
+
+                response_data = {
+                    'message': 'Player damaged',
+                    'target': 'player',
+                    'new_health': new_health
+                }
+                print(f"Response sent to client: {response_data}")
+                return jsonify(response_data), 200
 
         elif target_type == 'bot':
             cursor.execute("SELECT health FROM bots WHERE bot_id = ?", (target_user_id,))
             bot = cursor.fetchone()
+            if not bot:
+                conn.close()
+                return jsonify({'error': 'Bot not found'}), 404
 
-            if bot:
-                new_health = bot['health'] - damage
-                print('new_health',new_health)
-                if new_health <= 0:
-                    cursor.execute("""UPDATE bots
-                        SET health = ?, position_x = ?, position_y = ?
+            new_health = bot['health'] - damage
+            respawn_x, respawn_y = 50, 50  # נקודת respawn לבוט
+
+            if new_health <= 0:
+                cursor.execute("""
+                        UPDATE bots
+                          SET health = ?, position_x = ?, position_y = ?
                         WHERE bot_id = ?
-                    """, (100, 50, 50, target_user_id))
-                    conn.commit()
-                    conn.close()
-                    return jsonify({'message': 'bot died and respawned', 'target': 'player'}), 200
-                else:
-                    cursor.execute("UPDATE bots SET health = ? WHERE bot_id = ?", (new_health, target_user_id))
-                    conn.commit()
-                    conn.close()
-                    return jsonify({'message': 'Bot damaged', 'new_health': new_health, 'target': 'bot'}), 200
+                    """, (100, respawn_x, respawn_y, target_user_id))
+                conn.commit()
+                conn.close()
+                drops = generate_drops()
 
-            conn.close()
-            return jsonify({'error': 'Bot not found'}), 404
+                response_data = {
+                    'message': 'Player died and respawned',
+                    'target': 'player',
+                    'new_health': 100,
+                    'respawn_position': {'x': respawn_x, 'y': respawn_y},
+                    'drops': drops
+                }
+                print(f"Response sent to client: {response_data}")
+                return jsonify(response_data), 200
 
-    return jsonify({'collision': False}), 200
+            else:
+                cursor.execute(
+                    "UPDATE bots SET health = ? WHERE bot_id = ?",
+                    (new_health, target_user_id)
+                )
+                conn.commit()
+                conn.close()
+
+                response_data = {
+                    'message': 'Bot damaged',
+                    'target': 'bot',
+                    'new_health': new_health
+                }
+                print(f"Response sent to client: {response_data}")
+                return jsonify(response_data), 200
+
+def generate_drops():
+    possible_drops = ["money", "apple", "bush", "Dark_Potion", "Life_Potion", "Fire_Potion", "Poison_Potion"]
+    return random.sample(possible_drops, 2)
+    # אם לא פגיעה
 
 def was_player_hit(player_id):
     conn = get_db_connection()
@@ -748,131 +793,170 @@ def was_player_hit(player_id):
     player_y = player['position_y']
     player_health = player['health']
 
-    # קבלת הבוטים
+    # קבלת בוטים
     cursor.execute("SELECT bot_id, position_x, position_y, last_attack_time FROM bots")
     bots = cursor.fetchall()
 
     current_time = int(time.time())
     was_attacked = False
+    player_died = False
+    respawn_position = None
 
+    # טיפול בפגיעות מבוטים
     for bot in bots:
         bot_id = bot['bot_id']
         bot_x = bot['position_x']
         bot_y = bot['position_y']
         last_attack = bot['last_attack_time']
 
-        # בדיקה אם הבוט בטווח פגיעה (נניח טווח של 100 פיקסלים)
         if abs(bot_x - player_x) < 100 and abs(bot_y - player_y) < 100:
-            # האם עברו לפחות 5 שניות מהתקיפה האחרונה?
             if current_time - last_attack >= 5:
-                # תקיפה! מורידים 10 חיים לשחקן
                 new_health = max(player_health - 10, 0)
-                cursor.execute("UPDATE players SET health = ? WHERE player_id = ?", (new_health, player_id))
-                cursor.execute("UPDATE bots SET last_attack_time = ? WHERE bot_id = ?", (current_time, bot_id))
-                player_health = new_health  # לעדכון בתקיפה חוזרת עם כמה בוטים
                 was_attacked = True
+
+                if new_health <= 0:
+                    respawn_x, respawn_y = 50, 50
+                    cursor.execute("""
+                        UPDATE players
+                        SET health = ?, position_x = ?, position_y = ?, coins = 0
+                        WHERE player_id = ?
+                    """, (100, respawn_x, respawn_y, player_id))
+                    player_died = True
+                    respawn_position = {'x': respawn_x, 'y': respawn_y}
+                    player_health = 100
+                else:
+                    cursor.execute("UPDATE players SET health = ? WHERE player_id = ?", (new_health, player_id))
+                    player_health = new_health
+
+                cursor.execute("UPDATE bots SET last_attack_time = ? WHERE bot_id = ?", (current_time, bot_id))
+
+    # טיפול בפגיעות משחקנים אחרים
+    cursor.execute("SELECT player_id, position_x, position_y, last_attack_time FROM players WHERE player_id != ?", (player_id,))
+    other_players = cursor.fetchall()
+
+    for p in other_players:
+        other_id = p['player_id']
+        other_x = p['position_x']
+        other_y = p['position_y']
+        last_attack = p['last_attack_time']
+
+        if abs(other_x - player_x) < 100 and abs(other_y - player_y) < 100:
+            if current_time - last_attack >= 5:
+                new_health = max(player_health - 10, 0)
+                was_attacked = True
+
+                if new_health <= 0:
+                    respawn_x, respawn_y = 50, 50
+                    cursor.execute("""
+                        UPDATE players
+                        SET health = ?, position_x = ?, position_y = ?, coins = 0
+                        WHERE player_id = ?
+                    """, (100, respawn_x, respawn_y, player_id))
+                    player_died = True
+                    respawn_position = {'x': respawn_x, 'y': respawn_y}
+                    player_health = 100
+                else:
+                    cursor.execute("UPDATE players SET health = ? WHERE player_id = ?", (new_health, player_id))
+                    player_health = new_health
+
+                cursor.execute("UPDATE players SET last_attack_time = ? WHERE player_id = ?", (current_time, other_id))
 
     conn.commit()
     conn.close()
 
-    return {'was_attacked': was_attacked}
-@app.route('/check-object', methods=['POST'])
-def check_object():
-    """
-    בדיקת אובייקט לפי מיקום
-    ---
-    tags:
-      - Game
-    consumes:
-      - application/json
-    parameters:
-      - in: body
-        name: coordinates
-        required: true
-        schema:
-          type: object
-          required:
-            - x
-            - y
-          properties:
-            x:
-              type: integer
-              example: 100
-            y:
-              type: integer
-              example: 200
-    responses:
-      200:
-        description: נמצא אובייקט
-      404:
-        description: לא נמצא אובייקט
-    """
-    data = request.get_json()
-    x = data.get('x')
-    y = data.get('y')
+    response = {
+        'was_attacked': was_attacked,
+        'new_health': player_health
+    }
 
-    if x is None or y is None:
-        return jsonify({'error': 'Missing coordinates'}), 400
+    if player_died:
+        response['respawn_position'] = respawn_position
 
+    print(response)
+    return response
+
+
+def check_object_at_posiion(x: int, y: int):
+    """
+    בודקת אם יש אובייקט במיקום המסוים ומחזירה את שמו והקובץ שלו אם קיים.
+
+    :param x: קואורדינטת X
+    :param y: קואורדינטת Y
+    :return: dict עם מידע על האובייקט אם נמצא, אחרת None
+    """
     conn = get_db_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT code, file FROM map_objects WHERE position_x = ? AND position_y = ?
+        SELECT name, file FROM map_objects WHERE position_x = ? AND position_y = ?
     """, (x, y))
     obj = cursor.fetchone()
     conn.close()
 
     if obj:
-        return jsonify({
+        return {
             'found': True,
-            'code': obj['code'],
+            'name': obj['name'],
             'file': obj['file']
-        }), 200
+        }
     else:
-        return jsonify({'found': False}), 404
+        return None
+
 
 @app.route('/add-to-inventory', methods=['POST'])
-def add_to_inventory():
+@token_required
+def add_to_inventory(user_id):
     """
-    הוספת חפץ לאינבנטורי אם יש מקום והוא אינו tree או bush
+    Add Object to Inventory
     ---
+    security:
+      - BearerAuth: []
     tags:
       - Game
     consumes:
       - application/json
     parameters:
+      - name: Authorization
+        in: header
+        type: string
+        required: true
+        description: Bearer token (e.g., "Bearer <your_token>")
       - in: body
-        name: data
+        name: body
         required: true
         schema:
           type: object
           required:
             - object_name
-            - player_id
             - slot_index
             - has_space_in_inventory
           properties:
             object_name:
               type: string
               example: "potion_red"
-            player_id:
-              type: integer
-              example: 1
+              description: The name of the object to add to inventory
             slot_index:
               type: integer
               example: 3
+              description: The index of the inventory slot
             has_space_in_inventory:
               type: boolean
               example: true
+              description: Whether the inventory has space for this item
     responses:
       200:
-        description: תוצאת ניסיון ההוספה לאינבנטורי
+        description: The object was successfully added to the inventory or relevant status was returned
+      400:
+        description: Missing or invalid data in request
+      401:
+        description: Unauthorized - token missing or invalid
+      404:
+        description: Object not found on the map
     """
     data = request.get_json()
     object_name = data.get('object_name')
     has_space = data.get('has_space_in_inventory')
-    player_id = data.get('player_id')
+    player_id = user_id
     slot_index = data.get('slot_index')
 
     if None in (object_name, has_space, player_id, slot_index):
@@ -895,7 +979,7 @@ def add_to_inventory():
         conn.close()
         return jsonify({'success': False, 'message': 'No space in inventory'}), 200
 
-    if obj['code'] in ['tree', 'bush']:
+    if obj['name'] in ['tree', 'bush']:
         conn.close()
         return jsonify({'success': False, 'message': 'Object cannot be added to inventory'}), 200
 
@@ -903,7 +987,7 @@ def add_to_inventory():
     cursor.execute("""
         SELECT * FROM inventory
         WHERE player_id = ? AND name = ? AND slot_index = ?
-    """, (player_id, obj['code'], slot_index))
+    """, (player_id, obj['name'], slot_index))
     existing_item = cursor.fetchone()
 
     if existing_item:
@@ -918,7 +1002,7 @@ def add_to_inventory():
         cursor.execute("""
             INSERT INTO inventory (player_id, name, slot_index, quantity)
             VALUES (?, ?, ?, 1)
-        """, (player_id, obj['code'], slot_index))
+        """, (player_id, obj['name'], slot_index))
 
     # הסרה מהמפה
     cursor.execute("""
@@ -929,6 +1013,94 @@ def add_to_inventory():
     conn.close()
 
     return jsonify({'success': True, 'message': f'{object_name} added to inventory'}), 200
+
+@app.route('/use_object', methods=['POST'])
+@token_required
+def use_object(user_id):
+    """
+    Use an object like apple, blueberry, or a potion
+    ---
+    security:
+      - BearerAuth: []
+    tags:
+      - Game
+    consumes:
+      - application/json
+    parameters:
+      - name: Authorization
+        in: header
+        type: string
+        required: true
+        description: Bearer token (e.g., "Bearer <your_token>")
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            object_type:
+              type: string
+              example: "Poison_Potion"
+    responses:
+      200:
+        description: Effect applied
+    """
+    data = request.get_json()
+    obj_type = data.get('object_type')
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    effect = None
+
+    if obj_type == 'apple':
+        cursor.execute("UPDATE players SET health = health + 10 WHERE player_id = ?", (user_id,))
+        effect = 'Added 10 health'
+
+    elif obj_type == 'blueberry':
+        cursor.execute("UPDATE players SET health = health + 5 WHERE player_id = ?", (user_id,))
+        effect = 'Added 5 health'
+
+    elif obj_type == 'Dark_Potion':
+        # שלב 1: קבל את מיקום השחקן
+        cursor.execute("SELECT position_x, position_y FROM players WHERE player_id = ?", (user_id,))
+
+        player = cursor.fetchone()
+        px, py = player['position_x'], player['position_y']
+
+        # שלב 2: הורדת חיים משחקנים אחרים בטווח
+        cursor.execute("SELECT player_id, position_x, position_y FROM players WHERE player_id != ?", (user_id,))
+        others = cursor.fetchall()
+        for other in others:
+            ox, oy = other['position_x'], other['position_y']
+            dx = px - ox
+            dy = py - oy
+            distance = (dx ** 2 + dy ** 2) ** 0.5
+            if distance <= 30:
+                cursor.execute("UPDATE players SET health = health - 50 WHERE player_id = ?", (other['player_id'],))
+
+        # שלב 3: הורדת חיים גם לבוטים בטווח (אם יש טבלת בוטים)
+        cursor.execute("SELECT bot_id, position_x, position_y FROM bots")
+        bots = cursor.fetchall()
+        for bot in bots:
+            bx, by = bot['position_x'], bot['position_y']
+            dx = px - bx
+            dy = py - by
+            distance = (dx ** 2 + dy ** 2) ** 0.5
+            if distance <= 30:
+                cursor.execute("UPDATE bots SET health = health - 50 WHERE bot_id = ?", (bot['bot_id'],))
+        effect = 'Dark potion activated: -50 HP to enemies and bots within 30px range'
+
+    elif obj_type == 'Life_Potion':
+        # Placeholder: either +70 instantly or +10 for 7 seconds
+        cursor.execute("UPDATE players SET health = health + 70 WHERE player_id = ?", (user_id,))
+        effect = 'Life potion used: +70 health'
+
+    elif obj_type == 'Fire_Potion':
+        cursor.execute("UPDATE players SET speed = 8 WHERE player_id = ?", (user_id,))
+        effect = 'Fire potion used: speed increased to 8 for 20s'
+
+    conn.commit()
+    conn.close()
+    return jsonify({'effect': effect}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
