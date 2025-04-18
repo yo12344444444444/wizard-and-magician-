@@ -23,9 +23,11 @@ CREATE TABLE players (
     health INTEGER NOT NULL DEFAULT 100,
     coins INTEGER NOT NULL DEFAULT 200,
     status TEXT NOT NULL DEFAULT 'active',
-    speed INTEGER NOT NULL DEFAULT 3
-);
+    speed INTEGER NOT NULL DEFAULT 3,
+    last_attack_time DATETIME
+)
 """)
+
 
 # טבלת bots
 cursor.execute("""
