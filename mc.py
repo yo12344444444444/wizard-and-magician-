@@ -1,6 +1,7 @@
 import fixedHomeScreen
-import game1
-suffix = fixedHomeScreen.main('192.168.1.79', 8827).decode().strip()
-ip = f'192.168.{suffix[2:]}'
+from server import Game2
+token = fixedHomeScreen.main('127.0.0.1', 8827)
+ip = '127.0.0.1'
 print(ip)
-game1.main(ip)
+Game2.main(token)
+print("end")

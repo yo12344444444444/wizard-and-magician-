@@ -170,6 +170,11 @@ def open_full_inventory():
     hp_bar_image.set_colorkey(WHITE)
     hp_bar_icon = buttons.Button(590, 170, hp_bar_image)
     hp_bar_icon.draw(display)
+    """
+    conn = sqlite3.connect("DATABASE_GAME.db", check_same_thread=False)
+    cursor = conn.cursor()
+    print(" Successfully connected to the database.")
+    """
 
 
 def open_not_full_inventory():
@@ -181,6 +186,7 @@ def open_not_full_inventory():
     inventory_not_open = buttons.Button(300, 570, inventory_not_open_image)
     inventory_not_open.draw(display)
 
+    font = pygame.font.Font(None, 30)
     # hp bar:
     hp_bar_image = pygame.image.load(FULL_HP_BAR).convert()
     hp_bar_image.set_colorkey(WHITE)

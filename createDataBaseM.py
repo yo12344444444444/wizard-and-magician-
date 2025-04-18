@@ -4,6 +4,9 @@ import sqlite3
 conn = sqlite3.connect("DATABASE_GAME_MAIN.db")
 cursor = conn.cursor()
 
+cursor.execute("DROP TABLE IF EXISTS user_servers;")
+cursor.execute("DROP TABLE IF EXISTS servers_ips;")
+
 # יצירת טבלה בשם user_servers עם עמודות: username ו-server_id
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS user_servers (
@@ -36,7 +39,6 @@ def add_user(username, server_id):
         print("המשתמש כבר קיים במערכת.")
     finally:
         conn.close()
-import sqlite3
 
 def add_local_servers():
     """מוסיפה 4 סרברים עם IP '127.0.0.1' לטבלה servers_ips."""
@@ -45,7 +47,7 @@ def add_local_servers():
 
     try:
         for i in range(1, 5):
-            cursor.execute("INSERT INTO servers_ips (server_ip, server_num) VALUES (?, ?)", ('127.0.0.1', i))
+            cursor.execute("INSERT INTO servers_ips (server_ip, server_num) VALUES (?, ?)", ('192.168.1.79', i))
         conn.commit()
         print("4 סרברים מקומיים נוספו לטבלה servers_ips.")
     except sqlite3.Error as e:
@@ -65,6 +67,6 @@ add_local_servers()
 conn.commit()
 conn.close()
 
-print("added 4 servers with 127.0.0.1")
+print("added 4 servers with 192.168.1.79")
 print("Table 'user_servers' created successfully.")
 print("Table 'servers_ips' created successfully.")

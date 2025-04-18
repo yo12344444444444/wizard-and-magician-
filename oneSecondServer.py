@@ -7,8 +7,8 @@ import random
 from genericFunction import MathUtils
 
 # Constants
-clint = '192.168.1.79'
-PORT = 8826
+clint = '127.0.0.1'
+PORT = 8827
 DEFAULT_BUFFER_SIZE = 1024
 DETECTION_RANGE = 500
 BOT_SPEED = 0.75
