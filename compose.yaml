@@ -69,6 +69,7 @@ services:
 
   server_flask:
     container_name: "server-flask"
+    image: nettahalamish/cyber-project-grade-11:latest
     build:
       context: .
     ports:
