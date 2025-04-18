@@ -45,7 +45,7 @@ INVENTORY_OPEN = 0 #BOOLEAN OF NUMBERS- odd=full_inventory, even=not full invent
 CHAT_OPEN = 0 #BOOLEAN OF NUMBERS- odd=open, even=close
 tolernsStoneSword = 100
 HOST = '127.0.0.1'
-PORT = 8824
+PORT = 8833
 LEFT = 1
 DEFAULT_BUFFER_SIZE = 1024
 x, y, rect_width, rect_height = 200, 150, 48, 93
@@ -55,7 +55,7 @@ a = False
 pygame.init()
 
 
-client = ChatClient('localhost',5000,handle_chat_message)
+client = ChatClient('localhost',5005,handle_chat_message)
 client.connect("user")
 client.start()
 
@@ -409,3 +409,4 @@ while running:
 
 pygame.quit()
 sys.exit()
+
