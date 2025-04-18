@@ -24,7 +24,7 @@ app.config['SWAGGER'] = {
 }
 swagger = Swagger(app)
 app.config['SECRET_KEY'] = 'your_secret_key'
-DATABASE = ('../DATABASE_GAME.db')
+DATABASE = ('/app/DATABASE_GAME.db')
 
 def get_db_connection():
     conn = sqlite3.connect(DATABASE)
@@ -1193,4 +1193,4 @@ def buy_object(user_id):
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)

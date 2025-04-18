@@ -73,7 +73,7 @@ services:
     build:
       context: .
     ports:
-      - "5000:5000/udp"
+      - "5000:5000"
     depends_on:
       - main_server
     volumes:
