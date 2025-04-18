@@ -3,9 +3,7 @@ import sys
 import socket
 import json
 import buttons
-import threading
 from genericFunction import MathUtils
-from ChatClient import ChatClient
 
 INVENTORY_ICON = "graphic\Inventory_Icon.png"
 EXIT_ICON = "graphic\Exit_Icon.png"
@@ -18,34 +16,12 @@ CHAT_WINDOW_LAYER_1 = "graphic\Chat_First_Layer.png"
 CHAT_WINDOW_LAYER_2 = "graphic\Chat_Second_Layer.png"
 TEXT = ""
 TEXT_ACTIVE = False
-messegas = [" ", " ", " ", " ", " ", "  ", " ", " "]
-users = [" ", " ", " ", " ", " ", "  ", " ", " "]
-
-def handle_chat_message(message):
-    """Callback function to handle incoming chat messages"""
-    print("Handling the Chat Message")
-    global received_messages
-    if not hasattr(handle_chat_message, 'received_messages'):
-        handle_chat_message.received_messages = []
-    print("befor cheaking if chat")
-    print(message['type'])
-    print(message['content'])
-    if message['type'] == 'chat':
-        print("message is chat")
-        del messegas[0]
-        messegas.append(message['content'])
-        del users[0]
-        users.append(message['client_name'])
-
-
-
-
 
 INVENTORY_OPEN = 0 #BOOLEAN OF NUMBERS- odd=full_inventory, even=not full inventory
 CHAT_OPEN = 0 #BOOLEAN OF NUMBERS- odd=open, even=close
 tolernsStoneSword = 100
 HOST = '127.0.0.1'
-PORT = 8824
+PORT = 8822
 LEFT = 1
 DEFAULT_BUFFER_SIZE = 1024
 x, y, rect_width, rect_height = 200, 150, 48, 93
@@ -53,11 +29,6 @@ a = False
 
 # Initialize pygame
 pygame.init()
-
-
-client = ChatClient('localhost',5000,handle_chat_message)
-client.connect("user")
-client.start()
 
 # Configurations
 frames_per_second = 30
@@ -173,19 +144,12 @@ def get_data():
         finally:
             client_socket.close()  # Close socket *after* all attempts
 
-
 def open_chat(display):
     """
     opens the chat window
     """
     global TEXT
     global TEXT_ACTIVE
-    global chat_client
-
-    # Initialize chat client if not already done
-   # if not hasattr(open_chat, 'receive_thread'):
-
-    # Draw chat window layers
     open_chat_first_layer_image = pygame.image.load(CHAT_WINDOW_LAYER_1).convert_alpha()
     open_chat_first_layer_image.set_colorkey(WHITE)
     open_chat_first_layer_image.set_alpha(180)
@@ -197,32 +161,6 @@ def open_chat(display):
     chat_second_layer = buttons.Button(810, 30, open_chat_second_layer_image)
     chat_second_layer.draw(display)
 
-    #prints the messages on the chat
-    font = pygame.font.Font(None, 20)
-    count_print_text = 0
-    count_messages = 0
-    print_messages_y = 50
-    while count_print_text < 8:
-        the_message = users[count_messages] + ":   " + messegas[count_messages]
-        #the_user = users[count_messages]
-        text_surface = font.render(the_message, True, WHITE)
-        text_position = (840, print_messages_y)
-        display.blit(text_surface, text_position)
-        count_print_text = count_print_text + 1
-        count_messages = count_messages + 1
-        print_messages_y = print_messages_y + 20
-
-
-
-    # Display received messages
-    font = pygame.font.Font(None, 20)
-    if hasattr(handle_chat_message, 'received_messages'):
-        y_offset = 50
-        for msg in handle_chat_message.received_messages:
-            text_surface = font.render(msg, True, WHITE)
-            text_position = (840, y_offset)
-            display.blit(text_surface, text_position)
-            y_offset += 20
 
     font = pygame.font.Font(None, 20)
     for event in pygame.event.get():
@@ -235,23 +173,19 @@ def open_chat(display):
                 TEXT_ACTIVE = True
                 print("true")
 
-            if 1190 < x < 1226 and 225 < y < 251:
-                print("send button")
-                client.chat_message(TEXT)
-                TEXT = ""
-
-
         if  TEXT_ACTIVE and event.type == pygame.KEYDOWN:   # and event.type == pygame.KEYDOWN
             print("yes")
             if event.key == pygame.K_BACKSPACE:
                 TEXT = TEXT[:-1]
+                print(TEXT)
             elif len(TEXT) < 40:
                 TEXT += event.unicode
 
+        text_surface = font.render(TEXT, True, WHITE)
+        text_position = (840, 235)
+        display.blit(text_surface, text_position)
 
-    text_surface = font.render(TEXT, True, WHITE)
-    text_position = (840, 235)
-    display.blit(text_surface, text_position)
+
 
 
 def open_full_inventory():
@@ -331,7 +265,6 @@ def put_icons_on_screen(display,inventory_icon, mini_map_icon, exit_icon, chat_i
     mini_map_icon.draw(display)
 
     return True
-
 
 # Main game loop
 running = True
