@@ -44,6 +44,10 @@ RUN apt-get update && apt-get install -y \
 # Install pygame 2.6.1
 RUN pip install pygame==2.6.1
 
+RUN pip install flask python-jose flasgger
+
+RUN pip install requests
+
 COPY . .
 
 USER root

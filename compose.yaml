@@ -66,3 +66,16 @@ services:
       - ./app/DATABASE_GAME.db:/app/database.db
     command: [ "python", "Server4.py" ]
     restart: always
+
+  server_flask:
+    container_name: "server-flask"
+    build:
+      context: .
+    ports:
+      - "5000:5000/udp"
+    depends_on:
+      - main_server
+    volumes:
+      - ./app/DATABASE_GAME.db:/app/database.db
+    command: [ "python", "server/srever.py" ]
+    restart: always
