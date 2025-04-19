@@ -97,7 +97,7 @@ def put(id):
 
 
 class ObjectPlacer:
-    def __init__(self, pos, id):
+    def _init_(self, pos, id):
         self.pos = pos
         self.img = pygame.image.load(f"graphic/{put(id)}")
         display.blit(self.img, pos)
@@ -139,7 +139,7 @@ def get_data():
                 print("Max retries reached. Returning empty list.")
                 return []
         finally:
-            client_socket.close()  # Close socket *after* all attempts
+            client_socket.close()  # Close socket after all attempts
 
 def open_chat():
     """

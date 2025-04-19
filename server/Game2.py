@@ -1,94 +1,78 @@
-from pickle import GLOBAL
 import pygame
+import requests
 import sys
-import socket
-import json
-from genericFunction import MathUtils
-from server import clientTest
+import os
 
-def main(token):
-    global Token
-    Token = token
+# כתובת השרת
+SERVER_URL = "http://127.0.0.1:5000"
 
-    tolernsStoneSword = 10
-    PORT = 8827
-    health = 100
-    DEFAULT_BUFFER_SIZE = 1024
-    x, y, rect_width, rect_height = 200, 150, 48, 93
-    a = False
+def login_and_get_token(username, password):
+    data = {"username": username, "password": password}
+    response = requests.post(f"{SERVER_URL}/login", json=data)
+    if response.status_code == 200:
+        return response.json().get("token")
+    else:
+        print("Login failed:", response.status_code, response.text)
+        return None
+
+def get_player_data(token):
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(f"{SERVER_URL}/get_player", headers=headers)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print("Failed to get player data:", response.status_code, response.text)
+        return None
+
+def show_player_on_screen(player_data):
     pygame.init()
-    frames_per_second = 30
-    window_height = 800
-    window_width = 1000
-    WHITE = (0, 255, 0)
-    BLUE = (0, 0, 0)
-    display = pygame.display.set_mode((window_width, window_height))
+    screen_width, screen_height = 800, 600
+    screen = pygame.display.set_mode((screen_width, screen_height))
+    pygame.display.set_caption("Player Viewer")
     clock = pygame.time.Clock()
-    display.fill(WHITE)
-    initial_coin = 0
-    players_pos = ["n", [22222, 222222]]
 
-    def build_array_of_packets(arr_obj):
-        packet = f'{1:01b}' if arr_obj[0] else f'{0:01b}'
-        packet += f'{ord(arr_obj[1]):07b}'.zfill(7)
-        packet += f'{arr_obj[2]:017b}'.zfill(11)
-        packet += f'{arr_obj[3]:017b}'.zfill(11)
-        packet += f'{arr_obj[4]:010b}'.zfill(10)
-        if not all(c in '01' for c in packet):
-            raise ValueError(f"Invalid binary string: {packet}")
-        return packet
+    player_x = player_data['position_x']
+    player_y = player_data['position_y']
 
-    def response_to_bytes(array_for_client):
-        combined_bit_string = ''.join(array_for_client)
-        combined_bit_string = ''.join(filter(lambda x: x in '01', combined_bit_string))
-        combined_bit_string = combined_bit_string.ljust((len(combined_bit_string) + 7) // 8 * 8, '0')
-        number = int(combined_bit_string, 2)
-        byte_value = number.to_bytes((len(combined_bit_string) + 7) // 8, 'big')
-        return byte_value
+    # טוען את התמונה של הדמות
+    # הנתיב לקובץ שנמצא תיקייה אחת למעלה בשם graphic
+    image_path = os.path.join("..", "graphic", "Standing_front.png")
+    try:
+        player_image = pygame.image.load(image_path).convert_alpha()
+        player_image = pygame.transform.scale(player_image, (50, 80))  # אפשר להתאים לגודל הרצוי
+    except pygame.error as e:
+        print(f"Failed to load player image: {e}")
+        pygame.quit()
+        sys.exit()
 
-    def put(id):
-        with open("Objects.json", "r") as f:
-            y = json.load(f)
-        return y["On map objects"].get(id, {}).get('file', "Walking_Front_1.jpg")
+    running = True
+    while running:
+        screen.fill((255, 255, 255))  # רקע לבן
 
-    class ObjectPlacer:
-        def __init__(self, pos, id):
-            self.pos = pos
-            self.img = pygame.image.load(f"graphic/{put(id)}")
-            self.img.set_colorkey((255, 255, 255))
-            display.blit(self.img, pos)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
 
-    def parse_binary_response(binary_data):
-        bit_string = ''.join(f"{byte:08b}" for byte in binary_data)
-        objects = []
-        for i in range(0, len(bit_string), 52):
-            packet = bit_string[i:i + 52]
-            if len(packet) < 52:
-                continue
-            rotation = int(packet[0], 2)
-            object_id = chr(int(packet[1:8], 2))
-            x_coord = int(packet[8:25], 2)
-            y_coord = int(packet[25:42], 2)
-            objects.append((bool(rotation), object_id, x_coord, y_coord))
-        return objects
+        # מציג את הדמות במקום לצייר ריבוע
+        screen.blit(player_image, (player_x, player_y))
 
-    # כאן אנחנו משתמשים ב-Token אחרי שהוא כבר הוגדר
-    game_objects = get_data()
+        pygame.display.flip()
+        clock.tick(60)
 
-    arr = (
-        [{'category': 'player', **p} for p in game_objects['players']] +
-        [{'category': 'bot', **b} for b in game_objects['bots']] +
-        [{'category': 'object', **o} for o in game_objects['objects']]
-    )
+    pygame.quit()
+    sys.exit()
 
-    # תוכל להמשיך מפה - למשל להציג אובייקטים:
-    for obj in arr:
-        if obj['category'] == 'object':
-            ObjectPlacer((obj['x'], obj['y']), obj['id'])
+# קוד ראשי
+if __name__ == "__main__":
+    username = input("Enter username: ")
+    password = input("Enter password: ")
 
-def get_data():
-    return clientTest.get_game_state(Token, 1920, 1080)
-
-# קריאה ל-main עם טוקן
-# לדוגמה:
-# main("your_jwt_token_here")
+    token = login_and_get_token(username, password)
+    if token:
+        player_data = get_player_data(token)
+        if player_data:
+            show_player_on_screen(player_data)
+        else:
+            print("Failed to retrieve player data.")
+    else:
+        print("Login failed. Exiting.")
