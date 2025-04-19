@@ -1,4 +1,6 @@
 import pygame
+from pyasn1.debug import Printer
+
 import buttons
 import json
 import requests
@@ -101,16 +103,19 @@ def put_icons_on_screen(display,inventory_icon, mini_map_icon, exit_icon, chat_i
     if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not CLICKED:
         x, y = pygame.mouse.get_pos()
         CLICKED = True
-        if 125 < y < 215 and 480 < x < 570 and INVENTORY_OPEN_ITEMS % 2 == 1:
+        if 125 < y < 215 and 480 < x < 570:
             INVENTORY_OPEN_SHOP += 1
             INVENTORY_OPEN_ITEMS += 1
 
-        if 125 < y < 215 and 375 < x < 460 and INVENTORY_OPEN_SHOP % 2 == 1:
+        if 125 < y < 215 and 375 < x < 460:
             INVENTORY_OPEN_SHOP += 1
             INVENTORY_OPEN_ITEMS += 1
+
+    if event.type == pygame.MOUSEBUTTONUP:
+        CLICKED = False
 
     if INVENTORY_OPEN_ITEMS % 2 == 1:
-        open_full_inventory_items(display,event)
+        open_full_inventory_items(display)
 
     if INVENTORY_OPEN_SHOP % 2 == 1:
         open_full_inventory_shop(display)
@@ -150,10 +155,13 @@ def open_chat():
     chat_second_layer.draw(display)
 
 
-def open_full_inventory_items(display, event):
+def open_full_inventory_items(display):
     """
     draw full inventory open - items
     """
+    global CLICKED
+
+
     open_full_inventory_image = pygame.image.load(FULL_INVENTORY_ITEMS).convert()
     open_full_inventory_image.set_colorkey(WHITE)
     full_inventory = buttons.Button(350, 119, open_full_inventory_image)
@@ -187,10 +195,6 @@ def open_full_inventory_shop(display):
     hp_bar_icon.draw(display)
     draw_full_inventory_hp_bar(display)
 
-    print_full_inventory(display)
-    print_mini_buttons(display)
-    print_delete_buttons(display)
-    print("event.type:", event.type, "event.button:", getattr(event, "button", None), CLICKED)
 
     if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not CLICKED:
         x, y = pygame.mouse.get_pos()
@@ -209,7 +213,12 @@ def open_full_inventory_shop(display):
         elif 920 < x < 1005 and 525 < y < 555:
             print("you bought a gold wand!")
 
+    if event.type == pygame.MOUSEBUTTONUP:
+        CLICKED = False
 
+    print_full_inventory(display)
+    print_mini_buttons(display)
+    print_delete_buttons(display)
 
 
 def open_not_full_inventory(display):
@@ -359,10 +368,8 @@ def print_mini_buttons(display):
                 button = buttons.Button(x, y + 103, button_image)
             else:
                 button = buttons.Button(x, y + 85, button_image)
-
             if button.draw(display) and not CLICKED:
                 CLICKED = True
-                print("pressed!!!!!")
                 mini_button_change(i)
                 bool, cell1, cell2 = both_mini_button_pressed()
                 if bool:
@@ -514,7 +521,7 @@ def delete_item_from_json(item,cell):
     with open("inventory.json", "r") as file_cells:
         data_cells = json.load(file_cells)
 
-    if data_items["items"][str(item)]["stackable"] or data_cells["cells"][str(cell)]["quantity"] == 1:
+    if not data_items["items"][str(item)]["stackable"] or data_cells["cells"][str(cell)]["quantity"] == 1:
         data_cells["cells"][str(cell)]["quantity"] = 0
         data_cells["cells"][str(cell)]["item"] = "0"
 
@@ -641,6 +648,7 @@ while running:
     display.fill(BACK)
     if not put_icons_on_screen(display,inventory_icon, mini_map_icon, exit_icon, chat_icon,current_holding, money_icon, event):
         running = False
+
     pygame.display.flip()
     clock.tick(30)
 pygame.quit()
