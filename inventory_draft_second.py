@@ -100,35 +100,37 @@ def put_icons_on_screen(display,inventory_icon, mini_map_icon, exit_icon, chat_i
         INVENTORY_OPEN_ITEMS += 1
         INVENTORY_OPEN_SHOP = 0
 
-    if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not CLICKED:
-        x, y = pygame.mouse.get_pos()
-        CLICKED = True
-        if 125 < y < 215 and 480 < x < 570:
-            INVENTORY_OPEN_SHOP += 1
-            INVENTORY_OPEN_ITEMS += 1
-
-        if 125 < y < 215 and 375 < x < 460:
-            INVENTORY_OPEN_SHOP += 1
-            INVENTORY_OPEN_ITEMS += 1
-
-    if event.type == pygame.MOUSEBUTTONUP:
-        CLICKED = False
-
-    if INVENTORY_OPEN_ITEMS % 2 == 1:
-        open_full_inventory_items(display)
-
-    if INVENTORY_OPEN_SHOP % 2 == 1:
-        open_full_inventory_shop(display)
-
-    if INVENTORY_OPEN_ITEMS % 2 == 0 and INVENTORY_OPEN_SHOP % 2 == 0:
-        open_not_full_inventory(display)
-
     money_icon.draw(display)
     # money = get_coins()
     font = pygame.font.Font(None, 35)
     money = 1000
     amount = font.render( str(money), True, MONEY_TEXT)
     display.blit(amount, (1168, 667))
+
+    if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not CLICKED:
+        x, y = pygame.mouse.get_pos()
+
+        if 125 < y < 215 and 480 < x < 570:
+            CLICKED = True
+            INVENTORY_OPEN_SHOP += 1
+            INVENTORY_OPEN_ITEMS += 1
+
+        if 125 < y < 215 and 375 < x < 460:
+            CLICKED = True
+            INVENTORY_OPEN_SHOP += 1
+            INVENTORY_OPEN_ITEMS += 1
+
+    if INVENTORY_OPEN_ITEMS % 2 == 1:
+        open_full_inventory_items(display)
+
+    elif INVENTORY_OPEN_SHOP % 2 == 1:
+        open_full_inventory_shop(display)
+
+    elif INVENTORY_OPEN_ITEMS % 2 == 0 and INVENTORY_OPEN_SHOP % 2 == 0:
+        open_not_full_inventory(display)
+
+    if event.type == pygame.MOUSEBUTTONUP:
+        CLICKED = False
 
     mini_map_icon.draw(display)
     current_holding.draw(display)
@@ -143,6 +145,7 @@ def open_chat():
     """
     opens the chat window
     """
+
     open_chat_first_layer_image = pygame.image.load(CHAT_WINDOW_LAYER_1).convert_alpha()
     open_chat_first_layer_image.set_colorkey(WHITE)
     open_chat_first_layer_image.set_alpha(180)
@@ -160,7 +163,6 @@ def open_full_inventory_items(display):
     draw full inventory open - items
     """
     global CLICKED
-
 
     open_full_inventory_image = pygame.image.load(FULL_INVENTORY_ITEMS).convert()
     open_full_inventory_image.set_colorkey(WHITE)
@@ -183,7 +185,6 @@ def open_full_inventory_shop(display):
     draw full inventory open - shop
     """
     global CLICKED
-
     open_full_inventory_image = pygame.image.load(FULL_INVENTORY_SHOP).convert()
     open_full_inventory_image.set_colorkey(WHITE)
     full_inventory = buttons.Button(350, 119, open_full_inventory_image)
@@ -195,10 +196,8 @@ def open_full_inventory_shop(display):
     hp_bar_icon.draw(display)
     draw_full_inventory_hp_bar(display)
 
-
     if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not CLICKED:
         x, y = pygame.mouse.get_pos()
-        print("buy:",x,y)
         CLICKED = True
 
         if 815 < x < 900 and  375 < y < 410:
@@ -213,9 +212,6 @@ def open_full_inventory_shop(display):
         elif 920 < x < 1005 and 525 < y < 555:
             print("you bought a gold wand!")
 
-    if event.type == pygame.MOUSEBUTTONUP:
-        CLICKED = False
-
     print_full_inventory(display)
     print_mini_buttons(display)
     print_delete_buttons(display)
@@ -225,6 +221,8 @@ def open_not_full_inventory(display):
     """
     draw not full inventory
     """
+    global CLICKED
+
     inventory_not_open_image = pygame.image.load(NOT_OPEN_INVENTORY).convert()
     inventory_not_open_image.set_colorkey(WHITE)
     inventory_not_open = buttons.Button(350, 570, inventory_not_open_image)
@@ -246,6 +244,7 @@ def print_not_full_inventory(dispaly):
     """
     prints in the small inventory the items, the anoumt
     """
+
     font = pygame.font.Font(None, 25)
     with open("inventory.json", "r") as file_cells:
         data_cells = json.load(file_cells)
@@ -278,6 +277,10 @@ def print_full_inventory(dispaly):
     prints in the full inventory the items
     :return:
     """
+    global CLICKED
+    if event.type == pygame.MOUSEBUTTONUP:
+        CLICKED = False
+
     font = pygame.font.Font(None, 25)
     with open("inventory.json", "r") as file_cells:
         data_cells = json.load(file_cells)
@@ -310,6 +313,9 @@ def print_current_holding(display):
     drawing the current holding
     """
     global CLICKED
+    if event.type == pygame.MOUSEBUTTONUP:
+        CLICKED = False
+
     font = pygame.font.Font(None, 25)
     with open("inventory.json", "r") as file_cells:
         data_cells = json.load(file_cells)
