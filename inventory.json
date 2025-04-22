@@ -1,8 +1,8 @@
 {
     "cells": {
         "1": {
-            "item": "0",
-            "quantity": 0,
+            "item": "1",
+            "quantity": 1,
             "topleft_x": 370,
             "topleft_y": 586,
             "mini_button_pressed?": false
@@ -29,8 +29,8 @@
             "mini_button_pressed?": false
         },
         "5": {
-            "item": "9",
-            "quantity": 8,
+            "item": "0",
+            "quantity": 0,
             "topleft_x": 803,
             "topleft_y": 586,
             "mini_button_pressed?": false
@@ -113,8 +113,8 @@
             "mini_button_pressed?": false
         },
         "17": {
-            "item": "0",
-            "quantity": 0,
+            "item": "8",
+            "quantity": 4,
             "topleft_x": 584,
             "topleft_y": 465,
             "mini_button_pressed?": false
