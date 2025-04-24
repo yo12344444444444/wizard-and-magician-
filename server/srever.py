@@ -6,6 +6,19 @@ from functools import wraps
 from flasgger import Swagger
 import time
 import random
+import threading
+from functionsServer import choose_direction, update_bots_based_on_random_action, get_db_connection,get_last_bot_position
+
+
+def get_number():
+    chosen = choose_direction(get_last_bot_position(5))
+    print("נבחר:", chosen)
+    update_bots_based_on_random_action(chosen)
+    # Call again after 2 seconds
+    threading.Timer(2.0, get_number).start()
+
+# Start the loop
+get_number()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -26,10 +39,6 @@ swagger = Swagger(app)
 app.config['SECRET_KEY'] = 'your_secret_key'
 DATABASE = ('../DATABASE_GAME.db')
 
-def get_db_connection():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
 
 def token_required(f):
     @wraps(f)
@@ -1317,6 +1326,7 @@ def get_inventory(user_id):
         for row in inventory
     ]
     return jsonify({"inventory": items}), 200
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

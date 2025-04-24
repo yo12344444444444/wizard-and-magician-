@@ -21,7 +21,7 @@ INVENTORY_OPEN = 0 #BOOLEAN OF NUMBERS- odd=full_inventory, even=not full invent
 CHAT_OPEN = 0 #BOOLEAN OF NUMBERS- odd=open, even=close
 tolernsStoneSword = 100
 HOST = '127.0.0.1'
-PORT = 8822
+PORT = 5000
 LEFT = 1
 DEFAULT_BUFFER_SIZE = 1024
 x, y, rect_width, rect_height = 200, 150, 48, 93
@@ -96,7 +96,13 @@ def response_to_bytes(array_for_client):
 def put(id):
     with open("Objects.json", "r") as f:
         y = json.load(f)
-    return y["On map objects"].get(id, {}).get('file', "Walking_Front_1.jpg")  # Default fallback
+    filename = y["On map objects"].get(id, {}).get('file', "Walking_Front_1")
+
+    # Ensure file has .png extension
+    if not filename.lower().endswith('.png'):
+        filename = filename.rsplit('.', 1)[0] + ".png"
+
+    return filename
 
 
 class ObjectPlacer:
