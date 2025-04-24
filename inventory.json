@@ -8,39 +8,39 @@
             "mini_button_pressed?": false
         },
         "2": {
-            "item": "12",
-            "quantity": 1,
+            "item": "0",
+            "quantity": 0,
             "topleft_x": 479,
             "topleft_y": 586,
             "mini_button_pressed?": false
         },
         "3": {
-            "item": "1",
-            "quantity": 1,
+            "item": "0",
+            "quantity": 0,
             "topleft_x": 584,
             "topleft_y": 586,
             "mini_button_pressed?": false
         },
         "4": {
-            "item": "7",
-            "quantity": 24,
+            "item": "0",
+            "quantity": 0,
             "topleft_x": 696,
             "topleft_y": 586,
             "mini_button_pressed?": false
         },
         "5": {
-            "item": "9",
-            "quantity": 15,
+            "item": "0",
+            "quantity": 0,
             "topleft_x": 803,
             "topleft_y": 586,
             "mini_button_pressed?": false
         },
         "6": {
-            "item": "3",
-            "quantity": 1,
+            "item": "0",
+            "quantity": 0,
             "topleft_x": 919,
             "topleft_y": 586,
-            "mini_button_pressed?": true
+            "mini_button_pressed?": false
         },
         "7": {
             "item": "0",
@@ -113,8 +113,8 @@
             "mini_button_pressed?": false
         },
         "17": {
-            "item": "0",
-            "quantity": 0,
+            "item": "8",
+            "quantity": 4,
             "topleft_x": 584,
             "topleft_y": 465,
             "mini_button_pressed?": false
@@ -127,7 +127,7 @@
             "mini_button_pressed?": false
         },
         "19": {
-            "cell": "1",
+            "cell": "5",
             "topleft_x": 166,
             "topleft_y": 586,
             "mini_button_pressed?": false
