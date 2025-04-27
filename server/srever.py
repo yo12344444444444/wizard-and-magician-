@@ -1,3 +1,5 @@
+import socket
+
 from flask import Flask, request, jsonify
 import sqlite3
 from jose import jwt  # Replace PyJWT with jose.jwt
@@ -6,6 +8,7 @@ from functools import wraps
 from flasgger import Swagger
 import time
 import random
+import threading
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -1317,6 +1320,40 @@ def get_inventory(user_id):
         for row in inventory
     ]
     return jsonify({"inventory": items}), 200
+def ipSender(port):
+
+
+    PORT = port
+    BUFFER_SIZE = 1024
+
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    server_socket.bind(("", PORT))  # Listen on all IPs
+
+    while True:
+        data, addr = server_socket.recvfrom(BUFFER_SIZE)
+        print(f"Received from {addr}: {data.decode()}")
+
+        if data.decode().lower() == "hello":
+            server_socket.sendto(b"hi", addr)
+def PortDefinder():
+    port = 5000
+    result=0
+    while result == 0:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            result = sock.connect_ex(('localhost', port))
+        if result == 0:
+                port+=1
+    return port
+
+def run(port):
+    app.run(host='0.0.0.0', port=port, debug=False)
+
+
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    port = PortDefinder()
+    print(port)
+    t1 = threading.Thread(target= ipSender, args=(port,))
+    t2 = threading.Thread(target=run, args=(port,))
+    t2.start()
+    t1.start()
