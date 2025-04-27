@@ -1334,7 +1334,7 @@ def ipSender(port):
         print(f"Received from {addr}: {data.decode()}")
 
         if data.decode().lower() == "hello":
-            server_socket.sendto(b"hi", addr)
+            server_socket.sendto(b"1", addr)
 def PortDefinder():
     port = 5000
     result=0
@@ -1347,8 +1347,6 @@ def PortDefinder():
 
 def run(port):
     app.run(host='0.0.0.0', port=port, debug=False)
-
-
 
 if __name__ == '__main__':
     port = PortDefinder()

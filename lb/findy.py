@@ -1,5 +1,6 @@
 import socket
 import time
+
 def main():
     BROADCAST_IP = "255.255.255.255"
     BUFFER_SIZE = 1024
@@ -13,7 +14,6 @@ def main():
     for port in PORT_RANGE:
         try:
             client_socket.sendto(MESSAGE.encode(), (BROADCAST_IP, port))
-            print(f"Sent to port {port}")
         except Exception as e:
             print(f"Error sending to port {port}: {e}")
 
