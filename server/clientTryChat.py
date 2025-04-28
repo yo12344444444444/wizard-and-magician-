@@ -3,71 +3,74 @@ import requests
 import sys
 import os
 
-# כתובת השרת
 SERVER_URL = "http://127.0.0.1:5000"
-
-# קבעת נתיב לתיקיית graphic מתוך תקייה הפרויקט הראשית
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 GRAPHIC_DIR = os.path.join(BASE_DIR, "graphic")
 
 
-def login_and_get_token(username, password):
-    data = {"username": username, "password": password}
-    response = requests.post(f"{SERVER_URL}/login", json=data)
-    if response.status_code == 200:
+def login(username, password):
+    response = requests.post(f"{SERVER_URL}/login", json={"username": username, "password": password})
+    if response.ok:
         return response.json().get("token")
-    else:
-        print("Login failed:", response.status_code, response.text)
-        return None
+    print("Login failed:", response.status_code, response.text)
+    return None
 
 
-def get_player_data(token):
+def get_player(token):
     headers = {"Authorization": f"Bearer {token}"}
     response = requests.get(f"{SERVER_URL}/get_player", headers=headers)
-    if response.status_code == 200:
+    if response.ok:
         return response.json()
-    else:
-        print("Failed to get player data:", response.status_code, response.text)
-        return None
+    print("Failed to get player data:", response.status_code)
+    return None
 
 
-def show_player_on_screen(player_data, speed=5, frame_duration=10):
+def get_game_state(token, direction, x, y, width, height):
+    headers = {"Authorization": f"Bearer {token}"}
+    payload = {"direction": direction, "x": x, "y": y, "screen_width": width, "screen_height": height}
+    try:
+        response = requests.post(f"{SERVER_URL}/game_state", headers=headers, json=payload)
+        if response.ok:
+            return response.json().get("objects", [])
+        print("Failed to get game state:", response.status_code)
+    except Exception as e:
+        print("Error fetching game state:", e)
+    return []
+
+
+def load_images(prefix, count):
+    images = []
+    for i in range(1, count + 1):
+        file = os.path.join(GRAPHIC_DIR, f"{prefix}_{i}.png")
+        try:
+            img = pygame.image.load(file).convert_alpha()
+            img = pygame.transform.scale(img, (50, 80))
+        except:
+            img = pygame.Surface((50, 80), pygame.SRCALPHA)
+        images.append(img)
+    return images
+
+
+def show_game(token, player):
     pygame.init()
-    screen_width, screen_height = 800, 600
-    screen = pygame.display.set_mode((screen_width, screen_height))
-    pygame.display.set_caption("Player Viewer")
+    screen = pygame.display.set_mode((800, 600))
+    pygame.display.set_caption("Cyber Game")
     clock = pygame.time.Clock()
 
-    world_width, world_height = 1600, 1200
-    bg_color = (144, 238, 144)  # Light green
+    bg_color = (144, 238, 144)
+    player_x = player.get("position_x", 16000)
+    player_y = player.get("position_y", 12000)
 
-    player_world_x = player_data.get('position_x', world_width // 2)
-    player_world_y = player_data.get('position_y', world_height // 2)
-
-    def load_images(prefix, count):
-        imgs = []
-        for i in range(1, count + 1):
-            filename = f"{prefix}_{i}.png"
-            path = os.path.join(GRAPHIC_DIR, filename)
-            try:
-                img = pygame.image.load(path).convert_alpha()
-                img = pygame.transform.scale(img, (50, 80))
-            except Exception as e:
-                print(f"Error loading {filename}:", e)
-                img = pygame.Surface((50, 80), pygame.SRCALPHA)
-                img.fill((255, 0, 0, 0))
-            imgs.append(img)
-        return imgs
-
-    standing_img = pygame.image.load(os.path.join(GRAPHIC_DIR, 'Standing_front.png')).convert_alpha()
-    standing_img = pygame.transform.scale(standing_img, (50, 80))
-
+    standing = pygame.transform.scale(
+        pygame.image.load(os.path.join(GRAPHIC_DIR, 'Standing_front.png')).convert_alpha(), (50, 80))
     walk_front = load_images('Walking_Front', 2)
     walk_left = load_images('Walking_Left', 2)
     walk_right = load_images('Walking_Right', 2)
 
-    direction = 'front'
-    frame_index = 0
+    direction = 's'
+    moving = False
+    frame = 0
+    frame_delay = 10
     frame_counter = 0
 
     running = True
@@ -78,50 +81,37 @@ def show_player_on_screen(player_data, speed=5, frame_duration=10):
 
         keys = pygame.key.get_pressed()
         moving = False
-
-        if keys[pygame.K_w]:
-            player_world_y -= speed
-            direction = 'front'
-            moving = True
-        elif keys[pygame.K_s]:
-            player_world_y += speed
-            direction = 'front'
-            moving = True
-        if keys[pygame.K_a]:
-            player_world_x -= speed
-            direction = 'left'
-            moving = True
-        elif keys[pygame.K_d]:
-            player_world_x += speed
-            direction = 'right'
-            moving = True
-
-        player_screen_x = screen_width // 2 - 25
-        player_screen_y = screen_height // 2 - 40
-
-        camera_x = player_world_x - player_screen_x
-        camera_y = player_world_y - player_screen_y
+        if keys[pygame.K_w]: player_y -= 5; direction = 'w'; moving = True
+        if keys[pygame.K_s]: player_y += 5; direction = 's'; moving = True
+        if keys[pygame.K_a]: player_x -= 5; direction = 'a'; moving = True
+        if keys[pygame.K_d]: player_x += 5; direction = 'd'; moving = True
 
         screen.fill(bg_color)
+        camera_x = player_x - 400
+        camera_y = player_y - 300
+
+        objects = get_game_state(token, direction, player_x, player_y, 800, 600)
+        for obj in objects:
+            try:
+                img = pygame.image.load(os.path.join(GRAPHIC_DIR, obj['file'])).convert_alpha()
+                img = pygame.transform.scale(img, (60, 60))
+                screen.blit(img, (obj['x'] - camera_x, obj['y'] - camera_y))
+            except:
+                continue
 
         if moving:
-            frame_counter += 1
-            if frame_counter >= frame_duration:
-                frame_counter = 0
-                frame_index = (frame_index + 1) % 2
-            if direction == 'front':
-                current_img = walk_front[frame_index]
-            elif direction == 'left':
-                current_img = walk_left[frame_index]
+            frame_counter = (frame_counter + 1) % (frame_delay * 2)
+            frame = frame_counter // frame_delay
+            if direction in ['w', 's']:
+                img = walk_front[frame]
+            elif direction == 'a':
+                img = walk_left[frame]
             else:
-                current_img = walk_right[frame_index]
+                img = walk_right[frame]
         else:
-            current_img = standing_img
-            frame_index = 0
-            frame_counter = 0
+            img = standing
 
-        screen.blit(current_img, (player_screen_x, player_screen_y))
-
+        screen.blit(img, (375, 260))
         pygame.display.flip()
         clock.tick(60)
 
@@ -130,15 +120,14 @@ def show_player_on_screen(player_data, speed=5, frame_duration=10):
 
 
 if __name__ == "__main__":
-    username = input("Enter username: ")
-    password = input("Enter password: ")
-
-    token = login_and_get_token(username, password)
+    user = input("Username: ")
+    pwd = input("Password: ")
+    token = login(user, pwd)
     if token:
-        pd = get_player_data(token)
-        if pd:
-            show_player_on_screen(pd)
+        player = get_player(token)
+        if player:
+            show_game(token, player)
         else:
-            print("Failed to retrieve player data.")
+            print("Could not load player data.")
     else:
-        print("Login failed. Exiting.")
+        print("Login failed.")

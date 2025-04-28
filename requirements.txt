@@ -4,3 +4,4 @@ bcrypt>=2
 flask
 python-jose
 flasgger
+requests

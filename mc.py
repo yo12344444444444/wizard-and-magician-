@@ -1,7 +1,7 @@
 import fixedHomeScreen
-from server import Game2
+import game1
 token = fixedHomeScreen.main('127.0.0.1', 8827)
 ip = '127.0.0.1'
 print(ip)
-Game2.main(token)
+game1.main(token)
 print("end")

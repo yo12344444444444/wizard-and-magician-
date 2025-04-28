@@ -196,3 +196,6 @@ def main(ip):
 
     pygame.quit()
     sys.exit()
+
+if __name__ == '__main__':
+    main("192.168.0.157")
