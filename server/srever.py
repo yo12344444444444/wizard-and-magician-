@@ -5,20 +5,33 @@ import datetime
 from functools import wraps
 from flasgger import Swagger
 import time
-import random
 import threading
-from functionsServer import choose_direction, update_bots_based_on_random_action, get_db_connection,get_last_bot_position
-
+from functionsServer import *
 
 def get_number():
-    chosen = choose_direction(get_last_bot_position(5))
-    print("נבחר:", chosen)
-    update_bots_based_on_random_action(chosen)
-    # Call again after 2 seconds
-    threading.Timer(2.0, get_number).start()
+    bot_ids = get_all_bot_ids()
 
-# Start the loop
-get_number()
+    for bot_id in bot_ids:
+        last_direction = get_last_bot_position(bot_id)
+        closest_player_id = get_closest_player_id_to_bot(bot_id)
+
+        if closest_player_id is None:
+            print(f"Bot {bot_id}: אין שחקן קרוב.")
+            continue
+
+        dx, dy = calculate_dx_dy_from_db(bot_id, closest_player_id)
+
+        if dx is None or dy is None:
+            print(f"Bot {bot_id}: לא ניתן לחשב dx/dy.")
+            continue
+
+        chosen = choose_direction(last_direction, dx, dy)
+        print(f"Bot {bot_id}: נבחר כיוון {chosen}")
+
+        update_specific_bot(chosen, bot_id)
+
+    # חזור על הפעולה כל 2 שניות
+    threading.Timer(2.0, get_number).start()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -376,15 +389,6 @@ def game_state(user_id):
             - screen_width
             - screen_height
           properties:
-            direction:
-              type: string
-              example: "up"
-            x:
-              type: integer
-              example: 120
-            y:
-              type: integer
-              example: 80
             screen_width:
               type: integer
               example: 1000
@@ -436,7 +440,6 @@ def get_game_state(user_id, screen_width, screen_height):
     if not main_player:
         conn.close()
         return {'error': 'Player not found'}
-
     half_width = screen_width / 2
     half_height = screen_height / 2
     center_x = main_player['position_x']
@@ -445,7 +448,7 @@ def get_game_state(user_id, screen_width, screen_height):
     min_x, max_x = center_x - half_width, center_x + half_width
     min_y, max_y = center_y - half_height, center_y + half_height
 
-    cursor.execute("SELECT * FROM players WHERE player_id != ? AND status = 'active'", (user_id,))
+    cursor.execute("SELECT * FROM players WHERE player_id != ? AND status = 'active'", (user_id))
     players = [
         {
             'id': f"player{p['player_id']}",
@@ -1329,4 +1332,5 @@ def get_inventory(user_id):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    get_number()
+    app.run(host='0.0.0.0', port=5000, debug=False)
