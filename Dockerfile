@@ -41,6 +41,8 @@ RUN apt-get update && apt-get install -y \
     xvfb alsa-utils alsa-oss alsa-tools \
     && rm -rf /var/lib/apt/lists/*
 
+RUN apt-get update && apt-get install -y sqlite3 && rm -rf /var/lib/apt/lists/*
+
 # Install pygame 2.6.1
 RUN pip install pygame==2.6.1
 
