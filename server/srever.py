@@ -448,7 +448,7 @@ def get_game_state(user_id, screen_width, screen_height):
     min_x, max_x = center_x - half_width, center_x + half_width
     min_y, max_y = center_y - half_height, center_y + half_height
 
-    cursor.execute("SELECT * FROM players WHERE player_id != ? AND status = 'active'", (user_id))
+    cursor.execute("SELECT * FROM players WHERE player_id != ? AND status = 'active'", (user_id,))
     players = [
         {
             'id': f"player{p['player_id']}",
