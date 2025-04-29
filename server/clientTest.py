@@ -98,7 +98,7 @@ def get_game_state(token, screen_width, screen_height):
         if response.status_code == 200:
             return response.json()
         else:
-            print(f"Error getting game state: {response.status_code}", response.json())
+            print(f"Error getting game state: {response.status_code}")
             return None
     #except requests.exceptions.RequestException as e:
        # print(f"Connection error: {e}")
@@ -184,7 +184,6 @@ def main():
 
         pygame.display.flip()
         clock.tick(FPS)
-        time.sleep(0.5)
 
     pygame.quit()
     sys.exit()
