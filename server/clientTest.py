@@ -91,7 +91,7 @@ def get_player_data(token):
 
 # Function to get the game state
 def get_game_state(token, screen_width, screen_height):
-    try:
+    #try:
         headers = {'Authorization': f'Bearer {token}'}
         data = {'screen_width': screen_width, 'screen_height': screen_height}
         response = requests.post(f'{API_URL}/game_state', json=data, headers=headers)
@@ -100,9 +100,9 @@ def get_game_state(token, screen_width, screen_height):
         else:
             print(f"Error getting game state: {response.status_code}", response.json())
             return None
-    except requests.exceptions.RequestException as e:
-        print(f"Connection error: {e}")
-        return None
+    #except requests.exceptions.RequestException as e:
+       # print(f"Connection error: {e}")
+       # return None
 
 # Draw a bot relative to the player
 def draw_bot(screen, bot, player_x, player_y, ghost_images):
