@@ -2,7 +2,7 @@ import sqlite3
 import bcrypt
 import random
 
-conn = sqlite3.connect("DATABASE_GAME.db")
+conn = sqlite3.connect("/app/database/DATABASE_GAME.db")
 cursor = conn.cursor()
 
 # מחיקת טבלאות ישנות אם קיימות
@@ -27,7 +27,7 @@ CREATE TABLE players (
     last_attack_time DATETIME
 )
 """)
-
+print("created table players")
 
 # טבלת bots
 cursor.execute("""
@@ -193,7 +193,7 @@ conn.commit()
 conn.close()
 
 def print_all_bots():
-    conn = sqlite3.connect("DATABASE_GAME.db")
+    conn = sqlite3.connect("/app/database/DATABASE_GAME.db")
     cursor = conn.cursor()
 
     cursor.execute("SELECT * FROM bots")

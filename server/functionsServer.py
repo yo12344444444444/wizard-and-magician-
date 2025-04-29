@@ -2,7 +2,7 @@ import random
 import sqlite3
 from math import hypot
 
-DATABASE = ('/app/database.db')
+DATABASE = ('/app/database/DATABASE_GAME.db')
 
 def get_db_connection():
     conn = sqlite3.connect(DATABASE)
@@ -92,7 +92,7 @@ def update_specific_bot(action,bot_id):
 
 
 def get_last_bot_position(bot_id):
-    conn = sqlite3.connect("../DATABASE_GAME.db")
+    conn = sqlite3.connect("/app/database/DATABASE_GAME.db")
     cursor = conn.cursor()
     cursor.execute("SELECT last_direction FROM bots WHERE bot_id = ?", (bot_id,))
     position = cursor.fetchone()
@@ -103,7 +103,7 @@ def get_last_bot_position(bot_id):
     else:
         return None
 
-def calculate_dx_dy_from_db(bot_id, player_id, db_path="../DATABASE_GAME.db"):
+def calculate_dx_dy_from_db(bot_id, player_id, db_path="/app/database/DATABASE_GAME.db"):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
@@ -129,7 +129,7 @@ def calculate_dx_dy_from_db(bot_id, player_id, db_path="../DATABASE_GAME.db"):
         return None, None  # אם אחד מהם לא נמצא
 
 def get_all_bot_ids():
-    conn = sqlite3.connect("../DATABASE_GAME.db")
+    conn = sqlite3.connect("/app/database/DATABASE_GAME.db")
     cursor = conn.cursor()
     cursor.execute("SELECT bot_id FROM bots")
     bot_ids = [row[0] for row in cursor.fetchall()]
@@ -137,7 +137,7 @@ def get_all_bot_ids():
     return bot_ids
 
 def get_closest_player_id_to_bot(bot_id):
-    conn = sqlite3.connect("../DATABASE_GAME.db")
+    conn = sqlite3.connect("/app/database/DATABASE_GAME.db")
     cursor = conn.cursor()
     # מיקום הבוט
     cursor.execute("SELECT position_x, position_y FROM bots WHERE bot_id = ?", (bot_id,))

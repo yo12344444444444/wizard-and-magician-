@@ -1,15 +1,17 @@
-from flask import Flask, request, jsonify
-import sqlite3
-from jose import jwt  # Replace PyJWT with jose.jwt
 import datetime
+import threading
+import time
 from functools import wraps
 from flasgger import Swagger
-import time
-import threading
+from flask import Flask, request, jsonify
+from jose import jwt  # Replace PyJWT with jose.jwt
 from functionsServer import *
 
+
 def get_number():
+    print("hi")
     bot_ids = get_all_bot_ids()
+    print("hello")
 
     for bot_id in bot_ids:
         last_direction = get_last_bot_position(bot_id)
@@ -50,7 +52,7 @@ app.config['SWAGGER'] = {
 }
 swagger = Swagger(app)
 app.config['SECRET_KEY'] = 'your_secret_key'
-DATABASE = ('/app/database.db')
+DATABASE = ('/app/database/DATABASE_GAME.db')
 
 
 def token_required(f):
@@ -1335,5 +1337,8 @@ def get_inventory(user_id):
 
 
 if __name__ == '__main__':
-    get_number()
+    try:
+        get_number()
+    except Exception as e:
+        print(f"Error in get_number(): {e}")
     app.run(host='0.0.0.0', port=5000, debug=False)

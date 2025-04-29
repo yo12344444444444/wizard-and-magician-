@@ -67,17 +67,33 @@ services:
 #    command: [ "python", "Server4.py" ]
 #    restart: always
 #
-  server_flask:
-    container_name: "server-flask"
-    image: nettahalamish/cyber-project-grade-11:latest
-    build:
-      context: .
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./DATABASE_GAME.db:/app/database.db
-    command: [ "python", "server/srever.py" ]
-    restart: always
+    build_db:
+      container_name: "build-db"
+      image: nettahalamish/cyber-project-grade-11:latest
+      build:
+        context: .
+      volumes:
+        - DATABASE_GAME.db:/app/database
+      environment:
+        - DATABASE_URL=sqlite:///DATABASE_GAME.db
+      command: [ "python", "createDatabase.py" ]
+      restart: on-failure
+
+    server_flask:
+      container_name: "server-flask"
+      image: nettahalamish/cyber-project-grade-11:latest
+      build:
+        context: .
+      ports:
+        - "5000:5000"
+      volumes:
+        - DATABASE_GAME.db:/app/database
+      depends_on:
+        - build_db
+#      environment:
+#        - DATABASE_URL=sqlite:///DATABASE_GAME.db
+      command: ["python", "server/srever.py" ]
+      restart: on-failure
 
 volumes:
-  database.db:
+    DATABASE_GAME.db: { }
