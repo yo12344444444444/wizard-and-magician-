@@ -50,7 +50,7 @@ app.config['SWAGGER'] = {
 }
 swagger = Swagger(app)
 app.config['SECRET_KEY'] = 'your_secret_key'
-DATABASE = ('DATABASE_GAME.db')
+DATABASE = ('/app/database.db')
 
 
 def token_required(f):

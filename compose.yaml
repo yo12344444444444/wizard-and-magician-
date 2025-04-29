@@ -75,6 +75,9 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - ./app/DATABASE_GAME.db:/app/database.db
+      - ./DATABASE_GAME.db:/app/database.db
     command: [ "python", "server/srever.py" ]
     restart: always
+
+volumes:
+  database.db:

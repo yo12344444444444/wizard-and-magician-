@@ -2,7 +2,7 @@ import random
 import sqlite3
 from math import hypot
 
-DATABASE = ('/app/DATABASE_GAME.db')
+DATABASE = ('/app/database.db')
 
 def get_db_connection():
     conn = sqlite3.connect(DATABASE)
