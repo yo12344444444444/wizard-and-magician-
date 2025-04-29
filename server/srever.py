@@ -50,7 +50,7 @@ app.config['SWAGGER'] = {
 }
 swagger = Swagger(app)
 app.config['SECRET_KEY'] = 'your_secret_key'
-DATABASE = ('../DATABASE_GAME.db')
+DATABASE = ('DATABASE_GAME.db')
 
 
 def token_required(f):
@@ -405,6 +405,9 @@ def game_state(user_id):
     screen_width = data.get('screen_width')
     screen_height = data.get('screen_height')
 
+
+    print(f"screen width: {screen_width}")
+    print(f"screen height: {screen_height}")
     # בדוק אם השחקן הותקף ע"י בוטים או שחקנים אחרים
     attack_result = was_player_hit(user_id)
 
@@ -447,7 +450,7 @@ def get_game_state(user_id, screen_width, screen_height):
 
     min_x, max_x = center_x - half_width, center_x + half_width
     min_y, max_y = center_y - half_height, center_y + half_height
-
+    print(f"user id: {user_id}")
     cursor.execute("SELECT * FROM players WHERE player_id != ? AND status = 'active'", (user_id,))
     players = [
         {

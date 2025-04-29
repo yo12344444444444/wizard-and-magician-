@@ -12,8 +12,6 @@ WORKDIR /app
 # Copy project files
 COPY ./ /app/
 
-COPY app/DATABASE_GAME.db /app/database.db
-
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc python3-dev libffi-dev build-essential \
