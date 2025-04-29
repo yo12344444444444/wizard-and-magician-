@@ -5,7 +5,23 @@ import datetime
 from functools import wraps
 from flasgger import Swagger
 import time
-import random
+import threading
+from functionsServer import *
+
+def move_bots():
+    bots=get_all_bots()
+    for bot in bots:
+        last_direction=bot['last_direction']
+        closest_player_id,player_x,player_y = get_closest_player(bot['position_x'],bot['position_y'])
+        if closest_player_id is None:
+            print(f"Bot {bot['bot_id']}: אין שחקן קרוב.")
+            continue
+        dx,dy = calculate_dx_dy(bot['position_x'],bot['position_y'],player_x,player_y)
+        chosen = choose_direction(last_direction, dx, dy)
+        bot_action(chosen, bot)
+
+    # חזור על הפעולה כל 2 שניות
+    threading.Timer(0.2, move_bots).start()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -26,10 +42,6 @@ swagger = Swagger(app)
 app.config['SECRET_KEY'] = 'your_secret_key'
 DATABASE = ('../DATABASE_GAME.db')
 
-def get_db_connection():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
 
 def token_required(f):
     @wraps(f)
@@ -367,15 +379,6 @@ def game_state(user_id):
             - screen_width
             - screen_height
           properties:
-            direction:
-              type: string
-              example: "up"
-            x:
-              type: integer
-              example: 120
-            y:
-              type: integer
-              example: 80
             screen_width:
               type: integer
               example: 1000
@@ -427,7 +430,6 @@ def get_game_state(user_id, screen_width, screen_height):
     if not main_player:
         conn.close()
         return {'error': 'Player not found'}
-
     half_width = screen_width / 2
     half_height = screen_height / 2
     center_x = main_player['position_x']
@@ -739,6 +741,7 @@ def attack(user_id):
 
     attacker_pos = {'x': attacker['position_x'], 'y': attacker['position_y']}
 
+    print("datetime.datetime.utcnow()",datetime.datetime.utcnow())
     # עדכון זמן התקיפה האחרון של התוקף
     cursor.execute("UPDATE players SET last_attack_time = ? WHERE player_id = ?",
                    (datetime.datetime.utcnow(), user_id))
@@ -855,6 +858,7 @@ def was_player_hit(player_id):
     bots = cursor.fetchall()
 
     current_time = int(time.time())
+    print(current_time)
     was_attacked = False
     player_died = False
     respawn_position = None
@@ -878,14 +882,17 @@ def was_player_hit(player_id):
                         SET health = ?, position_x = ?, position_y = ?, coins = 0
                         WHERE player_id = ?
                     """, (100, respawn_x, respawn_y, player_id))
+                    conn.commit()
                     player_died = True
                     respawn_position = {'x': respawn_x, 'y': respawn_y}
                     player_health = 100
                 else:
                     cursor.execute("UPDATE players SET health = ? WHERE player_id = ?", (new_health, player_id))
+                    conn.commit()
                     player_health = new_health
 
                 cursor.execute("UPDATE bots SET last_attack_time = ? WHERE bot_id = ?", (current_time, bot_id))
+                conn.commit()
 
     # טיפול בפגיעות משחקנים אחרים
     cursor.execute("SELECT player_id, position_x, position_y, last_attack_time FROM players WHERE player_id != ?", (player_id,))
@@ -898,27 +905,31 @@ def was_player_hit(player_id):
         last_attack = p['last_attack_time']
 
         if abs(other_x - player_x) < 100 and abs(other_y - player_y) < 100:
-            if current_time - last_attack >= 5:
-                new_health = max(player_health - 10, 0)
-                was_attacked = True
+            try:
+                if current_time - last_attack >= 5:
+                    new_health = max(player_health - 10, 0)
+                    was_attacked = True
 
-                if new_health <= 0:
-                    respawn_x, respawn_y = 50, 50
-                    cursor.execute("""
-                        UPDATE players
-                        SET health = ?, position_x = ?, position_y = ?, coins = 0
-                        WHERE player_id = ?
-                    """, (100, respawn_x, respawn_y, player_id))
-                    player_died = True
-                    respawn_position = {'x': respawn_x, 'y': respawn_y}
-                    player_health = 100
-                else:
-                    cursor.execute("UPDATE players SET health = ? WHERE player_id = ?", (new_health, player_id))
-                    player_health = new_health
+                    if new_health <= 0:
+                        respawn_x, respawn_y = 50, 50
+                        cursor.execute("""
+                            UPDATE players
+                            SET health = ?, position_x = ?, position_y = ?, coins = 0
+                            WHERE player_id = ?
+                        """, (100, respawn_x, respawn_y, player_id))
+                        conn.commit()
+                        player_died = True
+                        respawn_position = {'x': respawn_x, 'y': respawn_y}
+                        player_health = 100
+                    else:
+                        cursor.execute("UPDATE players SET health = ? WHERE player_id = ?", (new_health, player_id))
+                        conn.commit()
+                        player_health = new_health
 
-                cursor.execute("UPDATE players SET last_attack_time = ? WHERE player_id = ?", (current_time, other_id))
-
-    conn.commit()
+                    cursor.execute("UPDATE players SET last_attack_time = ? WHERE player_id = ?", (current_time, other_id))
+                    conn.commit()
+            except:
+                print("##################################################other_id",other_id)
     conn.close()
 
     response = {
@@ -1054,18 +1065,18 @@ def add_to_inventory(user_id):
             SET quantity = quantity + 1
             WHERE inventory_id = ?
         """, (existing_item['inventory_id'],))
+        conn.commit()
     else:
         # יצירת פריט חדש עם כמות 1
         cursor.execute("""
             INSERT INTO inventory (player_id, name, slot_index, quantity)
             VALUES (?, ?, ?, 1)
         """, (player_id, obj['name'], slot_index))
-
+        conn.commit()
     # הסרה מהמפה
     cursor.execute("""
         DELETE FROM map_objects WHERE object_id = ?
     """, (obj['object_id'],))
-
     conn.commit()
     conn.close()
 
@@ -1318,5 +1329,7 @@ def get_inventory(user_id):
     ]
     return jsonify({"inventory": items}), 200
 
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    move_bots()
+    app.run(host='0.0.0.0', port=5000, debug=False)
