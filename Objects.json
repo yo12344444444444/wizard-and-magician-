@@ -1,22 +1,18 @@
 {
-  "On map objects": {
-    "a": { "file": "Apple_Tree.jpg", "rotation": false },
-    "b": { "file": "Tree.jpg", "rotation": false },
-    "c": { "file": "Blueberry_Bush.jpg", "rotation": false },
-    "d": { "file": "Bush.jpg", "rotation": false },
-    "e": { "file": "Grass.jpg", "rotation": false },
-    "f": { "file": "Iron_Sword.jpg", "rotation": false },
-    "g": { "file": "Gold_Sword.jpg", "rotation": false },
-    "h": { "file": "Stones_Sword.jpg", "rotation": false },
-    "i": { "file": "Blue_Flower.jpg", "rotation": false },
-    "j": { "file": "Pink_Flower.jpg", "rotation": false },
-    "k": { "file": "Purple_Flower.jpg", "rotation": false },
-    "l": { "file": "Red_Flower.jpg", "rotation": false },
-    "m": { "file": "Yellow_Flower.jpg", "rotation": false },
-    "n": { "file": "Walking_Front_1.jpg", "rotation": false },
-    "o": { "file": "Walking_Front_2.jpg", "rotation": false },
-    "p": { "file": "Walking_Left_2.jpg", "rotation": false },
-    "q": { "file": "Walking_Right_2.jpg", "rotation": false },
-    "r": { "file": "Standing_Back.jpg", "rotation": false }
-  }
+    "On map objects": {
+        "apple_tree": {"file": "Apple_Tree.jpg", "rotation": false},
+        "tree": {"file": "Tree.jpg", "rotation": false},
+        "blueberry_bush": {"file": "Blueberry_Bush.jpg", "rotation": false},
+        "bush": {"file": "Bush.jpg", "rotation": false},
+        "grass": {"file": "Grass.jpg", "rotation": false},
+        "iron_sword": {"file": "Iron_Sword.jpg", "rotation": false},
+        "gold_sword": {"file": "Gold_Sword.jpg", "rotation": false},
+        "stone_sword": {"file": "Stones_Sword.jpg", "rotation": false},
+        "blue_flower": {"file": "Blue_Flower.jpg", "rotation": false},
+        "pink_flower": {"file": "Pink_Flower.jpg", "rotation": false},
+        "purple_flower": {"file": "Purple_Flower.jpg", "rotation": false},
+        "red_flower": {"file": "Red_Flower.jpg", "rotation": false},
+        "yellow_flower": {"file": "Yellow_Flower.jpg", "rotation": false}
+    }
+
 }

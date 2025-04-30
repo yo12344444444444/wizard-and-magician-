@@ -5,7 +5,23 @@ import datetime
 from functools import wraps
 from flasgger import Swagger
 import time
-import random
+import threading
+from functionsServer import *
+
+def move_bots():
+    bots=get_all_bots()
+    for bot in bots:
+        last_direction=bot['last_direction']
+        closest_player_id,player_x,player_y = get_closest_player(bot['position_x'],bot['position_y'])
+        if closest_player_id is None:
+            print(f"Bot {bot['bot_id']}: אין שחקן קרוב.")
+            continue
+        dx,dy = calculate_dx_dy(bot['position_x'],bot['position_y'],player_x,player_y)
+        chosen = choose_direction(last_direction, dx, dy)
+        bot_action(chosen, bot)
+
+    # חזור על הפעולה כל 2 שניות
+    threading.Timer(0.2, move_bots).start()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -26,10 +42,6 @@ swagger = Swagger(app)
 app.config['SECRET_KEY'] = 'your_secret_key'
 DATABASE = ('../DATABASE_GAME.db')
 
-def get_db_connection():
-    conn = sqlite3.connect(DATABASE)
-    conn.row_factory = sqlite3.Row
-    return conn
 
 def token_required(f):
     @wraps(f)
@@ -92,36 +104,55 @@ def login():
     password = data.get('password')
 
     conn = get_db_connection()
+    conn.row_factory = sqlite3.Row  # To access rows as dictionaries
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM players WHERE username = ? AND password_hash = ?", (username, password))
     user = cursor.fetchone()
 
     if user:
-     cursor.execute("UPDATE players SET status = 'active' WHERE player_id = ?", (user['player_id'],))
-     conn.commit()
-     conn.close()
+        player_id = user['player_id']
+        cursor.execute("UPDATE players SET status = 'active' WHERE player_id = ?", (player_id,))
 
-     token = jwt.encode({
-         'user_id': user['player_id'],
-         'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=10)
-     }, app.config['SECRET_KEY'], algorithm='HS256')
+        # Check if inventory already exists
+        cursor.execute("SELECT COUNT(*) as count FROM inventory WHERE player_id = ?", (player_id,))
+        inventory_count = cursor.fetchone()['count']
 
-     return jsonify({
-         'message': 'Login successful',
-         'token': token,
-         'user': {
-             'id': user['player_id'],
-             'username': user['username'],
-             'position_x': user['position_x'],
-             'position_y': user['position_y'],
-             'health': user['health'],
-             'coins': user['coins'],
-             'status': 'active'
-         }
-     })
+        # If no items in inventory, add starter items
+        if inventory_count == 0:
+            starter_items = [
+                ('Wood_Wand', 1),
+                ('Stone_Sword', 2)
+            ]
+            for name, slot_index in starter_items:
+                cursor.execute("""
+                    INSERT INTO inventory (player_id, name, slot_index, quantity)
+                    VALUES (?, ?, ?, ?)
+                """, (player_id, name, slot_index, 1))
+
+        conn.commit()
+        conn.close()
+
+        token = jwt.encode({
+            'user_id': player_id,
+            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=10)
+        }, app.config['SECRET_KEY'], algorithm='HS256')
+
+        return jsonify({
+            'message': 'Login successful',
+            'token': token,
+            'user': {
+                'id': player_id,
+                'username': user['username'],
+                'position_x': user['position_x'],
+                'position_y': user['position_y'],
+                'health': user['health'],
+                'coins': user['coins'],
+                'status': 'active'
+            }
+        })
     else:
-     conn.close()
-     return jsonify({'error': 'Invalid username or password'}), 401
+        conn.close()
+        return jsonify({'error': 'Invalid username or password'}), 401
 
 @app.route('/logout', methods=['POST'])
 @token_required
@@ -236,10 +267,8 @@ def get_player(user_id):
 @app.route('/signup', methods=['POST'])
 def signup():
     """
-    Register a new user
+    User signup
     ---
-    tags:
-      - Authentication
     consumes:
       - application/json
     parameters:
@@ -248,65 +277,78 @@ def signup():
         required: true
         schema:
           type: object
-          required:
-            - username
-            - email
-            - password
           properties:
             username:
               type: string
-              example: new_user
-            email:
-              type: string
-              example: user@example.com
+              example: newuser
             password:
               type: string
-              example: secret123
+              example: newpass
     responses:
-      201:
+      200:
         description: Signup successful
-        schema:
-          type: object
-          properties:
-            message:
-              type: string
-              example: User created successfully
       400:
-        description: Bad request or user already exists
-        schema:
-          type: object
-          properties:
-            message:
-              type: string
-              example: Username already exists
+        description: User already exists
     """
     data = request.get_json()
     username = data.get('username')
     password = data.get('password')
 
     conn = get_db_connection()
+    conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    try:
-     cursor.execute("INSERT INTO players (username, password_hash) VALUES (?, ?)", (username, password))
-     conn.commit()
-     new_id = cursor.lastrowid
-     cursor.execute("UPDATE players SET status = 'active' WHERE player_id = ?", (new_id,))
-     conn.commit()
-    except sqlite3.IntegrityError:
-     conn.close()
-     return jsonify({'error': 'Username already exists'}), 409
 
+    # Check if user already exists
+    cursor.execute("SELECT * FROM players WHERE username = ?", (username,))
+    if cursor.fetchone():
+        conn.close()
+        return jsonify({'error': 'User already exists'}), 400
+
+    # Create new user
+    cursor.execute("""
+        INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status)
+        VALUES (?, ?, 0, 100, 100, 0, 'active')
+    """, (username, password))
+    player_id = cursor.lastrowid
+
+    # Add starter items to inventory
+    starter_items = [
+        ('Wood_Wand', 1),
+        ('Stone_Sword', 2)
+    ]
+    for name, slot_index in starter_items:
+        cursor.execute("""
+            INSERT INTO inventory (player_id, name, slot_index, quantity)
+            VALUES (?, ?, ?, ?)
+        """, (player_id, name, slot_index, 1))
+
+    # Get full user data
+    cursor.execute("SELECT * FROM players WHERE player_id = ?", (player_id,))
+    user = cursor.fetchone()
+
+    # Generate token
     token = jwt.encode({
-     'user_id': new_id,
-     'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=10)
+        'user_id': player_id,
+        'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=10)
     }, app.config['SECRET_KEY'], algorithm='HS256')
 
+    conn.commit()
     conn.close()
+
     return jsonify({
-     'message': 'User signed up successfully',
-     'token': token,
-     'player_id': new_id
+        'message': 'Signup successful',
+        'token': token,
+        'user': {
+            'id': player_id,
+            'username': user['username'],
+            'position_x': user['position_x'],
+            'position_y': user['position_y'],
+            'health': user['health'],
+            'coins': user['coins'],
+            'status': user['status']
+        }
     })
+
 @app.route('/game_state', methods=['POST'])
 @token_required
 def game_state(user_id):
@@ -337,15 +379,6 @@ def game_state(user_id):
             - screen_width
             - screen_height
           properties:
-            direction:
-              type: string
-              example: "up"
-            x:
-              type: integer
-              example: 120
-            y:
-              type: integer
-              example: 80
             screen_width:
               type: integer
               example: 1000
@@ -397,7 +430,6 @@ def get_game_state(user_id, screen_width, screen_height):
     if not main_player:
         conn.close()
         return {'error': 'Player not found'}
-
     half_width = screen_width / 2
     half_height = screen_height / 2
     center_x = main_player['position_x']
@@ -608,6 +640,17 @@ def check_collision(user_id, x, y):
     conn.close()
     return {'collision': False}
 
+import math
+
+def is_in_attack_range(attacker_pos, target_pos, range_px):
+    dx = attacker_pos['x'] - target_pos['x']
+    print(dx)
+    dy = attacker_pos['y'] - target_pos['y']
+    print(dy)
+    distance = math.sqrt(dx**2 + dy**2)
+    print(distance)
+    return distance <= range_px
+
 @app.route('/attack', methods=['POST'])
 @token_required
 def attack(user_id):
@@ -661,116 +704,133 @@ def attack(user_id):
     weapon_type = data.get('weapon_type')
 
     collision_result = check_collision(user_id, x, y)
+    if not collision_result['collision']:
+        return jsonify({'message': 'No collision detected'}), 200
 
-    if collision_result['collision']:
-        target_type = collision_result['type']
-        target_user_id = collision_result['user_id']
+    target_type = collision_result['type']
+    target_user_id = collision_result['user_id']
 
-        weapon_damage = {
-            'Stone_Sword': 10,
-            'Iron_Sword': 15,
-            'Gold_Sword': 20,
-            'Wood_Wand': 10,
-            'Gold_Wand': 20
-        }
-        damage = weapon_damage.get(weapon_type, 5)
+    weapon_damage = {
+        'Stone_Sword': 10,
+        'Iron_Sword': 15,
+        'Gold_Sword': 20,
+        'Wood_Wand': 10,
+        'Gold_Wand': 20
+    }
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
+    weapon_range_map = {
+        'Stone_Sword': 50,
+        'Iron_Sword': 50,
+        'Gold_Sword': 50,
+        'Wood_Wand': 100,
+        'Gold_Wand': 50
+    }
 
-        if target_type == 'player':
-            cursor.execute("SELECT health FROM players WHERE player_id = ?", (target_user_id,))
-            player = cursor.fetchone()
-            if not player:
-                conn.close()
-                return jsonify({'error': 'Player not found'}), 404
+    damage = weapon_damage.get(weapon_type, 5)
+    weapon_range = weapon_range_map.get(weapon_type, 50)
 
-            new_health = player['health'] - damage
-            # ברירת מחדל respawn למרכז (50,50) — אפשר לשנות
+    conn = get_db_connection()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT position_x, position_y FROM players WHERE player_id = ?", (user_id,))
+    attacker = cursor.fetchone()
+    if not attacker:
+        conn.close()
+        return jsonify({'error': 'Attacker not found'}), 404
+
+    attacker_pos = {'x': attacker['position_x'], 'y': attacker['position_y']}
+
+    print("datetime.datetime.utcnow()",datetime.datetime.utcnow())
+    # עדכון זמן התקיפה האחרון של התוקף
+    cursor.execute("UPDATE players SET last_attack_time = ? WHERE player_id = ?",
+                   (datetime.datetime.utcnow(), user_id))
+
+    if target_type == 'player':
+        cursor.execute("SELECT position_x, position_y, health FROM players WHERE player_id = ?", (target_user_id,))
+        target = cursor.fetchone()
+        if not target:
+            conn.close()
+            return jsonify({'error': 'Player not found'}), 404
+
+        target_pos = {'x': target['position_x'], 'y': target['position_y']}
+        print(is_in_attack_range(attacker_pos, target_pos, weapon_range))
+        print("weapon_range",weapon_range)
+        if not is_in_attack_range(attacker_pos, target_pos, weapon_range):
+            conn.close()
+            return jsonify({'message': 'Target out of range'}), 200
+
+        new_health = target['health'] - damage
+        if new_health <= 0:
             respawn_x, respawn_y = 50, 50
+            cursor.execute("""
+                UPDATE players
+                SET health = 100, position_x = ?, position_y = ?, coins = 0
+                WHERE player_id = ?
+            """, (respawn_x, respawn_y, target_user_id))
+            drops = generate_drops()
+            conn.commit()
+            conn.close()
+            return jsonify({
+                'message': 'Player died and respawned',
+                'target': 'player',
+                'new_health': 100,
+                'respawn_position': {'x': respawn_x, 'y': respawn_y},
+                'drops': drops
+            }), 200
+        else:
+            cursor.execute("UPDATE players SET health = ? WHERE player_id = ?", (new_health, target_user_id))
+            conn.commit()
+            conn.close()
+            return jsonify({
+                'message': 'Player damaged',
+                'target': 'player',
+                'new_health': new_health
+            }), 200
 
-            if new_health <= 0:
-                cursor.execute("""
-                        UPDATE players
-                          SET health = ?, position_x = ?, position_y = ?, coins = 0
-                        WHERE player_id = ?
-                    """, (100, respawn_x, respawn_y, target_user_id))
-                conn.commit()
-                conn.close()
+    elif target_type == 'bot':
+        cursor.execute("SELECT position_x, position_y, health FROM bots WHERE bot_id = ?", (target_user_id,))
+        bot = cursor.fetchone()
+        if not bot:
+            conn.close()
+            return jsonify({'error': 'Bot not found'}), 404
 
-                drops = generate_drops()
+        target_pos = {'x': bot['position_x'], 'y': bot['position_y']}
+        if not is_in_attack_range(attacker_pos, target_pos, weapon_range):
+            conn.close()
+            return jsonify({'message': 'Target out of range'}), 200
 
-                response_data = {
-                    'message': 'Bot died and respawned',
-                    'target': 'bot',
-                    'new_health': 100,
-                    'respawn_position': {'x': respawn_x, 'y': respawn_y},
-                    'drops': drops
-                }
-                print(f"Response sent to client: {response_data}")
-                return jsonify(response_data), 200
+        new_health = bot['health'] - damage
+        if new_health <= 0:
+            respawn_x, respawn_y = 50, 50
+            cursor.execute("""
+                UPDATE bots
+                SET health = 100, position_x = ?, position_y = ?
+                WHERE bot_id = ?
+            """, (respawn_x, respawn_y, target_user_id))
+            drops = generate_drops()
+            conn.commit()
+            conn.close()
+            return jsonify({
+                'message': 'Bot died and respawned',
+                'target': 'bot',
+                'new_health': 100,
+                'respawn_position': {'x': respawn_x, 'y': respawn_y},
+                'drops': drops
+            }), 200
+        else:
+            cursor.execute("UPDATE bots SET health = ? WHERE bot_id = ?", (new_health, target_user_id))
+            conn.commit()
+            conn.close()
+            return jsonify({
+                'message': 'Bot damaged',
+                'target': 'bot',
+                'new_health': new_health
+            }), 200
 
-            else:
-                cursor.execute(
-                    "UPDATE players SET health = ? WHERE player_id = ?",
-                    (new_health, target_user_id)
-                )
-                conn.commit()
-                conn.close()
-
-                response_data = {
-                    'message': 'Player damaged',
-                    'target': 'player',
-                    'new_health': new_health
-                }
-                print(f"Response sent to client: {response_data}")
-                return jsonify(response_data), 200
-
-        elif target_type == 'bot':
-            cursor.execute("SELECT health FROM bots WHERE bot_id = ?", (target_user_id,))
-            bot = cursor.fetchone()
-            if not bot:
-                conn.close()
-                return jsonify({'error': 'Bot not found'}), 404
-
-            new_health = bot['health'] - damage
-            respawn_x, respawn_y = 50, 50  # נקודת respawn לבוט
-
-            if new_health <= 0:
-                cursor.execute("""
-                        UPDATE bots
-                          SET health = ?, position_x = ?, position_y = ?
-                        WHERE bot_id = ?
-                    """, (100, respawn_x, respawn_y, target_user_id))
-                conn.commit()
-                conn.close()
-                drops = generate_drops()
-
-                response_data = {
-                    'message': 'Player died and respawned',
-                    'target': 'player',
-                    'new_health': 100,
-                    'respawn_position': {'x': respawn_x, 'y': respawn_y},
-                    'drops': drops
-                }
-                print(f"Response sent to client: {response_data}")
-                return jsonify(response_data), 200
-
-            else:
-                cursor.execute(
-                    "UPDATE bots SET health = ? WHERE bot_id = ?",
-                    (new_health, target_user_id)
-                )
-                conn.commit()
-                conn.close()
-
-                response_data = {
-                    'message': 'Bot damaged',
-                    'target': 'bot',
-                    'new_health': new_health
-                }
-                print(f"Response sent to client: {response_data}")
-                return jsonify(response_data), 200
+    # fallback
+    conn.close()
+    return jsonify({'error': 'Unhandled target type'}), 400
 
 def generate_drops():
     possible_drops = ["money", "apple", "bush", "Dark_Potion", "Life_Potion", "Fire_Potion", "Poison_Potion"]
@@ -798,6 +858,7 @@ def was_player_hit(player_id):
     bots = cursor.fetchall()
 
     current_time = int(time.time())
+    print(current_time)
     was_attacked = False
     player_died = False
     respawn_position = None
@@ -821,14 +882,17 @@ def was_player_hit(player_id):
                         SET health = ?, position_x = ?, position_y = ?, coins = 0
                         WHERE player_id = ?
                     """, (100, respawn_x, respawn_y, player_id))
+                    conn.commit()
                     player_died = True
                     respawn_position = {'x': respawn_x, 'y': respawn_y}
                     player_health = 100
                 else:
                     cursor.execute("UPDATE players SET health = ? WHERE player_id = ?", (new_health, player_id))
+                    conn.commit()
                     player_health = new_health
 
                 cursor.execute("UPDATE bots SET last_attack_time = ? WHERE bot_id = ?", (current_time, bot_id))
+                conn.commit()
 
     # טיפול בפגיעות משחקנים אחרים
     cursor.execute("SELECT player_id, position_x, position_y, last_attack_time FROM players WHERE player_id != ?", (player_id,))
@@ -841,27 +905,31 @@ def was_player_hit(player_id):
         last_attack = p['last_attack_time']
 
         if abs(other_x - player_x) < 100 and abs(other_y - player_y) < 100:
-            if current_time - last_attack >= 5:
-                new_health = max(player_health - 10, 0)
-                was_attacked = True
+            try:
+                if current_time - last_attack >= 5:
+                    new_health = max(player_health - 10, 0)
+                    was_attacked = True
 
-                if new_health <= 0:
-                    respawn_x, respawn_y = 50, 50
-                    cursor.execute("""
-                        UPDATE players
-                        SET health = ?, position_x = ?, position_y = ?, coins = 0
-                        WHERE player_id = ?
-                    """, (100, respawn_x, respawn_y, player_id))
-                    player_died = True
-                    respawn_position = {'x': respawn_x, 'y': respawn_y}
-                    player_health = 100
-                else:
-                    cursor.execute("UPDATE players SET health = ? WHERE player_id = ?", (new_health, player_id))
-                    player_health = new_health
+                    if new_health <= 0:
+                        respawn_x, respawn_y = 50, 50
+                        cursor.execute("""
+                            UPDATE players
+                            SET health = ?, position_x = ?, position_y = ?, coins = 0
+                            WHERE player_id = ?
+                        """, (100, respawn_x, respawn_y, player_id))
+                        conn.commit()
+                        player_died = True
+                        respawn_position = {'x': respawn_x, 'y': respawn_y}
+                        player_health = 100
+                    else:
+                        cursor.execute("UPDATE players SET health = ? WHERE player_id = ?", (new_health, player_id))
+                        conn.commit()
+                        player_health = new_health
 
-                cursor.execute("UPDATE players SET last_attack_time = ? WHERE player_id = ?", (current_time, other_id))
-
-    conn.commit()
+                    cursor.execute("UPDATE players SET last_attack_time = ? WHERE player_id = ?", (current_time, other_id))
+                    conn.commit()
+            except:
+                print("##################################################other_id",other_id)
     conn.close()
 
     response = {
@@ -997,18 +1065,18 @@ def add_to_inventory(user_id):
             SET quantity = quantity + 1
             WHERE inventory_id = ?
         """, (existing_item['inventory_id'],))
+        conn.commit()
     else:
         # יצירת פריט חדש עם כמות 1
         cursor.execute("""
             INSERT INTO inventory (player_id, name, slot_index, quantity)
             VALUES (?, ?, ?, 1)
         """, (player_id, obj['name'], slot_index))
-
+        conn.commit()
     # הסרה מהמפה
     cursor.execute("""
         DELETE FROM map_objects WHERE object_id = ?
     """, (obj['object_id'],))
-
     conn.commit()
     conn.close()
 
@@ -1191,6 +1259,77 @@ def buy_object(user_id):
 
     return jsonify({'message': f'{object_name} added to inventory. {amount} money deducted.'}), 200
 
+@app.route('/get_inventory', methods=['GET'])
+@token_required
+def get_inventory(user_id):
+    """
+        Get the inventory state
+        ---
+        security:
+          - BearerAuth: []
+        tags:
+          - Player
+        parameters:
+          - name: Authorization
+            in: header
+            type: string
+            required: true
+            description: Bearer token (e.g., "Bearer <your_token>")
+        responses:
+          200:
+            description: Player data retrieved successfully
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: Player123
+                level:
+                  type: integer
+                  example: 5
+                coins:
+                  type: integer
+                  example: 120
+                location:
+                  type: object
+                  properties:
+                    x:
+                      type: integer
+                      example: 100
+                    y:
+                      type: integer
+                      example: 200
+          401:
+            description: Unauthorized - invalid or missing token
+            schema:
+              type: object
+              properties:
+                message:
+                  type: string
+                  example: Invalid or expired token
+        """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT name, slot_index, quantity
+        FROM inventory
+        WHERE player_id = ?
+        ORDER BY slot_index ASC
+    """, (user_id,))
+    inventory = cursor.fetchall()
+    conn.close()
+
+    items = [
+        {
+            "name": row["name"],
+            "slot_index": row["slot_index"],
+            "quantity": row["quantity"]
+        }
+        for row in inventory
+    ]
+    return jsonify({"inventory": items}), 200
+
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    move_bots()
+    app.run(host='0.0.0.0', port=5000, debug=False)

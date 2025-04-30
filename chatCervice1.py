@@ -41,8 +41,7 @@ def handle_chat(client_address, data, server_socket):
     # Broadcast to all connected clients except sender
     for addr ,client in connected_clients.items():
         if addr != client_address[0]:  # Don't send back to sender
-            #server_socket.sendto(json.dumps(broadcast_message).encode('utf-8'), addr,client['port'])
-            server_socket.sendto(json.dumps(broadcast_message).encode('utf-8'), (addr, client['port']))
+            server_socket.sendto(json.dumps(broadcast_message).encode('utf-8'), addr,client['port'])
     return broadcast_message
 """
     # Return acknowledgment to sender
@@ -54,7 +53,7 @@ def handle_chat(client_address, data, server_socket):
     }
 """
 
-def start_chat_server(host='0.0.0.0', port=5005):
+def start_chat_server(host='0.0.0.0', port=5000):
     # Create a UDP socket
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 

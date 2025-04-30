@@ -1,29 +1,34 @@
 import pygame
+from pyasn1.debug import Printer
+
 import buttons
 import json
-import socket
+import requests
 
 INVENTORY_ICON = "graphic\Inventory_Icon.png"
 EXIT_ICON = "graphic\Exit_Icon.png"
 CHAT_ICON = "graphic\Chat_Icon.png"
 MINI_MAP_ICON = "graphic\Map_Icon.png"
+MONEY_ICON = "graphic\Money_Show.png"
 NOT_OPEN_INVENTORY = r"graphic\Not_Open_Inventory.png"
-FULL_INVENTORY = r"graphic\Full_Inventory.png"
+FULL_INVENTORY_ITEMS = r"graphic\Full_Inventory_Items.png"
+FULL_INVENTORY_SHOP = r"graphic\Full_Inventory_Shop.png"
 FULL_HP_BAR = "graphic\Hp_Bar.png"
 CHAT_WINDOW_LAYER_1 = "graphic\Chat_First_Layer.png"
 CHAT_WINDOW_LAYER_2 = "graphic\Chat_Second_Layer.png"
 CURRENT_HOLDING = "graphic\Current_Holding.png"
 MINI_BUTTON_PRESSED = "graphic\Mini_Button_Pressed.png"
 MINI_BUTTON_NOT_PRESSED = "graphic\Mini_Button_Not_Pressed.png"
+DELETE_BUTTON = "graphic\Delete_Button.png"
 
 # colors:
 WHITE = (255,255,255)
 BACK = (182,212,137)
+MONEY_TEXT = (129,69,37)
 
-
-IP = '127.0.0.1'
-PORT = 8820
-DEFAULT_BUFFER_SIZE = 200
+# Your API URL
+API_URL = 'http://127.0.0.1:5000'
+TOKEN = ""
 
 clock = pygame.time.Clock()
 frames_per_second = 30
@@ -31,17 +36,116 @@ window_height = 720
 window_width = 1280
 
 # flags:
-INVENTORY_OPEN = 0 #BOOLEAN OF NUMBERS- odd=full_inventory, even=not full inventory
+INVENTORY_OPEN_ITEMS = 0 #BOOLEAN OF NUMBERS- odd=full_inventory, even=not full inventory
+INVENTORY_OPEN_SHOP = 0 #BOOLEAN OF NUMBERS- odd=full_inventory, even=not full inventory
 CHAT_OPEN = 0 #BOOLEAN OF NUMBERS- odd=open, even=close
 CLICKED = False
 
 display = pygame.display.set_mode((window_width, window_height))
 display.fill(BACK)
 
+def create_icons():
+    # inventory icon:
+    inventory_image = pygame.image.load(INVENTORY_ICON).convert()
+    inventory_image.set_colorkey(WHITE)
+    inventory_icon = buttons.Button(370, 30, inventory_image)
+
+    # mini map frame:
+    mini_map_image = pygame.image.load(MINI_MAP_ICON).convert()
+    mini_map_image.set_colorkey(WHITE)
+    mini_map_icon = buttons.Button(30, 10, mini_map_image)
+
+    # exit icon:
+    exit_image = pygame.image.load(EXIT_ICON).convert()
+    exit_image.set_colorkey(WHITE)
+    exit_icon = buttons.Button(270, 30, exit_image)
+
+    # chat icon:
+    chat_image = pygame.image.load(CHAT_ICON).convert()
+    chat_image.set_colorkey(WHITE)
+    chat_icon = buttons.Button(470, 30, chat_image)
+
+    # holding icon:
+    current_holding_image = pygame.image.load(CURRENT_HOLDING).convert()
+    current_holding_image .set_colorkey(WHITE)
+    current_holding = buttons.Button(150, 570, current_holding_image)
+
+    # money icon:
+    money_image = pygame.image.load(MONEY_ICON).convert()
+    money_image.set_colorkey(WHITE)
+    money_icon = buttons.Button(1110, 654, money_image)
+
+    return inventory_icon,mini_map_icon,exit_icon,chat_icon,current_holding, money_icon
+
+
+def put_icons_on_screen(display,inventory_icon, mini_map_icon, exit_icon, chat_icon,current_holding,money_icon, event):
+    """
+    prints on the screen the icons, the mini map frame
+    """
+    global INVENTORY_OPEN_ITEMS
+    global INVENTORY_OPEN_SHOP
+    global CHAT_OPEN
+    global CLICKED
+
+    if exit_icon.draw(display):
+        return False
+
+    if chat_icon.draw(display):
+        CHAT_OPEN += 1
+
+    if CHAT_OPEN % 2 == 1:
+        open_chat()
+
+    if inventory_icon.draw(display):
+        INVENTORY_OPEN_ITEMS += 1
+        INVENTORY_OPEN_SHOP = 0
+
+    money_icon.draw(display)
+    # money = get_coins()
+    font = pygame.font.Font(None, 35)
+    money = 1000
+    amount = font.render( str(money), True, MONEY_TEXT)
+    display.blit(amount, (1168, 667))
+
+    if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not CLICKED:
+        x, y = pygame.mouse.get_pos()
+
+        if 125 < y < 215 and 480 < x < 570:
+            CLICKED = True
+            INVENTORY_OPEN_SHOP += 1
+            INVENTORY_OPEN_ITEMS += 1
+
+        if 125 < y < 215 and 375 < x < 460:
+            CLICKED = True
+            INVENTORY_OPEN_SHOP += 1
+            INVENTORY_OPEN_ITEMS += 1
+
+    if INVENTORY_OPEN_ITEMS % 2 == 1:
+        open_full_inventory_items(display)
+
+    elif INVENTORY_OPEN_SHOP % 2 == 1:
+        open_full_inventory_shop(display)
+
+    elif INVENTORY_OPEN_ITEMS % 2 == 0 and INVENTORY_OPEN_SHOP % 2 == 0:
+        open_not_full_inventory(display)
+
+    if event.type == pygame.MOUSEBUTTONUP:
+        CLICKED = False
+
+    mini_map_icon.draw(display)
+    current_holding.draw(display)
+    print_current_holding(display)
+    return True
+
+
+##########################################################################################################
+# open windows:
+
 def open_chat():
     """
     opens the chat window
     """
+
     open_chat_first_layer_image = pygame.image.load(CHAT_WINDOW_LAYER_1).convert_alpha()
     open_chat_first_layer_image.set_colorkey(WHITE)
     open_chat_first_layer_image.set_alpha(180)
@@ -54,11 +158,13 @@ def open_chat():
     chat_second_layer.draw(display)
 
 
-def open_full_inventory(display):
+def open_full_inventory_items(display):
     """
     draw full inventory open - items
     """
-    open_full_inventory_image = pygame.image.load(FULL_INVENTORY).convert()
+    global CLICKED
+
+    open_full_inventory_image = pygame.image.load(FULL_INVENTORY_ITEMS).convert()
     open_full_inventory_image.set_colorkey(WHITE)
     full_inventory = buttons.Button(350, 119, open_full_inventory_image)
     full_inventory.draw(display)
@@ -67,15 +173,65 @@ def open_full_inventory(display):
     hp_bar_image.set_colorkey(WHITE)
     hp_bar_icon = buttons.Button(640, 170, hp_bar_image)
     hp_bar_icon.draw(display)
+    draw_full_inventory_hp_bar(display)
 
     print_full_inventory(display)
-    draw_mini_buttons(display)
+    print_mini_buttons(display)
+    print_delete_buttons(display)
+
+
+def open_full_inventory_shop(display):
+    """
+    draw full inventory open - shop
+    """
+    global CLICKED
+    # money = get_coins()
+    money = 1000
+    open_full_inventory_image = pygame.image.load(FULL_INVENTORY_SHOP).convert()
+    open_full_inventory_image.set_colorkey(WHITE)
+    full_inventory = buttons.Button(350, 119, open_full_inventory_image)
+    full_inventory.draw(display)
+
+    hp_bar_image = pygame.image.load(FULL_HP_BAR).convert()
+    hp_bar_image.set_colorkey(WHITE)
+    hp_bar_icon = buttons.Button(640, 170, hp_bar_image)
+    hp_bar_icon.draw(display)
+    draw_full_inventory_hp_bar(display)
+
+    if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not CLICKED:
+        x, y = pygame.mouse.get_pos()
+
+        if 815 < x < 900 and 375 < y < 410 and money >= 200:
+            CLICKED = True
+            add_item("2",1)
+            print("you bought an iron sword!")
+
+        elif 920 < x < 1005 and 375 < y < 410 and money >= 300:
+            CLICKED = True
+            add_item("3", 1)
+            print("you bought a gold sword!")
+
+        elif 815 < x < 900 and 525 < y < 555 and money >= 200:
+            CLICKED = True
+            add_item("4", 1)
+            print("you bought a wood wand!")
+
+        elif 920 < x < 1005 and 525 < y < 555 and money >= 500:
+            CLICKED = True
+            add_item("5", 1)
+            print("you bought a gold wand!")
+
+    print_full_inventory(display)
+    print_mini_buttons(display)
+    print_delete_buttons(display)
 
 
 def open_not_full_inventory(display):
     """
     draw not full inventory
     """
+    global CLICKED
+
     inventory_not_open_image = pygame.image.load(NOT_OPEN_INVENTORY).convert()
     inventory_not_open_image.set_colorkey(WHITE)
     inventory_not_open = buttons.Button(350, 570, inventory_not_open_image)
@@ -86,9 +242,181 @@ def open_not_full_inventory(display):
     hp_bar_image.set_colorkey(WHITE)
     hp_bar_icon = buttons.Button(350, 520, hp_bar_image)
     hp_bar_icon.draw(display)
-
+    draw_not_full_inventory_hp_bar(display)
     print_not_full_inventory(display)
 
+
+##########################################################################################################
+# print items and buttons:
+
+def print_not_full_inventory(dispaly):
+    """
+    prints in the small inventory the items, the anoumt
+    """
+
+    font = pygame.font.Font(None, 25)
+    with open("inventory.json", "r") as file_cells:
+        data_cells = json.load(file_cells)
+    with open("items.json", "r") as file_items:
+        data_items = json.load(file_items)
+    for i in range(1,7):
+
+        cell = data_cells["cells"][str(i)]
+        item = cell["item"]
+        quantity = cell["quantity"]
+        x = cell["topleft_x"]
+        y = cell["topleft_y"]
+        mini_button = cell["mini_button_pressed?"]
+
+        # draw the item:
+        image_place = data_items["items"][item]["icon"]
+        image = pygame.image.load(image_place).convert()
+        image.set_colorkey(WHITE)
+        cell = buttons.Button(x, y, image)
+        if cell.draw(display):
+            current_holding_change(i)
+        # draw the amount:
+        if data_items["items"][item]["stackable"]:
+            amount = font.render(str(quantity), True, WHITE)
+            dispaly.blit(amount, (x+77,y+3))
+
+
+def print_full_inventory(dispaly):
+    """
+    prints in the full inventory the items
+    :return:
+    """
+    global CLICKED
+    if event.type == pygame.MOUSEBUTTONUP:
+        CLICKED = False
+
+    font = pygame.font.Font(None, 25)
+    with open("inventory.json", "r") as file_cells:
+        data_cells = json.load(file_cells)
+    with open("items.json", "r") as file_items:
+        data_items = json.load(file_items)
+    for i in range(1,19):
+
+        cell = data_cells["cells"][str(i)]
+        item = cell["item"]
+        quantity = cell["quantity"]
+        x = cell["topleft_x"]
+        y = cell["topleft_y"]
+        mini_button = cell["mini_button_pressed?"]
+
+        # draw the item:
+        image_place = data_items["items"][item]["icon"]
+        image = pygame.image.load(image_place).convert()
+        image.set_colorkey(WHITE)
+        cellp = buttons.Button(x, y, image)
+        cellp.draw(display)
+
+        # draw the amount:
+        if data_items["items"][item]["stackable"]:
+            amount = font.render(str(quantity), True, WHITE)
+            dispaly.blit(amount, (x+77,y+3))
+
+
+def print_current_holding(display):
+    """
+    drawing the current holding
+    """
+    global CLICKED
+    if event.type == pygame.MOUSEBUTTONUP:
+        CLICKED = False
+
+    font = pygame.font.Font(None, 25)
+    with open("inventory.json", "r") as file_cells:
+        data_cells = json.load(file_cells)
+    with open("items.json", "r") as file_items:
+        data_items = json.load(file_items)
+    # drawing the current holding:
+    holding_cell = data_cells["cells"]["19"]  # holding cell
+    cell = data_cells["cells"]["19"]["cell"]  # cell - number of the cell that the current holding holds
+    held_cell = data_cells["cells"][cell]
+    item = held_cell["item"]
+    quantity = held_cell["quantity"]
+    x = holding_cell["topleft_x"]
+    y = holding_cell["topleft_y"]
+
+    image_place = data_items["items"][item]["icon"]
+    image = pygame.image.load(image_place).convert()
+    image.set_colorkey(WHITE)
+    cell = buttons.Button(x, y, image)
+    if cell.draw(display) and not CLICKED:
+        CLICKED = True
+        if item == "6" or "7" or "8" or "10" or "11":
+            delete_item_from_json(item,  data_cells["cells"]["19"]["cell"])
+
+    if data_items["items"][item]["stackable"]:
+        amount = font.render(str(quantity), True, WHITE)
+        display.blit(amount, (x + 77, y + 3))
+
+
+def print_mini_buttons(display):
+    """
+    draws the mini button when you open the full inventory
+    """
+    global CLICKED
+    with open("inventory.json", "r") as file_cells:
+        data_cells = json.load(file_cells)
+
+
+    for i in range(1, 19):
+
+        cell = data_cells["cells"][str(i)]
+        x = cell["topleft_x"]
+        y = cell["topleft_y"]
+        mini_button = cell["mini_button_pressed?"]
+        # draw the mini button:
+        if mini_button:
+            button_image = pygame.image.load(MINI_BUTTON_PRESSED).convert()
+            if 1 <= i <= 6:
+                button = buttons.Button(x, y + 103, button_image)
+            else:
+                button = buttons.Button(x, y + 85, button_image)
+            button.draw(display)
+        else:
+
+            button_image = pygame.image.load(MINI_BUTTON_NOT_PRESSED).convert()
+            if 1 <= i <= 6:
+                button = buttons.Button(x, y + 103, button_image)
+            else:
+                button = buttons.Button(x, y + 85, button_image)
+            if button.draw(display) and not CLICKED:
+                CLICKED = True
+                mini_button_change(i)
+                bool, cell1, cell2 = both_mini_button_pressed()
+                if bool:
+                    switch_items_in_inventory(cell1, cell2)
+
+
+def print_delete_buttons(display):
+    """
+        draws the mini button when you open the full inventory
+        """
+    global CLICKED
+    with open("inventory.json", "r") as file_cells:
+        data_cells = json.load(file_cells)
+
+    for i in range(1, 19):
+
+        cell = data_cells["cells"][str(i)]
+        x = cell["topleft_x"]
+        y = cell["topleft_y"]
+        item = cell["item"]
+
+        button_image = pygame.image.load(DELETE_BUTTON).convert()
+        if 1 <= i <= 6:
+            button = buttons.Button(x, y + 83, button_image)
+        else:
+            button = buttons.Button(x, y + 65, button_image)
+        if button.draw(display) and not CLICKED:
+            CLICKED = True
+            delete_item_from_json(item,i)
+
+##########################################################################################################
+# switch and change things in inventory:
 
 def current_holding_change(cell_num):
     """
@@ -167,190 +495,60 @@ def switch_items_in_inventory(cell_num1, cell_num2):
     print(data_cells)
 
 
-def print_not_full_inventory(dispaly):
+##########################################################################################################
+# HP bar:
+
+def draw_not_full_inventory_hp_bar(display):
     """
-    prints in the small inventory the items, the anoumt
+    print the white area of the hp bar when the inventory is not full
     """
-    font = pygame.font.Font(None, 25)
-    with open("inventory.json", "r") as file_cells:
-        data_cells = json.load(file_cells)
+    # hp = get_health()
+    hp = 70
+    # משהו שמבקש את הHP של השחקן מהשרת
+    lack = 100 - hp
+    width = int((379 * lack)/100)
+    height = 22
+    pygame.draw.rect(display, WHITE, (736-width, 528, width, height))
+
+
+def draw_full_inventory_hp_bar(display):
+    """
+    print the white area of the hp bar when the inventory is full
+    """
+    # hp = get_health()
+    hp = 70
+    lack = 100 - hp
+    width = int((379 * lack) / 100)
+    height = 22
+    pygame.draw.rect(display, WHITE, (1026 - width, 178, width, height))
+
+
+##########################################################################################################
+# delete things from inventory:
+
+
+def delete_item_from_json(item,cell):
+    """
+    delete the item from the
+    """
     with open("items.json", "r") as file_items:
         data_items = json.load(file_items)
-    for i in range(1,7):
-
-        cell = data_cells["cells"][str(i)]
-        item = cell["item"]
-        quantity = cell["quantity"]
-        x = cell["topleft_x"]
-        y = cell["topleft_y"]
-        mini_button = cell["mini_button_pressed?"]
-
-        # draw the item:
-        image_place = data_items["items"][item]["icon"]
-        image = pygame.image.load(image_place).convert()
-        image.set_colorkey(WHITE)
-        cell = buttons.Button(x, y, image)
-        if cell.draw(display):
-            current_holding_change(i)
-        # draw the amount:
-        if data_items["items"][item]["stackable"]:
-            amount = font.render(str(quantity), True, WHITE)
-            dispaly.blit(amount, (x+77,y+3))
-
-
-def print_full_inventory(dispaly):
-    """
-    prints in the full inventory the items
-    :return:
-    """
-    font = pygame.font.Font(None, 25)
-    with open("inventory.json", "r") as file_cells:
-        data_cells = json.load(file_cells)
-    with open("items.json", "r") as file_items:
-        data_items = json.load(file_items)
-    for i in range(1,19):
-
-        cell = data_cells["cells"][str(i)]
-        item = cell["item"]
-        quantity = cell["quantity"]
-        x = cell["topleft_x"]
-        y = cell["topleft_y"]
-        mini_button = cell["mini_button_pressed?"]
-
-        # draw the item:
-        image_place = data_items["items"][item]["icon"]
-        image = pygame.image.load(image_place).convert()
-        image.set_colorkey(WHITE)
-        cellp = buttons.Button(x, y, image)
-        cellp.draw(display)
-
-        # draw the amount:
-        if data_items["items"][item]["stackable"]:
-            amount = font.render(str(quantity), True, WHITE)
-            dispaly.blit(amount, (x+77,y+3))
-
-
-def draw_current_holding(display):
-    """
-    drawing the current holding
-    """
-
-    font = pygame.font.Font(None, 25)
-    with open("inventory.json", "r") as file_cells:
-        data_cells = json.load(file_cells)
-    with open("items.json", "r") as file_items:
-        data_items = json.load(file_items)
-    # drawing the current holding:
-    holding_cell = data_cells["cells"]["19"]  # holding cell
-    cell = data_cells["cells"]["19"]["cell"]  # cell - number of the cell that the current holding holds
-    held_cell = data_cells["cells"][cell]
-    item = held_cell["item"]
-    quantity = held_cell["quantity"]
-    x = holding_cell["topleft_x"]
-    y = holding_cell["topleft_y"]
-
-    image_place = data_items["items"][item]["icon"]
-    image = pygame.image.load(image_place).convert()
-    image.set_colorkey(WHITE)
-    cell = buttons.Button(x, y, image)
-    cell.draw(display)
-
-    if data_items["items"][item]["stackable"]:
-        amount = font.render(str(quantity), True, WHITE)
-        display.blit(amount, (x + 77, y + 3))
-
-
-def draw_mini_buttons(display):
-    """
-    draws the mini button when you open the full inventory
-    """
-    global CLICKED
     with open("inventory.json", "r") as file_cells:
         data_cells = json.load(file_cells)
 
+    if not data_items["items"][str(item)]["stackable"] or data_cells["cells"][str(cell)]["quantity"] == 1:
+        data_cells["cells"][str(cell)]["quantity"] = 0
+        data_cells["cells"][str(cell)]["item"] = "0"
+
+    else:
+        data_cells["cells"][str(cell)]["quantity"] -= 1
+
+    with open("inventory.json", "w") as file_cells:
+        json.dump(data_cells, file_cells, indent=4)
 
 
-    for i in range(1, 19):
-
-        cell = data_cells["cells"][str(i)]
-        x = cell["topleft_x"]
-        y = cell["topleft_y"]
-        mini_button = cell["mini_button_pressed?"]
-
-        # draw the mini button:
-        if mini_button:
-            button_image = pygame.image.load(MINI_BUTTON_PRESSED).convert()
-            if 1 <= i <= 6:
-                button = buttons.Button(x, y + 103, button_image)
-            else:
-                button = buttons.Button(x, y + 85, button_image)
-            button.draw(display)
-        else:
-
-            button_image = pygame.image.load(MINI_BUTTON_NOT_PRESSED).convert()
-            if 1 <= i <= 6:
-                button = buttons.Button(x, y + 103, button_image)
-            else:
-                button = buttons.Button(x, y + 85, button_image)
-            if button.draw(display):
-                mini_button_change(i)
-                bool, cell1, cell2 = both_mini_button_pressed()
-                if bool:
-                    switch_items_in_inventory(cell1, cell2)
-
-
-def create_icons():
-    # inventory icon:
-    inventory_image = pygame.image.load(INVENTORY_ICON).convert()
-    inventory_image.set_colorkey(WHITE)
-    inventory_icon = buttons.Button(370, 30, inventory_image)
-
-    # mini map frame:
-    mini_map_image = pygame.image.load(MINI_MAP_ICON).convert()
-    mini_map_image.set_colorkey(WHITE)
-    mini_map_icon = buttons.Button(30, 10, mini_map_image)
-
-    # exit icon:
-    exit_image = pygame.image.load(EXIT_ICON).convert()
-    exit_image.set_colorkey(WHITE)
-    exit_icon = buttons.Button(270, 30, exit_image)
-
-    # chat icon:
-    chat_image = pygame.image.load(CHAT_ICON).convert()
-    chat_image.set_colorkey(WHITE)
-    chat_icon = buttons.Button(470, 30, chat_image)
-
-    # holding icon:
-    current_holding_image = pygame.image.load(CURRENT_HOLDING).convert()
-    current_holding_image .set_colorkey(WHITE)
-    current_holding = buttons.Button(150, 570, current_holding_image)
-
-    return inventory_icon,mini_map_icon,exit_icon,chat_icon,current_holding
-
-
-def put_icons_on_screen(display,inventory_icon, mini_map_icon, exit_icon, chat_icon,current_holding):
-    """
-    prints on the screen the icons, the mini map frame
-    """
-    global INVENTORY_OPEN
-    global CHAT_OPEN
-    if inventory_icon.draw(display):
-        INVENTORY_OPEN += 1
-    if INVENTORY_OPEN % 2 == 1:
-        open_full_inventory(display)
-    if INVENTORY_OPEN % 2 == 0:
-        open_not_full_inventory(display)
-    if exit_icon.draw(display):
-        return False
-    if chat_icon.draw(display):
-        CHAT_OPEN +=1
-    if CHAT_OPEN % 2 == 1:
-        open_chat()
-    mini_map_icon.draw(display)
-    current_holding.draw(display)
-    draw_current_holding(display)
-    return True
-
+##########################################################################################################
+# add items to inventory:
 
 def check_inventory_fullness():
     """
@@ -362,64 +560,108 @@ def check_inventory_fullness():
         data_cells = json.load(file_cells)
 
     for i in range(1,19):
-        if data_cells["cells"][str(i)]["items"] == "0":
+        if data_cells["cells"][str(i)]["item"] == "0":
             return False
     return True
 
 
-# תקשורת עם השרת:
-
-def items_from_datab_to_json():
+def item_exist_in_inventory(item):
     """
-    function that sends to the second server message- "give items"
-    and gets from the second server a packet like this:
-    0,1-23,12-1,3-4,....
-    the packet is seperated with ","
-    first place is always zero but from then every place symbolize the id of the item(look in items.json)
-    and then the amount the player have of this, example: 0,item1-amount1,item2-amount2,....
-    then it put it in the json file
+    check if the item exist in the inventory in case it is stackable
+    param item: the id of the item
+    if it does return true and the cell
+    if it doesn't return false and zero
     """
-    """
-    packet = "give items"
-    packet = packet.encode()
-    server_socket = socket.socket(socket.AF_INET , socket.SOCK_DGRAM)
-    server_socket.bind((IP, PORT))
-    server_socket.send(packet)
-    data , server_addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
-    server_socket.close()
-    data = data.decode()
-    """
-    data = "0,1-1,12-1,3-1,7-24,9-15"
-    seperated_data = data.split(",")
-
     with open("inventory.json", "r") as file_cells:
         data_cells = json.load(file_cells)
 
     for i in range(1,19):
-        try:
-            item,amount = seperated_data[i].split("-")
-            amount = int(amount)
+        if data_cells["cells"][str(i)]["item"] == str(item):
+            return True, i
 
-            data_cells["cells"][str(i)]["item"] = item
-            data_cells["cells"][str(i)]["quantity"] = amount
-        except Exception as e:
-            print(e)
+    return False, 0
+
+
+def add_item(item, amount):
+    """
+    param item: the id of the item
+    param amount: the amount of the item
+    add the item to inventory
+
+    if the item cannot be added returns false.
+    if it was added successfully returns true.
+    """
+    with open("items.json", "r") as file_items:
+        data_items = json.load(file_items)
+    with open("inventory.json", "r") as file_cells:
+        data_cells = json.load(file_cells)
+
+    if data_items["items"][str(item)]["stackable"]:
+        bool, cell = item_exist_in_inventory(item)
+        if bool:
+                quantity = data_cells["cells"][str(cell)]["quantity"]
+                data_cells["cells"][str(cell)]["quantity"] = int(int(quantity) + int(amount))
+
+    if check_inventory_fullness():
+        print("full :(")
+        return False
+
+    for i in range(1, 19):
+        if data_cells["cells"][str(i)]["item"] == "0":
+            print("found place", i, str(item), int(amount))
+            data_cells["cells"][str(i)]["item"] = str(item)
+            data_cells["cells"][str(i)]["quantity"] = int(amount)
+            break
 
     with open("inventory.json", "w") as file_cells:
         json.dump(data_cells, file_cells, indent=4)
+    return True
 
 
+##########################################################################################################
+# get things from the server:
+
+
+def get_player_state():
+    headers = {'Authorization': f'Bearer {TOKEN}'}
+    data = {'x': window_width, 'y': window_height}
+    response = requests.post(f'{API_URL}/game_state', json=data, headers=headers)
+    if response.status_code == 200:
+        print(response.json())
+        return response.json()
+    else:
+        print("Error getting game state:", response.json())
+        return None
+
+
+def get_health():
+    """
+    get the health from the server and return it
+    """
+    data = get_player_state()
+    return data["health"]
+
+
+def get_coins():
+    """
+    get the health from the server and return it
+    """
+    data = get_player_state()
+    return data["coins"]
+
+
+##########################################################################################################
+# send things to the server:
 
 pygame.init()
-inventory_icon, mini_map_icon, exit_icon, chat_icon,current_holding = create_icons()
+inventory_icon, mini_map_icon, exit_icon, chat_icon,current_holding, money_icon = create_icons()
 running = True
-items_from_datab_to_json()
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
     display.fill(BACK)
-    if not put_icons_on_screen(display,inventory_icon, mini_map_icon, exit_icon, chat_icon,current_holding):
+    if not put_icons_on_screen(display,inventory_icon, mini_map_icon, exit_icon, chat_icon,current_holding, money_icon, event):
         running = False
     pygame.display.flip()
     clock.tick(30)
