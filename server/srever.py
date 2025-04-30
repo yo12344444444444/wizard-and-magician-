@@ -1,5 +1,3 @@
-import socket
-
 from flask import Flask, request, jsonify
 import sqlite3
 from jose import jwt  # Replace PyJWT with jose.jwt
@@ -15,33 +13,20 @@ from flask import Flask, request, jsonify
 from jose import jwt  # Replace PyJWT with jose.jwt
 from functionsServer import *
 
-
-def get_number():
-    print("hi")
-    bot_ids = get_all_bot_ids()
-    print("hello")
-
-    for bot_id in bot_ids:
-        last_direction = get_last_bot_position(bot_id)
-        closest_player_id = get_closest_player_id_to_bot(bot_id)
-
+def move_bots():
+    bots=get_all_bots()
+    for bot in bots:
+        last_direction=bot['last_direction']
+        closest_player_id,player_x,player_y = get_closest_player(bot['position_x'],bot['position_y'])
         if closest_player_id is None:
-            print(f"Bot {bot_id}: אין שחקן קרוב.")
+            print(f"Bot {bot['bot_id']}: אין שחקן קרוב.")
             continue
-
-        dx, dy = calculate_dx_dy_from_db(bot_id, closest_player_id)
-
-        if dx is None or dy is None:
-            print(f"Bot {bot_id}: לא ניתן לחשב dx/dy.")
-            continue
-
+        dx,dy = calculate_dx_dy(bot['position_x'],bot['position_y'],player_x,player_y)
         chosen = choose_direction(last_direction, dx, dy)
-        print(f"Bot {bot_id}: נבחר כיוון {chosen}")
-
-        update_specific_bot(chosen, bot_id)
+        bot_action(chosen, bot)
 
     # חזור על הפעולה כל 2 שניות
-    threading.Timer(2.0, get_number).start()
+    threading.Timer(0.2, move_bots).start()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -399,15 +384,6 @@ def game_state(user_id):
             - screen_width
             - screen_height
           properties:
-            direction:
-              type: string
-              example: "up"
-            x:
-              type: integer
-              example: 120
-            y:
-              type: integer
-              example: 80
             screen_width:
               type: integer
               example: 1000
@@ -909,14 +885,17 @@ def was_player_hit(player_id):
                         SET health = ?, position_x = ?, position_y = ?, coins = 0
                         WHERE player_id = ?
                     """, (100, respawn_x, respawn_y, player_id))
+                    conn.commit()
                     player_died = True
                     respawn_position = {'x': respawn_x, 'y': respawn_y}
                     player_health = 100
                 else:
                     cursor.execute("UPDATE players SET health = ? WHERE player_id = ?", (new_health, player_id))
+                    conn.commit()
                     player_health = new_health
 
                 cursor.execute("UPDATE bots SET last_attack_time = ? WHERE bot_id = ?", (current_time, bot_id))
+                conn.commit()
 
     # טיפול בפגיעות משחקנים אחרים
     cursor.execute("SELECT player_id, position_x, position_y, last_attack_time FROM players WHERE player_id != ?", (player_id,))
@@ -929,27 +908,31 @@ def was_player_hit(player_id):
         last_attack = p['last_attack_time']
 
         if abs(other_x - player_x) < 100 and abs(other_y - player_y) < 100:
-            if current_time - last_attack >= 5:
-                new_health = max(player_health - 10, 0)
-                was_attacked = True
+            try:
+                if current_time - last_attack >= 5:
+                    new_health = max(player_health - 10, 0)
+                    was_attacked = True
 
-                if new_health <= 0:
-                    respawn_x, respawn_y = 50, 50
-                    cursor.execute("""
-                        UPDATE players
-                        SET health = ?, position_x = ?, position_y = ?, coins = 0
-                        WHERE player_id = ?
-                    """, (100, respawn_x, respawn_y, player_id))
-                    player_died = True
-                    respawn_position = {'x': respawn_x, 'y': respawn_y}
-                    player_health = 100
-                else:
-                    cursor.execute("UPDATE players SET health = ? WHERE player_id = ?", (new_health, player_id))
-                    player_health = new_health
+                    if new_health <= 0:
+                        respawn_x, respawn_y = 50, 50
+                        cursor.execute("""
+                            UPDATE players
+                            SET health = ?, position_x = ?, position_y = ?, coins = 0
+                            WHERE player_id = ?
+                        """, (100, respawn_x, respawn_y, player_id))
+                        conn.commit()
+                        player_died = True
+                        respawn_position = {'x': respawn_x, 'y': respawn_y}
+                        player_health = 100
+                    else:
+                        cursor.execute("UPDATE players SET health = ? WHERE player_id = ?", (new_health, player_id))
+                        conn.commit()
+                        player_health = new_health
 
-                cursor.execute("UPDATE players SET last_attack_time = ? WHERE player_id = ?", (current_time, other_id))
-
-    conn.commit()
+                    cursor.execute("UPDATE players SET last_attack_time = ? WHERE player_id = ?", (current_time, other_id))
+                    conn.commit()
+            except:
+                print("##################################################other_id",other_id)
     conn.close()
 
     response = {
@@ -1085,18 +1068,18 @@ def add_to_inventory(user_id):
             SET quantity = quantity + 1
             WHERE inventory_id = ?
         """, (existing_item['inventory_id'],))
+        conn.commit()
     else:
         # יצירת פריט חדש עם כמות 1
         cursor.execute("""
             INSERT INTO inventory (player_id, name, slot_index, quantity)
             VALUES (?, ?, ?, 1)
         """, (player_id, obj['name'], slot_index))
-
+        conn.commit()
     # הסרה מהמפה
     cursor.execute("""
         DELETE FROM map_objects WHERE object_id = ?
     """, (obj['object_id'],))
-
     conn.commit()
     conn.close()
 
@@ -1378,9 +1361,5 @@ def run(port):
 
 
 if __name__ == '__main__':
-    port = PortDefinder()
-    print(port)
-    t1 = threading.Thread(target= ipSender, args=(port,))
-    t2 = threading.Thread(target=run, args=(port,))
-    t2.start()
-    t1.start()
+    move_bots()
+    app.run(host='0.0.0.0', port=5000, debug=False)

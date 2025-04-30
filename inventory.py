@@ -5,6 +5,8 @@ import buttons
 import json
 import requests
 
+from server.srever import use_object
+
 INVENTORY_ICON = "graphic\Inventory_Icon.png"
 EXIT_ICON = "graphic\Exit_Icon.png"
 CHAT_ICON = "graphic\Chat_Icon.png"
@@ -186,6 +188,7 @@ def open_full_inventory_shop(display):
     draw full inventory open - shop
     """
     global CLICKED
+    money = get_coins()
     open_full_inventory_image = pygame.image.load(FULL_INVENTORY_SHOP).convert()
     open_full_inventory_image.set_colorkey(WHITE)
     full_inventory = buttons.Button(350, 119, open_full_inventory_image)
@@ -199,19 +202,41 @@ def open_full_inventory_shop(display):
 
     if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not CLICKED:
         x, y = pygame.mouse.get_pos()
-        CLICKED = True
 
-        if 815 < x < 900 and  375 < y < 410:
-            print("you bought an iron sword!")
+        if 815 < x < 900 and 375 < y < 410 and money >= 200:
+            CLICKED = True
+            if buy_item("2", 200):
+                add_item("2",1)
+                print("you bought an iron sword!")
+            else:
+                print("not enough money or inventory is full")
 
-        elif 920 < x < 1005 and  375 < y < 410:
-            print("you bought a gold sword!")
 
-        elif 815 < x < 900 and 525 < y < 555:
-            print("you bought a wood wand!")
+        elif 920 < x < 1005 and 375 < y < 410 and money >= 300:
+            CLICKED = True
+            if buy_item("3", 300):
+                add_item("3", 1)
+                print("you bought a gold sword!")
+            else:
+                print("not enough money or inventory is full")
 
-        elif 920 < x < 1005 and 525 < y < 555:
-            print("you bought a gold wand!")
+
+        elif 815 < x < 900 and 525 < y < 555 and money >= 200:
+            CLICKED = True
+            if buy_item("4", 200):
+                add_item("4", 1)
+                print("you bought a wood wand!")
+            else:
+                print("not enough money or inventory is full")
+
+
+        elif 920 < x < 1005 and 525 < y < 555 and money >= 500:
+            CLICKED = True
+            if buy_item("5", 500):
+                add_item("5", 1)
+                print("you bought a gold wand!")
+            else:
+                print("not enough money or inventory is full")
 
     print_full_inventory(display)
     print_mini_buttons(display)
@@ -337,6 +362,8 @@ def print_current_holding(display):
     cell = buttons.Button(x, y, image)
     if cell.draw(display) and not CLICKED:
         CLICKED = True
+        if item is not "0" or "1" or "2" or "3" or "4" or "5" or "12" or "13" or "14":
+            use_object(item)
         if item == "6" or "7" or "8" or "10" or "11":
             delete_item_from_json(item,  data_cells["cells"]["19"]["cell"])
 
@@ -609,6 +636,19 @@ def add_item(item, amount):
         json.dump(data_cells, file_cells, indent=4)
     return True
 
+
+def look_for_empty_slot():
+    """
+    checks if there is an empty slot in the inventory
+    if yes return its index and if not return 0
+    """
+    with open("inventory.json", "r") as file_cells:
+        data_cells = json.load(file_cells)
+
+    for i in range(1,19):
+        if data_cells["cells"][str(i)]["item"] == "0":
+            return i
+    return 0
 ##########################################################################################################
 # build inventory:
 
@@ -691,9 +731,54 @@ def get_coins():
     data = get_player_state()
     return data["coins"]
 
-
 ##########################################################################################################
 # send things to the server:
+
+def buy_item(item_id, money):
+    """
+    sends to the server what is the item that you bought, the amount of money it costs
+    and where to put it
+    if the inventory is full return False
+    if it sent it successfully return True
+    """
+    slot_index = look_for_empty_slot()
+    if slot_index == 0:
+        return False
+    else:
+        url = 'http://localhost:5000/buy_object'  # שנה בהתאם לכתובת השרת שלך
+        headers = {
+            'Authorization': f'Bearer {TOKEN}',
+            'Content-Type': 'application/json'
+        }
+        data = {
+            'object_name': str(item_id),
+            'amount': money,
+            'slot_index': slot_index
+        }
+    response = requests.post(url, json=data, headers=headers)
+    print(f"Status Code: {response.status_code}")
+    print(f"Response: {response.json()}")
+    return True
+
+
+def add_item_inventory():
+    """
+
+    :return:
+    """
+    pass
+
+
+def send_use_object(item):
+    """
+
+    :param item:
+    :return:
+    """
+
+
+
+
 
 pygame.init()
 inventory_icon, mini_map_icon, exit_icon, chat_icon,current_holding, money_icon = create_icons()

@@ -21,13 +21,11 @@ def choose_direction(last_direction, dx, dy):
         weights[last_direction] += 20
 
     # חישוב הפוך למרחק – ככל שקרוב יותר, הסיכוי גבוה יותר
-    dx_weight = 1 / (abs(dx) + 1)
-    dy_weight = 1 / (abs(dy) + 1)
-    total = dx_weight + dy_weight
+    total = abs(dx) + abs(dy)
 
     if total > 0:
-        dx_part = dx_weight / total
-        dy_part = dy_weight / total
+        dx_part = abs(dx) / total
+        dy_part = abs(dy) / total
 
         # חלוקת 60% בין צירי X ו-Y
         if dx > 0:
@@ -47,12 +45,49 @@ def choose_direction(last_direction, dx, dy):
         cumulative += weights[direction]
         if roll <= cumulative:
             return direction
+    return max(weights, key=weights.get)
+
+def bot_action(action,bot):
+    conn = get_db_connection()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    if action in [1, 2, 3, 4]:
+        x, y = bot['position_x'], bot['position_y']
+        if action == 1:
+            y += 3  # down
+        elif action == 2:
+            x += 3  # right
+        elif action == 3:
+            y -= 3  # up
+        elif action == 4:
+            x -= 3  # left
+        cursor.execute("UPDATE bots SET position_x = ?, position_y = ? WHERE bot_id = ?", (x, y, bot['bot_id']))
+        conn.commit()
+
+    elif action == 5:
+        # שלב 2: חפש שחקנים במרחק של עד 50 פיקסלים מהבוט הספציפי
+        cursor.execute("SELECT * FROM players WHERE status = 'active'")
+        players = cursor.fetchall()
+
+        bot_x, bot_y = bot['position_x'], bot['position_y']
+        for player in players:
+            player_id = player['player_id']
+            player_x, player_y = player['position_x'], player['position_y']
+
+            distance = hypot(bot_x - player_x, bot_y - player_y)
+            if distance <= 50:
+                new_health = max(0, player['health'] - 10)
+                cursor.execute("UPDATE players SET health = ? WHERE player_id = ?", (new_health, player_id))
+                conn.commit()
+                print(f"Bot {bot['bot_id']} attacked Player {player_id}, new health: {new_health}")
+    conn.close()
+
 
 def update_specific_bot(action,bot_id):
     conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-
+    print(bot_id)
     # שלב 1: קח את הבוט הספציפי
     cursor.execute("SELECT * FROM bots WHERE bot_id = ?", (bot_id,))
     bot = cursor.fetchone()
@@ -85,9 +120,8 @@ def update_specific_bot(action,bot_id):
                 if distance <= 50:
                     new_health = max(0, player['health'] - 10)
                     cursor.execute("UPDATE players SET health = ? WHERE player_id = ?", (new_health, player_id))
+                    conn.commit()
                     print(f"Bot {bot_id} attacked Player {player_id}, new health: {new_health}")
-            conn.commit()
-
     conn.close()
 
 
@@ -102,6 +136,12 @@ def get_last_bot_position(bot_id):
         return position[0]  # מחזיר tuple: (position_x, position_y)
     else:
         return None
+
+
+def calculate_dx_dy(bot_x,bot_y,player_x,player_y):
+    dx = bot_x - player_x
+    dy = bot_y - player_y
+    return dx, dy
 
 def calculate_dx_dy_from_db(bot_id, player_id, db_path="/app/database/DATABASE_GAME.db"):
     conn = sqlite3.connect(db_path)
@@ -128,6 +168,15 @@ def calculate_dx_dy_from_db(bot_id, player_id, db_path="/app/database/DATABASE_G
     else:
         return None, None  # אם אחד מהם לא נמצא
 
+def get_all_bots():
+    conn = sqlite3.connect("/app/database/DATABASE_GAME.db")
+    conn.row_factory = sqlite3.Row  # מאפשר גישה לפי שמות
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM bots")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(row) for row in rows]  # הפיכת כל Row ל־dict
+
 def get_all_bot_ids():
     conn = sqlite3.connect("/app/database/DATABASE_GAME.db")
     cursor = conn.cursor()
@@ -135,6 +184,29 @@ def get_all_bot_ids():
     bot_ids = [row[0] for row in cursor.fetchall()]
     conn.close()
     return bot_ids
+
+def get_closest_player(bot_x, bot_y):
+    conn = sqlite3.connect("../DATABASE_GAME.db")
+    cursor = conn.cursor()
+    # כל השחקנים הפעילים
+    cursor.execute("SELECT player_id, position_x, position_y FROM players WHERE status = 'active'")
+    players = cursor.fetchall()
+    min_dist = float('inf')
+    closest_player_id = None
+    play_x=None
+    play_y=None
+    for player_id, player_x, player_y in players:
+        dx = bot_x - player_x
+        dy = bot_y - player_y
+        dist = (dx**2 + dy**2)**0.5
+        if dist < min_dist:
+            min_dist = dist
+            closest_player_id = player_id
+            play_x=player_x
+            play_y = player_y
+    conn.close()
+    return closest_player_id,play_x,play_y
+
 
 def get_closest_player_id_to_bot(bot_id):
     conn = sqlite3.connect("/app/database/DATABASE_GAME.db")

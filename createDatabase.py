@@ -103,13 +103,6 @@ cursor.execute("INSERT INTO items (player_id, name, slot_index, quantity) VALUES
 cursor.execute("INSERT INTO items (player_id, name, slot_index, quantity) VALUES (1, 'HealthPotion', 1, 3);")
 cursor.execute("INSERT INTO items (player_id, name, slot_index, quantity) VALUES (2, 'Bow', 0, 1);")
 
-# בוטים
-cursor.execute("INSERT INTO bots (bot_type, position_x, position_y, health) VALUES (?, ?, ?, ?);",
-               ("melee", 300, 300, 100))
-cursor.execute("INSERT INTO bots (bot_type, position_x, position_y, health) VALUES (?, ?, ?, ?);",
-               ("ranged", 120, 120, 100))
-cursor.execute("INSERT INTO bots (bot_type, position_x, position_y, health) VALUES (?, ?, ?, ?);",
-               ("melee", 24000, 38000, 120))
 
 # שחקנים נוספים
 cursor.execute("""
@@ -121,7 +114,7 @@ VALUES
 """)
 
 # ✅ הוספת 100 בוטים רנדומליים למסד הנתונים
-for _ in range(97):
+for _ in range(100):
     position_x = random.randint(0, 50000)
     position_y = random.randint(0, 50000)
     health = random.randint(80, 120)
@@ -134,6 +127,22 @@ for _ in range(97):
         VALUES (?, ?, ?, ?, ?, ?,?)
     """, (position_x, position_y, health, bot_type, last_direction_time, last_attack_time,last_direction))
 
+nearby_positions = [
+    (10, 90),
+    (30, 110),
+    (200, 157)
+]
+
+for pos_x, pos_y in nearby_positions:
+    health = random.randint(80, 120)
+    bot_type = random.choice(['melee', 'ranged'])
+    last_direction_time = 0
+    last_attack_time = 0
+    last_direction = 1
+    cursor.execute("""
+        INSERT INTO bots (position_x, position_y, health, bot_type, last_direction_time, last_attack_time, last_direction)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (pos_x, pos_y, health, bot_type, last_direction_time, last_attack_time, last_direction))
 
 # אובייקטים
 cursor.execute("""
