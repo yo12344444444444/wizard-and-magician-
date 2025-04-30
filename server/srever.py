@@ -1,8 +1,16 @@
+import socket
+
+from flask import Flask, request, jsonify
+import sqlite3
+from jose import jwt  # Replace PyJWT with jose.jwt
 import datetime
 import threading
 import time
 from functools import wraps
 from flasgger import Swagger
+import time
+import random
+import threading
 from flask import Flask, request, jsonify
 from jose import jwt  # Replace PyJWT with jose.jwt
 from functionsServer import *
@@ -391,6 +399,15 @@ def game_state(user_id):
             - screen_width
             - screen_height
           properties:
+            direction:
+              type: string
+              example: "up"
+            x:
+              type: integer
+              example: 120
+            y:
+              type: integer
+              example: 80
             screen_width:
               type: integer
               example: 1000
@@ -407,9 +424,6 @@ def game_state(user_id):
     screen_width = data.get('screen_width')
     screen_height = data.get('screen_height')
 
-
-    print(f"screen width: {screen_width}")
-    print(f"screen height: {screen_height}")
     # בדוק אם השחקן הותקף ע"י בוטים או שחקנים אחרים
     attack_result = was_player_hit(user_id)
 
@@ -452,7 +466,7 @@ def get_game_state(user_id, screen_width, screen_height):
 
     min_x, max_x = center_x - half_width, center_x + half_width
     min_y, max_y = center_y - half_height, center_y + half_height
-    print(f"user id: {user_id}")
+
     cursor.execute("SELECT * FROM players WHERE player_id != ? AND status = 'active'", (user_id,))
     players = [
         {
@@ -1334,11 +1348,39 @@ def get_inventory(user_id):
         for row in inventory
     ]
     return jsonify({"inventory": items}), 200
+def ipSender(port):
+
+
+    PORT = port
+    BUFFER_SIZE = 1024
+
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    server_socket.bind(("", PORT))  # Listen on all IPs
+
+    while True:
+        data, addr = server_socket.recvfrom(BUFFER_SIZE)
+        print(f"Received from {addr}: {data.decode()}")
+
+        if data.decode().lower() == "hello":
+            server_socket.sendto(b"1", addr)
+def PortDefinder():
+    port = 5000
+    result=0
+    while result == 0:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            result = sock.connect_ex(('localhost', port))
+        if result == 0:
+                port+=1
+    return port
+
+def run(port):
+    app.run(host='0.0.0.0', port=port, debug=False)
 
 
 if __name__ == '__main__':
-    try:
-        get_number()
-    except Exception as e:
-        print(f"Error in get_number(): {e}")
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    port = PortDefinder()
+    print(port)
+    t1 = threading.Thread(target= ipSender, args=(port,))
+    t2 = threading.Thread(target=run, args=(port,))
+    t2.start()
+    t1.start()

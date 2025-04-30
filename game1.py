@@ -4,6 +4,7 @@ import socket
 import json
 from genericFunction import MathUtils
 
+
 def main(ip):
     tolernsStoneSword = 10
     HOST = ip
@@ -24,7 +25,6 @@ def main(ip):
     initial_coin = 0
     players_pos = ["n", [22222, 222222]]
 
-
     def build_array_of_packets(arr_obj):
         packet = f'{1:01b}' if arr_obj[0] else f'{0:01b}'
         packet += f'{ord(arr_obj[1]):07b}'.zfill(7)
@@ -38,7 +38,6 @@ def main(ip):
 
         return packet
 
-
     def response_to_bytes(array_for_client):
         combined_bit_string = ''.join(array_for_client)
         combined_bit_string = ''.join(filter(lambda x: x in '01', combined_bit_string))
@@ -48,12 +47,10 @@ def main(ip):
 
         return byte_value
 
-
     def put(id):
         with open("Objects.json", "r") as f:
             y = json.load(f)
         return y["On map objects"].get(id, {}).get('file', "Walking_Front_1.jpg")  # Default fallback
-
 
     class ObjectPlacer:
         def __init__(self, pos, id):
@@ -61,7 +58,6 @@ def main(ip):
             self.img = pygame.image.load(f"graphic/{put(id)}")
             self.img.set_colorkey((255, 255, 255))
             display.blit(self.img, pos)
-
 
     def parse_binary_response(binary_data):
         bit_string = ''.join(f"{byte:08b}" for byte in binary_data)
@@ -77,11 +73,9 @@ def main(ip):
             objects.append((bool(rotation), object_id, x_coord, y_coord))
         return objects
 
-
     def health_redcation(data):
         global health
         health -= int(data[1:8], 2)
-
 
     def get_data():
         global decoded_objects
@@ -113,7 +107,6 @@ def main(ip):
                     return []
             finally:
                 client_socket.close()  # Close socket *after* all attempts
-
 
     r = True
     while r:
