@@ -75,6 +75,36 @@ def login(username, password):
         print(f"Connection error: {e}")
         return None
 
+def handle_player_movement(token, screen_width, screen_height):
+    keys = pygame.key.get_pressed()
+    direction = None
+
+    if keys[pygame.K_w]:
+        direction = 'w'
+    elif keys[pygame.K_a]:
+        direction = 'a'
+    elif keys[pygame.K_s]:
+        direction = 's'
+    elif keys[pygame.K_d]:
+        direction = 'd'
+
+    if direction:
+        headers = {'Authorization': f'Bearer {token}'}
+        data = {
+            'direction': direction,
+            'screen_width': screen_width,
+            'screen_height': screen_height
+        }
+        try:
+            response = requests.post(f'{API_URL}/movement', json=data, headers=headers)
+            if response.status_code == 200:
+                return response.json()
+            else:
+                print("Move error:", response.status_code, response.text)
+        except Exception as e:
+            print("Error sending movement:", e)
+    return None
+
 # Function to get player data
 def get_player_data(token):
     try:
@@ -161,7 +191,13 @@ def main():
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 running = False
 
-        game_state = get_game_state(token, SCREEN_WIDTH, SCREEN_HEIGHT)
+        # נשלח את כיוון השחקן ונקבל מצב עדכני
+        game_state = handle_player_movement(token, SCREEN_WIDTH, SCREEN_HEIGHT)
+
+        # אם לא זז, נביא את המצב הרגיל
+        if not game_state:
+            game_state = get_game_state(token, SCREEN_WIDTH, SCREEN_HEIGHT)
+
         player_data = get_player_data(token)
 
         screen.fill(BLACK)
@@ -170,12 +206,11 @@ def main():
             player_x = player_data.get('position_x', SCREEN_WIDTH // 2)
             player_y = player_data.get('position_y', SCREEN_HEIGHT // 2)
 
-            # Draw bots relative to player
+            # Draw bots
             if game_state and 'bots' in game_state:
                 for bot in game_state['bots']:
                     draw_bot(screen, bot, player_x, player_y, ghost_images)
 
-            # Draw player in center
             draw_player(screen, player_image)
 
         # UI Text

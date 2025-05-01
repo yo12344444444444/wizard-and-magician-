@@ -54,13 +54,13 @@ def bot_action(action,bot):
     if action in [1, 2, 3, 4]:
         x, y = bot['position_x'], bot['position_y']
         if action == 1:
-            y += 3  # down
+            y += 7  # down
         elif action == 2:
-            x += 3  # right
+            x += 7  # right
         elif action == 3:
-            y -= 3  # up
+            y -= 7  # up
         elif action == 4:
-            x -= 3  # left
+            x -= 7  # left
         cursor.execute("UPDATE bots SET position_x = ?, position_y = ? WHERE bot_id = ?", (x, y, bot['bot_id']))
         conn.commit()
 
@@ -126,7 +126,7 @@ def update_specific_bot(action,bot_id):
 
 
 def get_last_bot_position(bot_id):
-    conn = sqlite3.connect("../DATABASE_GAME.db")
+    conn = sqlite3.connect("../DATABASE_GAME.db", timeout=10, check_same_thread=False)
     cursor = conn.cursor()
     cursor.execute("SELECT last_direction FROM bots WHERE bot_id = ?", (bot_id,))
     position = cursor.fetchone()
@@ -178,7 +178,7 @@ def get_all_bots():
     return [dict(row) for row in rows]  # הפיכת כל Row ל־dict
 
 def get_all_bot_ids():
-    conn = sqlite3.connect("../DATABASE_GAME.db")
+    conn = sqlite3.connect("../DATABASE_GAME.db", timeout=10, check_same_thread=False)
     cursor = conn.cursor()
     cursor.execute("SELECT bot_id FROM bots")
     bot_ids = [row[0] for row in cursor.fetchall()]
@@ -186,7 +186,7 @@ def get_all_bot_ids():
     return bot_ids
 
 def get_closest_player(bot_x, bot_y):
-    conn = sqlite3.connect("../DATABASE_GAME.db")
+    conn = sqlite3.connect("../DATABASE_GAME.db", timeout=10, check_same_thread=False)
     cursor = conn.cursor()
     # כל השחקנים הפעילים
     cursor.execute("SELECT player_id, position_x, position_y FROM players WHERE status = 'active'")
@@ -209,7 +209,7 @@ def get_closest_player(bot_x, bot_y):
 
 
 def get_closest_player_id_to_bot(bot_id):
-    conn = sqlite3.connect("../DATABASE_GAME.db")
+    conn = sqlite3.connect("../DATABASE_GAME.db", timeout=10, check_same_thread=False)
     cursor = conn.cursor()
     # מיקום הבוט
     cursor.execute("SELECT position_x, position_y FROM bots WHERE bot_id = ?", (bot_id,))

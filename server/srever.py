@@ -14,7 +14,6 @@ def move_bots():
         last_direction=bot['last_direction']
         closest_player_id,player_x,player_y = get_closest_player(bot['position_x'],bot['position_y'])
         if closest_player_id is None:
-            print(f"Bot {bot['bot_id']}: אין שחקן קרוב.")
             continue
         dx,dy = calculate_dx_dy(bot['position_x'],bot['position_y'],player_x,player_y)
         chosen = choose_direction(last_direction, dx, dy)
@@ -307,7 +306,7 @@ def signup():
     # Create new user
     cursor.execute("""
         INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status)
-        VALUES (?, ?, 0, 100, 100, 0, 'active')
+        VALUES (?, ?, 0, 100, 100, 100, 'active')
     """, (username, password))
     player_id = cursor.lastrowid
 
