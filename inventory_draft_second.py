@@ -185,6 +185,8 @@ def open_full_inventory_shop(display):
     draw full inventory open - shop
     """
     global CLICKED
+    # money = get_coins()
+    money = 1000
     open_full_inventory_image = pygame.image.load(FULL_INVENTORY_SHOP).convert()
     open_full_inventory_image.set_colorkey(WHITE)
     full_inventory = buttons.Button(350, 119, open_full_inventory_image)
@@ -198,18 +200,25 @@ def open_full_inventory_shop(display):
 
     if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not CLICKED:
         x, y = pygame.mouse.get_pos()
-        CLICKED = True
 
-        if 815 < x < 900 and  375 < y < 410:
+        if 815 < x < 900 and 375 < y < 410 and money >= 200:
+            CLICKED = True
+            add_item("2",1)
             print("you bought an iron sword!")
 
-        elif 920 < x < 1005 and  375 < y < 410:
+        elif 920 < x < 1005 and 375 < y < 410 and money >= 300:
+            CLICKED = True
+            add_item("3", 1)
             print("you bought a gold sword!")
 
-        elif 815 < x < 900 and 525 < y < 555:
+        elif 815 < x < 900 and 525 < y < 555 and money >= 200:
+            CLICKED = True
+            add_item("4", 1)
             print("you bought a wood wand!")
 
-        elif 920 < x < 1005 and 525 < y < 555:
+        elif 920 < x < 1005 and 525 < y < 555 and money >= 500:
+            CLICKED = True
+            add_item("5", 1)
             print("you bought a gold wand!")
 
     print_full_inventory(display)
@@ -654,7 +663,6 @@ while running:
     display.fill(BACK)
     if not put_icons_on_screen(display,inventory_icon, mini_map_icon, exit_icon, chat_icon,current_holding, money_icon, event):
         running = False
-
     pygame.display.flip()
     clock.tick(30)
 pygame.quit()
