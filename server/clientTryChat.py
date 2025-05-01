@@ -4,7 +4,7 @@ import sys
 import os
 
 # כתובת השרת
-SERVER_URL = "http://127.0.0.1:5000"
+SERVER_URL = "http://127.0.0.1:5005"
 
 # קבעת נתיב לתיקיית graphic מתוך תקייה הפרויקט הראשית
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -23,7 +23,7 @@ def login_and_get_token(username, password):
 
 def get_player_data(token):
     headers = {"Authorization": f"Bearer {token}"}
-    response = requests.get(f"{SERVER_URL}/get_player", headers=headers)
+    response = requests.get(f"{SERVER_URL}/player", headers=headers)
     if response.status_code == 200:
         return response.json()
     else:

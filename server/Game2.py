@@ -76,3 +76,5 @@ if __name__ == "__main__":
             print("Failed to retrieve player data.")
     else:
         print("Login failed. Exiting.")
+
+app.run(host='0.0.0.0', port=port, debug=False)
