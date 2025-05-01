@@ -132,11 +132,8 @@ def show_player_on_screen(player_data, speed=5, frame_duration=10):
 
 if __name__ == "__main__":
     data = findy.main()
-    print(data)
     addr = data['lb']
-    print(addr)
     SERVER_URL = "http://" + addr[0] + ":" + str(addr[1])
-    print(SERVER_URL)
     username = input("Enter username: ")
     password = input("Enter password: ")
 
