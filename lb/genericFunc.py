@@ -51,7 +51,7 @@ class Servers:
             data, addr = s.recvfrom(1024)
             print(f"Received from {addr}: {data.decode(errors='ignore')}")
             if data.decode(errors='ignore') == "r":
-                s.sendto(b"hi buck", addr)
+                s.sendto(b"lb", addr)
     # Close the database connection
     def close_connection(self):
         self.conn.close()

@@ -20,13 +20,13 @@ def main():
         except Exception as e:
             print(f"Error sending to port {port}: {e}")
 
-    servers = []  # List of (addr, response)
+    servers = {}  # List of (addr, response)
     start = time.time()
 
     while time.time() - start < 3:
         try:
             data, addr = client_socket.recvfrom(BUFFER_SIZE)
-            servers.append((addr, data.decode()))
+            servers[data.decode()]= addr
         except socket.timeout:
             continue
 

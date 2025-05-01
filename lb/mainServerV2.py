@@ -180,9 +180,9 @@ def PortDefinder():
                 port+=1
     return port
 port = PortDefinder()
-server_instance = Servers()
+s = Servers()
 t1 = threading.Thread(target=ggeter, args=(port,))
-t2 = threading.Thread(target=server_instance.get_player, args=(port,))
+t2 = threading.Thread(target=s.get_player, args=(port,))
 
 t2.start()
 t1.start()
