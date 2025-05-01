@@ -4,7 +4,7 @@ import sys
 import os
 
 # כתובת השרת
-SERVER_URL = "http://127.0.0.1:5005"
+SERVER_URL = "http://127.0.0.1:5000"
 
 # קבעת נתיב לתיקיית graphic מתוך תקייה הפרויקט הראשית
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))

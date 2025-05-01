@@ -163,6 +163,7 @@ def ggeter(port):
         user = cur.fetchone()
         conn.close()
         if user:
+            print(user['server'])
             return jsonify({'id': user['id'], 'username': user['username'], 'server': user['server']})
         else:
             return jsonify({'error': 'User not found'}), 404
@@ -179,7 +180,9 @@ def PortDefinder():
                 port+=1
     return port
 port = PortDefinder()
-t1 = threading.Thread(target= ggeter, args=(port,))
-t2 = threading.Thread(target=Servers.get_player, args=(port,))
+server_instance = Servers()
+t1 = threading.Thread(target=ggeter, args=(port,))
+t2 = threading.Thread(target=server_instance.get_player, args=(port,))
+
 t2.start()
 t1.start()

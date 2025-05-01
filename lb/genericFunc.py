@@ -42,32 +42,16 @@ class Servers:
         self.conn.commit()
 
     # Method to get a player (client) connection on a free port
-    def get_player(self):
-        for port in range(5000, 6000):
-            try:
-                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                s.bind(("0.0.0.0", port))
-                s.listen()
-                print(f"Listening on port {port}")
-                break
-            except OSError:
-                s.close()
-                continue
-        else:
-            print("No free port found.")
-            return None
+    def get_player(self,port):
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.bind(("0.0.0.0", port))
+        print(f"Listening for UDP on port {port}")
 
         while True:
-            conn, addr = s.accept()
-            with conn:
-                print(f"Connection from {addr} on port {port}")
-                data = conn.recv(1024)
-                if data:
-                    print(f"Received: {data.decode(errors='ignore')}")
-
-                    conn.sendall(b"hi buck")
-
+            data, addr = s.recvfrom(1024)
+            print(f"Received from {addr}: {data.decode(errors='ignore')}")
+            if data.decode(errors='ignore') == "r":
+                s.sendto(b"hi buck", addr)
     # Close the database connection
     def close_connection(self):
         self.conn.close()
