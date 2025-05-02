@@ -82,37 +82,41 @@ def hash_password(password):
     salt = bcrypt.gensalt()
     hashed_password = bcrypt.hashpw(password.encode(), salt)
     return hashed_password
+# הגדרות מסך
+screen_width = 900
+screen_height = 700
+screens_x = 8
+screens_y = 5
+objects_per_screen = 12
+player_screen_x = 0 // screen_width
+player_screen_y = 100 // screen_height
 
-for _ in range(100):
-    position_x = random.randint(0, 50000)
-    position_y = random.randint(0, 50000)
-    health = 100
+# הוספת בוטים: קודם כל נוסיף 8 למסך השחקן
+for _ in range(8):
+    pos_x = random.randint(player_screen_x * screen_width, (player_screen_x + 1) * screen_width - 1)
+    pos_y = random.randint(player_screen_y * screen_height, (player_screen_y + 1) * screen_height - 1)
     bot_type = random.choice(['melee', 'ranged'])
-    last_direction_time = 0
-    last_attack_time = 0
-    last_direction = 1
-    cursor.execute("""
-        INSERT INTO bots (position_x, position_y, health, bot_type, last_direction_time, last_attack_time,last_direction)
-        VALUES (?, ?, ?, ?, ?, ?,?)
-    """, (position_x, position_y, health, bot_type, last_direction_time, last_attack_time,last_direction))
-
-nearby_positions = [
-    (10, 90),
-    (30, 110),
-    (200, 157)
-]
-
-for pos_x, pos_y in nearby_positions:
-    health = 100
-    bot_type = random.choice(['melee', 'ranged'])
-    last_direction_time = 0
-    last_attack_time = 0
-    last_direction = 1
     cursor.execute("""
         INSERT INTO bots (position_x, position_y, health, bot_type, last_direction_time, last_attack_time, last_direction)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (pos_x, pos_y, health, bot_type, last_direction_time, last_attack_time, last_direction))
+    """, (pos_x, pos_y, 100, bot_type, 0, 0, 1))
 
+# נוסיף עוד 100 בוטים רנדומליים במסכים אחרים
+for _ in range(100):
+    pos_x = random.randint(0, screen_width * screens_x - 1)
+    pos_y = random.randint(0, screen_height * screens_y - 1)
+
+    # לא נשכפל למסך של השחקן
+    if pos_x // screen_width == player_screen_x and pos_y // screen_height == player_screen_y:
+        continue
+
+    bot_type = random.choice(['melee', 'ranged'])
+    cursor.execute("""
+        INSERT INTO bots (position_x, position_y, health, bot_type, last_direction_time, last_attack_time, last_direction)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (pos_x, pos_y, 100, bot_type, 0, 0, 1))
+
+# אובייקטים למפה
 map_objects_json = {
     "On map objects": {
         "apple_tree": {"file": "Apple_Tree.jpg", "rotation": False},
@@ -127,31 +131,37 @@ map_objects_json = {
         "yellow_flower": {"file": "Yellow_Flower.jpg", "rotation": False}
     }
 }
-
-# נניח שהמפה מחולקת ל-40 מסכים (5x8 או 8x5 לדוגמה)
-screens_x = 8
-screens_y = 5
-screen_width = 5000   # גודל מסך אחד
-screen_height = 5000
-objects_per_screen = 12
-
 object_keys = list(map_objects_json["On map objects"].keys())
 
-# הוספת אובייקטים רנדומליים לכל מסך
+# הוספת לפחות 7 למסך של השחקן
+for _ in range(7):
+    obj_name = random.choice(object_keys)
+    obj_data = map_objects_json["On map objects"][obj_name]
+    x = random.randint(player_screen_x * screen_width, (player_screen_x + 1) * screen_width - 1)
+    y = random.randint(player_screen_y * screen_height, (player_screen_y + 1) * screen_height - 1)
+
+    cursor.execute("""
+        INSERT INTO map_objects (name, file, rotation, position_x, position_y)
+        VALUES (?, ?, ?, ?, ?)
+    """, (obj_name, obj_data["file"], obj_data["rotation"], x, y))
+
+# מסכים אחרים – רנדומליים
 for screen_y in range(screens_y):
     for screen_x in range(screens_x):
+        # דלג על המסך של השחקן
+        if screen_x == player_screen_x and screen_y == player_screen_y:
+            continue
         for _ in range(objects_per_screen):
             obj_name = random.choice(object_keys)
             obj_data = map_objects_json["On map objects"][obj_name]
-
-            # חישוב מיקום רנדומלי בתוך גבולות המסך הזה
-            x = screen_x * screen_width + random.randint(0, screen_width)
-            y = screen_y * screen_height + random.randint(0, screen_height)
+            x = screen_x * screen_width + random.randint(0, screen_width - 1)
+            y = screen_y * screen_height + random.randint(0, screen_height - 1)
 
             cursor.execute("""
                 INSERT INTO map_objects (name, file, rotation, position_x, position_y)
                 VALUES (?, ?, ?, ?, ?)
             """, (obj_name, obj_data["file"], obj_data["rotation"], x, y))
-            conn.commit()
 
-print("✅ Database successfully created with map object positions, inventory table, and speed column in players!")
+conn.commit()
+print("✅ Database initialized: player screen includes 8 bots and 7+ objects.")
+

@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 import sqlite3
 from jose import jwt  # Replace PyJWT with jose.jwt
 import datetime
+import os
 from functools import wraps
 from flasgger import Swagger
 import time
@@ -9,18 +10,19 @@ import threading
 from functionsServer import *
 
 def move_bots():
+    start = time.time()
     bots=get_all_bots()
+    players=get_all_players()
     for bot in bots:
         last_direction=bot['last_direction']
-        closest_player_id,player_x,player_y = get_closest_player(bot['position_x'],bot['position_y'])
+        closest_player_id,player_x,player_y = get_closest_player(bot['position_x'],bot['position_y'],players)
         if closest_player_id is None:
             continue
         dx,dy = calculate_dx_dy(bot['position_x'],bot['position_y'],player_x,player_y)
         chosen = choose_direction(last_direction, dx, dy)
         bot_action(chosen, bot)
-
-    # חזור על הפעולה כל 2 שניות
-    threading.Timer(0.2, move_bots).start()
+    print(f"end move_bot {time.time()-start}")
+    threading.Timer(1, move_bots).start()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -347,7 +349,6 @@ def signup():
             'status': user['status']
         }
     })
-
 @app.route('/game_state', methods=['POST'])
 @token_required
 def game_state(user_id):
@@ -390,6 +391,7 @@ def game_state(user_id):
       401:
         description: Unauthorized - token missing or invalid
     """
+    start = time.time()
     data = request.get_json()
     screen_width = data.get('screen_width')
     screen_height = data.get('screen_height')
@@ -415,7 +417,7 @@ def game_state(user_id):
         player_status['respawn_position'] = attack_result['respawn_position']
 
     game_state_data['player_status'] = player_status
-
+    print(f"game_state end:{time.time() - start}")
     return jsonify(game_state_data), 200
 
 
@@ -448,13 +450,13 @@ def get_game_state(user_id, screen_width, screen_height):
             'color': '#00ff00',
             'animation_frames': [
                 "player_move/Walking_Front.gif",
-                "player_move/Walking_Front_2.jpg",
-                "player_move/Walking_Left_1.jpg",
-                "player_move/Walking_Left_2.jpg",
-                "player_move/Walking_Right_1.jpg",
-                "player_move/Walking_Right_2.jpg"
+                "player_move/Walking_Front_2.png",
+                "player_move/Walking_Left_1.png",
+                "player_move/Walking_Left_2.png",
+                "player_move/Walking_Right_1.png",
+                "player_move/Walking_Right_2.png"
             ],
-            'idle_frame': "player/Standing_front.jpg"
+            'idle_frame': "player/Standing_front.png"
         }
         for p in cursor.fetchall()
         if min_x <= p['position_x'] <= max_x and min_y <= p['position_y'] <= max_y
@@ -480,17 +482,18 @@ def get_game_state(user_id, screen_width, screen_height):
     ]
 
     cursor.execute("SELECT * FROM map_objects")
-    objects = [
-        {
-            'id': f"obj{o['object_id']}",
-            'x': o['position_x'],
-            'y': o['position_y'],
-            'size': 40,
-            'file': o['file']
-        }
-        for o in cursor.fetchall()
-        if min_x <= o['position_x'] <= max_x and min_y <= o['position_y'] <= max_y
-    ]
+    objects = []
+    for o in cursor.fetchall():
+        if min_x <= o['position_x'] <= max_x and min_y <= o['position_y'] <= max_y:
+            file_name = o['file']
+            base_name, ext = os.path.splitext(file_name)
+            objects.append({
+                'id': f"obj{o['object_id']}",
+                'x': o['position_x'],
+                'y': o['position_y'],
+                'size': 40,
+                'file': f"{base_name}.png"  # Force the .png extension
+            })
 
     conn.close()
     return {
@@ -1332,3 +1335,4 @@ def get_inventory(user_id):
 if __name__ == '__main__':
     move_bots()
     app.run(host='0.0.0.0', port=5000, debug=False)
+
