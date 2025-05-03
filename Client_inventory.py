@@ -114,9 +114,8 @@ def put_icons_on_screen(display,inventory_icon, mini_map_icon, exit_icon, chat_i
         INVENTORY_OPEN_SHOP = 0
 
     money_icon.draw(display)
-    # money = get_coins()
+    money = get_coins()
     font = pygame.font.Font(None, 35)
-    money = 1000
     amount = font.render( str(money), True, MONEY_TEXT)
     display.blit(amount, (1168, 667))
 
@@ -145,8 +144,8 @@ def put_icons_on_screen(display,inventory_icon, mini_map_icon, exit_icon, chat_i
     if event.type == pygame.MOUSEBUTTONUP:
         CLICKED = False
 
-    mini_map_icon.draw(display,event)
-    current_holding.draw(display,event)
+    mini_map_icon.draw(display)
+    current_holding.draw(display)
     print_current_holding(display,event)
     return True
 
@@ -372,7 +371,7 @@ def print_current_holding(display,event):
     cell = buttons.Button(x, y, image)
     if cell.draw(display) and not CLICKED:
         CLICKED = True
-        if item is not "0" or "1" or "2" or "3" or "4" or "5" or "12" or "13" or "14":
+        if item != "0" or "1" or "2" or "3" or "4" or "5" or "12" or "13" or "14":
             send_use_object(item)
         if item == "6" or "7" or "8" or "10" or "11":
             delete_item_from_json(item,  data_cells["cells"]["19"]["cell"])
@@ -531,8 +530,7 @@ def draw_not_full_inventory_hp_bar(display):
     """
     print the white area of the hp bar when the inventory is not full
     """
-    # hp = get_health()
-    hp = 70
+    hp = get_health()
     # משהו שמבקש את הHP של השחקן מהשרת
     lack = 100 - hp
     width = int((379 * lack)/100)
@@ -544,8 +542,8 @@ def draw_full_inventory_hp_bar(display):
     """
     print the white area of the hp bar when the inventory is full
     """
-    # hp = get_health()
-    hp = 70
+    hp = get_health()
+    print(hp)
     lack = 100 - hp
     width = int((379 * lack) / 100)
     height = 22
@@ -682,18 +680,57 @@ def enter_inventory_data_to_json():
             item = next((item for item in data if item['slot_index'] == i), None)
             if item:
                 name = item['name']
+                id = name_to_id(name)
                 quantity = item['quantity']
             else:
-                name = "0"
+                id = "0"
                 quantity = 0
             try:
-                data_cells["cells"][str(i+1)]["item"] = str(name)
+                data_cells["cells"][str(i+1)]["item"] = str(id)
                 data_cells["cells"][str(i+1)]["quantity"] = int(quantity)
             except Exception as e:
                 print("error:", e)
 
         with open("inventory.json", "w") as file_cells:
             json.dump(data_cells, file_cells, indent=4)
+
+
+def id_to_name(item_id):
+    """
+    get the id of the item as string and return its name
+    """
+    id_map = {
+        "1": "Stone_Sword",
+        "2": "Iron_Wand",
+        "3": "Gold_Sword",
+        "4": "Wood_Wand",
+        "5": "Gold_Wand",
+        "6": "Dark_Potion",
+        "7": "Life_Potion",
+        "8": "Fire_Potion",
+        "10": "apple",
+        "11": "blueberry",
+    }
+    return id_map.get(item_id)
+
+
+def name_to_id(item_name):
+    """
+    Get the name of the item and return its id as string
+    """
+    name_map = {
+        "Stone_Sword": "1",
+        "Iron_Wand": "2",
+        "Gold_Sword": "3",
+        "Wood_Wand": "4",
+        "Gold_Wand": "5",
+        "Dark_Potion": "6",
+        "Life_Potion": "7",
+        "Fire_Potion": "8",
+        "apple": "10",
+        "blueberry": "11",
+    }
+    return name_map.get(item_name)
 
 
 ##########################################################################################################
@@ -709,22 +746,36 @@ def get_inventory_from_server():
 
     if response.status_code == 200:
         data = response.json()
+        print(data['inventory'])
         return data['inventory']
     else:
-        print("Error:", response.status_code, response.text)
+        print("Error in get data inventory:", response.status_code, response.text)
         return None
 
 
 def get_player_state():
-    headers = {'Authorization': f'Bearer {TOKEN}'}
-    data = {'x': window_width, 'y': window_height}
-    response = requests.post(f'{API_URL}/game_state', json=data, headers=headers)
+    """
+    Send GET request to /get_player and return the player's state.
+    :param token: JWT token as string (without 'Bearer ')
+    :param server_url: Base URL of the server
+    :return: dict of player state or None if failed
+    """
+    headers = {
+        "Authorization": f"Bearer {TOKEN}"
+    }
+
+    response = requests.get(f"{API_URL}/get_player", headers=headers)
+
     if response.status_code == 200:
-        print(response.json())
         return response.json()
+    elif response.status_code == 401:
+        print("Unauthorized: Invalid or expired token.")
+    elif response.status_code == 404:
+        print("Player not found.")
     else:
-        print("Error getting game state:", response.json())
-        return None
+        print(f"Error: {response.status_code} - {response.text}")
+
+    return None
 
 
 def get_health():
@@ -804,6 +855,7 @@ def add_item_inventory(object_name, slot_index, has_space):
             print(f"Unexpected error: {response.status_code} - {response.text}")
     except requests.exceptions.RequestException as e:
         print(f"Error connecting to server: {e}")
+
 
 def send_use_object(item):
     """
@@ -972,15 +1024,12 @@ def main():
     enter_inventory_data_to_json()
 
     while running:
+        screen.fill(BACK)
         for event in pygame.event.get():
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 running = False
-            if not put_icons_on_screen(screen, inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding,money_icon, event):
-                running = False
         game_state = get_game_state(token, SCREEN_WIDTH, SCREEN_HEIGHT)
         player_data = get_player_data(token)
-
-        screen.fill(BACK)
 
         if player_data:
             player_x = player_data.get('position_x', SCREEN_WIDTH // 2)
@@ -998,6 +1047,8 @@ def main():
         status_text = font.render("Bot Visualization - Press ESC to exit", True, WHITE)
         screen.blit(status_text, (10, 10))
 
+        if not put_icons_on_screen(screen, inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding,money_icon, event):
+            running = False
         pygame.display.flip()
         clock.tick(FPS)
 

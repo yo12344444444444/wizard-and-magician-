@@ -1,0 +1,16 @@
+[2025-05-03 12:33:44] Debug log started
+[2025-05-03 12:33:44] Game starting...
+[2025-05-03 12:33:45] Image not found: graphic/Ghost_Back.png
+[2025-05-03 12:33:45] Created backup image for: up
+[2025-05-03 12:33:45] Image not found: graphic/Ghost_Front.png
+[2025-05-03 12:33:45] Created backup image for: down
+[2025-05-03 12:33:45] Image not found: graphic/Ghost_Left.png
+[2025-05-03 12:33:45] Created backup image for: left
+[2025-05-03 12:33:45] Image not found: graphic/Ghost_Right.png
+[2025-05-03 12:33:45] Created backup image for: right
+[2025-05-03 12:33:45] Added 8 static test bots
+[2025-05-03 12:33:45] Server connection disabled. Using only static bots.
+[2025-05-03 12:33:45] Main game loop starting...
+[2025-05-03 12:33:48] Debug display disabled
+[2025-05-03 12:33:49] Debug display enabled
+[2025-05-03 12:34:01] Game ended
