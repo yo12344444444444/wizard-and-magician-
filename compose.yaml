@@ -77,6 +77,18 @@ services:
       command: [ "python", "createDatabase.py" ]
       restart: on-failure
 
+    load_balancer:
+      container_name: "load-balancer"
+      image: nettahalamish/cyber-project-grade-11:latest
+      build:
+        context: .
+      volumes:
+        - ./servers_info.db:/app/database/servers_info.db
+      depends_on:
+        - build_db
+      command: ["python", "lb/mainServerV2.py"]
+      restart: always
+
     server_flask:
       container_name: "server-flask"
       image: nettahalamish/cyber-project-grade-11:latest
@@ -88,5 +100,6 @@ services:
         - ./DATABASE_GAME.db:/app/database
       depends_on:
         - build_db
+        - load_balancer
       command: ["python", "server/srever.py" ]
-      restart: on-failure
+      restart: always

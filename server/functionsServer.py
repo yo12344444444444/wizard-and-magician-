@@ -186,7 +186,7 @@ def get_all_bot_ids():
     return bot_ids
 
 def get_closest_player(bot_x, bot_y):
-    conn = sqlite3.connect("../DATABASE_GAME.db")
+    conn = sqlite3.connect("/app/database/DATABASE_GAME.db")
     cursor = conn.cursor()
     # כל השחקנים הפעילים
     cursor.execute("SELECT player_id, position_x, position_y FROM players WHERE status = 'active'")

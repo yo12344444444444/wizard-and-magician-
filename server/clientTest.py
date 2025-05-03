@@ -1,8 +1,8 @@
+import os
+import sys
+
 import pygame
 import requests
-import sys
-import time
-import os
 
 # Initialize Pygame
 pygame.init()

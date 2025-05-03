@@ -1,17 +1,14 @@
-from flask import Flask, request, jsonify
-import sqlite3
-from jose import jwt  # Replace PyJWT with jose.jwt
 import datetime
 import threading
 import time
 from functools import wraps
+
 from flasgger import Swagger
-import time
-import random
-import threading
 from flask import Flask, request, jsonify
 from jose import jwt  # Replace PyJWT with jose.jwt
+
 from functionsServer import *
+
 
 def move_bots():
     bots=get_all_bots()
