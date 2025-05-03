@@ -1,29 +1,28 @@
-import datetime
-import threading
-import time
-from functools import wraps
-
-from flasgger import Swagger
 from flask import Flask, request, jsonify
+import sqlite3
 from jose import jwt  # Replace PyJWT with jose.jwt
-
+import datetime
+import os
+from functools import wraps
+from flasgger import Swagger
+import time
+import threading
 from functionsServer import *
 
-
 def move_bots():
+    start = time.time()
     bots=get_all_bots()
+    players=get_all_players()
     for bot in bots:
         last_direction=bot['last_direction']
-        closest_player_id,player_x,player_y = get_closest_player(bot['position_x'],bot['position_y'])
+        closest_player_id,player_x,player_y = get_closest_player(bot['position_x'],bot['position_y'],players)
         if closest_player_id is None:
-            print(f"Bot {bot['bot_id']}: אין שחקן קרוב.")
             continue
         dx,dy = calculate_dx_dy(bot['position_x'],bot['position_y'],player_x,player_y)
         chosen = choose_direction(last_direction, dx, dy)
         bot_action(chosen, bot)
-
-    # חזור על הפעולה כל 2 שניות
-    threading.Timer(0.2, move_bots).start()
+    print(f"end move_bot {time.time()-start}")
+    threading.Timer(1, move_bots).start()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -42,7 +41,7 @@ app.config['SWAGGER'] = {
 }
 swagger = Swagger(app)
 app.config['SECRET_KEY'] = 'your_secret_key'
-DATABASE = ('/app/database/DATABASE_GAME.db')
+DATABASE = ('../DATABASE_GAME.db')
 
 
 def token_required(f):
@@ -309,7 +308,7 @@ def signup():
     # Create new user
     cursor.execute("""
         INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status)
-        VALUES (?, ?, 0, 100, 100, 0, 'active')
+        VALUES (?, ?, 0, 100, 100, 100, 'active')
     """, (username, password))
     player_id = cursor.lastrowid
 
@@ -350,7 +349,6 @@ def signup():
             'status': user['status']
         }
     })
-
 @app.route('/game_state', methods=['POST'])
 @token_required
 def game_state(user_id):
@@ -393,6 +391,7 @@ def game_state(user_id):
       401:
         description: Unauthorized - token missing or invalid
     """
+    start = time.time()
     data = request.get_json()
     screen_width = data.get('screen_width')
     screen_height = data.get('screen_height')
@@ -418,7 +417,7 @@ def game_state(user_id):
         player_status['respawn_position'] = attack_result['respawn_position']
 
     game_state_data['player_status'] = player_status
-
+    print(f"game_state end:{time.time() - start}")
     return jsonify(game_state_data), 200
 
 
@@ -451,13 +450,13 @@ def get_game_state(user_id, screen_width, screen_height):
             'color': '#00ff00',
             'animation_frames': [
                 "player_move/Walking_Front.gif",
-                "player_move/Walking_Front_2.jpg",
-                "player_move/Walking_Left_1.jpg",
-                "player_move/Walking_Left_2.jpg",
-                "player_move/Walking_Right_1.jpg",
-                "player_move/Walking_Right_2.jpg"
+                "player_move/Walking_Front_2.png",
+                "player_move/Walking_Left_1.png",
+                "player_move/Walking_Left_2.png",
+                "player_move/Walking_Right_1.png",
+                "player_move/Walking_Right_2.png"
             ],
-            'idle_frame': "player/Standing_front.jpg"
+            'idle_frame': "player/Standing_front.png"
         }
         for p in cursor.fetchall()
         if min_x <= p['position_x'] <= max_x and min_y <= p['position_y'] <= max_y
@@ -483,17 +482,18 @@ def get_game_state(user_id, screen_width, screen_height):
     ]
 
     cursor.execute("SELECT * FROM map_objects")
-    objects = [
-        {
-            'id': f"obj{o['object_id']}",
-            'x': o['position_x'],
-            'y': o['position_y'],
-            'size': 40,
-            'file': o['file']
-        }
-        for o in cursor.fetchall()
-        if min_x <= o['position_x'] <= max_x and min_y <= o['position_y'] <= max_y
-    ]
+    objects = []
+    for o in cursor.fetchall():
+        if min_x <= o['position_x'] <= max_x and min_y <= o['position_y'] <= max_y:
+            file_name = o['file']
+            base_name, ext = os.path.splitext(file_name)
+            objects.append({
+                'id': f"obj{o['object_id']}",
+                'x': o['position_x'],
+                'y': o['position_y'],
+                'size': 40,
+                'file': f"{base_name}.png"  # Force the .png extension
+            })
 
     conn.close()
     return {
@@ -743,6 +743,7 @@ def attack(user_id):
 
     attacker_pos = {'x': attacker['position_x'], 'y': attacker['position_y']}
 
+    print("datetime.datetime.utcnow()",datetime.datetime.utcnow())
     # עדכון זמן התקיפה האחרון של התוקף
     cursor.execute("UPDATE players SET last_attack_time = ? WHERE player_id = ?",
                    (datetime.datetime.utcnow(), user_id))
@@ -859,6 +860,7 @@ def was_player_hit(player_id):
     bots = cursor.fetchall()
 
     current_time = int(time.time())
+    print(current_time)
     was_attacked = False
     player_died = False
     respawn_position = None
@@ -1328,35 +1330,9 @@ def get_inventory(user_id):
         for row in inventory
     ]
     return jsonify({"inventory": items}), 200
-def ipSender(port):
-
-
-    PORT = port
-    BUFFER_SIZE = 1024
-
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_socket.bind(("", PORT))  # Listen on all IPs
-
-    while True:
-        data, addr = server_socket.recvfrom(BUFFER_SIZE)
-        print(f"Received from {addr}: {data.decode()}")
-
-        if data.decode().lower() == "hello":
-            server_socket.sendto(b"1", addr)
-def PortDefinder():
-    port = 5000
-    result=0
-    while result == 0:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            result = sock.connect_ex(('localhost', port))
-        if result == 0:
-                port+=1
-    return port
-
-def run(port):
-    app.run(host='0.0.0.0', port=port, debug=False)
 
 
 if __name__ == '__main__':
     move_bots()
     app.run(host='0.0.0.0', port=5000, debug=False)
+

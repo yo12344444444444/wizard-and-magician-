@@ -1,8 +1,10 @@
 import random
 import sqlite3
+import time
 from math import hypot
+import datetime
 
-DATABASE = ('/app/database/DATABASE_GAME.db')
+DATABASE = ('../DATABASE_GAME.db')
 
 def get_db_connection():
     conn = sqlite3.connect(DATABASE)
@@ -54,13 +56,13 @@ def bot_action(action,bot):
     if action in [1, 2, 3, 4]:
         x, y = bot['position_x'], bot['position_y']
         if action == 1:
-            y += 3  # down
+            y += 7  # down
         elif action == 2:
-            x += 3  # right
+            x += 7  # right
         elif action == 3:
-            y -= 3  # up
+            y -= 7  # up
         elif action == 4:
-            x -= 3  # left
+            x -= 7  # left
         cursor.execute("UPDATE bots SET position_x = ?, position_y = ? WHERE bot_id = ?", (x, y, bot['bot_id']))
         conn.commit()
 
@@ -126,7 +128,7 @@ def update_specific_bot(action,bot_id):
 
 
 def get_last_bot_position(bot_id):
-    conn = sqlite3.connect("/app/database/DATABASE_GAME.db")
+    conn = sqlite3.connect("../DATABASE_GAME.db")
     cursor = conn.cursor()
     cursor.execute("SELECT last_direction FROM bots WHERE bot_id = ?", (bot_id,))
     position = cursor.fetchone()
@@ -143,7 +145,7 @@ def calculate_dx_dy(bot_x,bot_y,player_x,player_y):
     dy = bot_y - player_y
     return dx, dy
 
-def calculate_dx_dy_from_db(bot_id, player_id, db_path="/app/database/DATABASE_GAME.db"):
+def calculate_dx_dy_from_db(bot_id, player_id, db_path="../DATABASE_GAME.db"):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
@@ -169,28 +171,36 @@ def calculate_dx_dy_from_db(bot_id, player_id, db_path="/app/database/DATABASE_G
         return None, None  # אם אחד מהם לא נמצא
 
 def get_all_bots():
-    conn = sqlite3.connect("/app/database/DATABASE_GAME.db")
+    print(f"get_all_bots start: {datetime.datetime.now()}")
+    conn = sqlite3.connect("../DATABASE_GAME.db")
     conn.row_factory = sqlite3.Row  # מאפשר גישה לפי שמות
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM bots")
     rows = cursor.fetchall()
     conn.close()
+    print(f"get_all_bots end: {datetime.datetime.now()}")
     return [dict(row) for row in rows]  # הפיכת כל Row ל־dict
 
 def get_all_bot_ids():
-    conn = sqlite3.connect("/app/database/DATABASE_GAME.db")
+    conn = sqlite3.connect("../DATABASE_GAME.db")
     cursor = conn.cursor()
     cursor.execute("SELECT bot_id FROM bots")
     bot_ids = [row[0] for row in cursor.fetchall()]
     conn.close()
     return bot_ids
 
-def get_closest_player(bot_x, bot_y):
-    conn = sqlite3.connect("/app/database/DATABASE_GAME.db")
+def get_all_players():
+    start = time.time()
+    conn = sqlite3.connect("../DATABASE_GAME.db")
     cursor = conn.cursor()
     # כל השחקנים הפעילים
     cursor.execute("SELECT player_id, position_x, position_y FROM players WHERE status = 'active'")
     players = cursor.fetchall()
+    conn.close()
+    print(f"get_closest_player:{time.time() - start}")
+    return players
+
+def get_closest_player(bot_x, bot_y,players):
     min_dist = float('inf')
     closest_player_id = None
     play_x=None
@@ -204,12 +214,11 @@ def get_closest_player(bot_x, bot_y):
             closest_player_id = player_id
             play_x=player_x
             play_y = player_y
-    conn.close()
     return closest_player_id,play_x,play_y
 
 
 def get_closest_player_id_to_bot(bot_id):
-    conn = sqlite3.connect("/app/database/DATABASE_GAME.db")
+    conn = sqlite3.connect("../DATABASE_GAME.db")
     cursor = conn.cursor()
     # מיקום הבוט
     cursor.execute("SELECT position_x, position_y FROM bots WHERE bot_id = ?", (bot_id,))

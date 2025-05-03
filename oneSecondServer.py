@@ -8,7 +8,7 @@ from genericFunction import MathUtils
 
 # Constants
 clint = '127.0.0.1'
-PORT = 8827
+PORT = 8833
 DEFAULT_BUFFER_SIZE = 1024
 DETECTION_RANGE = 500
 BOT_SPEED = 0.75
@@ -122,7 +122,7 @@ def allowUtalk():
     r=True
     while r:
         data, addr = server_socket.recvfrom(BUFFER_SIZE)
-        print(f"Received from {addr}: {data.decode()}")
+#        print(f"Received from {addr}: {data.decode()}")
 
         if data.decode().lower() == "hello":
             server_socket.sendto(b"1", addr)
