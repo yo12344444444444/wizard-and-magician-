@@ -441,7 +441,9 @@ def print_delete_buttons(display,event):
             button = buttons.Button(x, y + 65, button_image)
         if button.draw(display) and not CLICKED:
             CLICKED = True
-            delete_item_from_json(item,i)
+            if item != "0":
+                delete_item_from_json(item,i)
+                delete_item_inventory(item,i)
 
 ##########################################################################################################
 # switch and change things in inventory:
@@ -543,7 +545,6 @@ def draw_full_inventory_hp_bar(display):
     print the white area of the hp bar when the inventory is full
     """
     hp = get_health()
-    print(hp)
     lack = 100 - hp
     width = int((379 * lack) / 100)
     height = 22
@@ -823,22 +824,26 @@ def buy_item(item_id, money):
     return True
 
 
-def add_item_inventory(object_name, slot_index, has_space):
+def add_item_inventory(object_id, slot_index, has_space):
     """
 
     :return:
     """
+    object_name = id_to_name(object_id)
+    if object_name is None:
+        print(f"Invalid object_id: {object_id}")
+        return None
     url = f"{API_URL}/add-to-inventory"
     headers = {
         'Authorization': f'Bearer {TOKEN}',
         'Content-Type': 'application/json'
     }
     data = {
-        'object_name': object_name,
-        'slot_index': slot_index,
-        'has_space_in_inventory': has_space
-    }
-
+        "has_space_in_inventory": has_space,
+        "object_name": object_name,
+        "slot_index": slot_index
+        }
+    print("hayo",data)
     try:
         response = requests.post(url, json=data, headers=headers)
         if response.status_code == 200:
@@ -848,7 +853,7 @@ def add_item_inventory(object_name, slot_index, has_space):
         elif response.status_code == 404:
             print("Object not found on the map.")
         elif response.status_code == 400:
-            print("Bad request: Missing or invalid data.")
+            print("Bad request: Missing or invalid data.",response)
         elif response.status_code == 401:
             print("Unauthorized: Invalid or missing token.")
         else:
@@ -885,6 +890,15 @@ def send_use_object(item):
         print(f"Error connecting to server: {e}")
         return None
 
+
+def delete_item_inventory(object_id, slot_index):
+    """
+
+    :param object_id:
+    :param slot_index:
+    :return:
+    """
+    pass
 ##########################################################################################################
 # client not inventory:
 
@@ -1021,8 +1035,8 @@ def main():
     running = True
 
     inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon = create_icons()
-    enter_inventory_data_to_json()
 
+    enter_inventory_data_to_json()
     while running:
         screen.fill(BACK)
         for event in pygame.event.get():
