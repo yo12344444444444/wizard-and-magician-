@@ -1,6 +1,6 @@
 import json
 class MathUtils:
-    def getObjects():
+    def getObjects(self):
         with open("ips.json", "r") as f:
              y = json.load(f)
 
@@ -8,7 +8,7 @@ class MathUtils:
             y["players"] = {}
 
 
-        arr_obj = []
+        ar_obj = []
         for obj_id, data in y["players"].items():
             x, y_pos = map(int, data["pose"].split(","))
             id = data["id"]
