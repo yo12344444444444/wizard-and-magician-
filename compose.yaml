@@ -83,7 +83,7 @@ services:
       build:
         context: .
       volumes:
-        - ./servers_info.db:/app/database/servers_info.db
+        - ./servers_info.db:/app/database
       depends_on:
         - build_db
       command: ["python", "lb/mainServerV2.py"]

@@ -2,7 +2,7 @@ import sqlite3
 import findy
 
 # Connect to (or create) the database
-conn = sqlite3.connect('servers_info.db')
+conn = sqlite3.connect('/app/database/servers_info.db')
 c = conn.cursor()
 
 # Create table: server name, IP, port, and people count
