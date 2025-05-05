@@ -1,11 +1,8 @@
 from flask import Flask, request, jsonify
-import sqlite3
 from jose import jwt  # Replace PyJWT with jose.jwt
-import datetime
 import os
 from functools import wraps
 from flasgger import Swagger
-import time
 import threading
 from functionsServer import *
 
@@ -578,9 +575,9 @@ def movement(user_id):
 
     #  עדכון המיקום של השחקן לפי המהירות וגם בדיקה שלא יצא מגבולות המסך
     if direction == 'w' and y + move_amount <= screen_height * 40:
-        y += move_amount
-    elif direction == 's' and y - move_amount >= 0:
         y -= move_amount
+    elif direction == 's' and y - move_amount >= 0:
+        y += move_amount
     elif direction == 'a' and x - move_amount >= 0:
         x -= move_amount
     elif direction == 'd' and x + move_amount <= screen_width * 40:
@@ -1421,7 +1418,41 @@ def remove_from_inventory(user_id):
 
     return jsonify({'message': 'Item removed'}), 200
 
+@app.route('/respawn', methods=['POST'])
+@token_required
+def respawn(user_id):
+    conn = sqlite3.connect('DATABASE_GAME.db')
+    c = conn.cursor()
+
+    # Get current health
+    c.execute('SELECT health FROM players WHERE id = ?', (user_id,))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        return jsonify({'error': 'Player not found'}), 404
+
+    health = row[0]
+    if health > 0:
+        conn.close()
+        return jsonify({'message': 'Player is still alive'}), 400
+
+    # Respawn at a random location (adjust range as needed)
+    new_x = random.randint(100, 800)
+    new_y = random.randint(100, 600)
+    new_health = 100
+
+    # Update player
+    c.execute('UPDATE players SET position_x = ?, position_y = ?, health = ? WHERE id = ?',
+              (new_x, new_y, new_health, user_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({
+        'message': 'Player respawned',
+        'new_position': {'x': new_x, 'y': new_y},
+        'health': new_health
+    }), 200
+
 if __name__ == '__main__':
     move_bots()
     app.run(host='0.0.0.0', port=5000, debug=False)
-
