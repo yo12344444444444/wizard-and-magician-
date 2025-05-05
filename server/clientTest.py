@@ -294,7 +294,6 @@ def main():
         start = time.time()
         status_text = font.render("Bot Visualization - Press ESC to exit", True, WHITE)
         screen.blit(status_text, (10, 10))
-
         pygame.display.flip()
         clock.tick(FPS)
         print(f"loop: {time.time() - start}")
