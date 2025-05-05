@@ -11,7 +11,7 @@ from functionsServer import *
 
 def move_bots():
     start = time.time()
-    bots=get_all_bots()
+    bots = get_all_bots()
     players=get_all_players()
     for bot in bots:
         last_direction=bot['last_direction']
@@ -1331,6 +1331,95 @@ def get_inventory(user_id):
     ]
     return jsonify({"inventory": items}), 200
 
+@app.route('/remove_from_inventory', methods=['POST'])
+@token_required
+def remove_from_inventory(user_id):
+    """
+    Remove item from inventory
+    ---
+    tags:
+      - Inventory
+    consumes:
+      - application/json
+    parameters:
+      - in: header
+        name: Authorization
+        type: string
+        required: true
+        description: Bearer token for authentication
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            item_name:
+              type: string
+              example: Health Potion
+            slot_index:
+              type: integer
+              example: 2
+    responses:
+      200:
+        description: Item successfully removed from inventory
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: Item removed
+      400:
+        description: Item not found or does not match slot
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: Item not found in the specified slot
+      401:
+        description: Unauthorized
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: Token is missing or invalid
+    """
+    data = request.get_json()
+
+    item_name = data.get('item_name')
+    slot_index = data.get('slot_index')
+
+    if not item_name or slot_index is None:
+        return jsonify({'error': 'Missing item_name or slot_index'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Check if the item exists in this player's inventory at that slot
+    cursor.execute("""
+        SELECT * FROM inventory
+        WHERE player_id = ? AND slot_index = ?
+    """, (user_id, slot_index))
+    row = cursor.fetchone()
+
+    if row is None:
+        conn.close()
+        return jsonify({'error': 'No item found in that slot'}), 400
+
+    if row['name'] != item_name:
+        conn.close()
+        return jsonify({'error': f"Item in slot {slot_index} is '{row['name']}', not '{item_name}'"}), 400
+
+    # Proceed to delete
+    cursor.execute("""
+        DELETE FROM inventory
+        WHERE inventory_id = ?
+    """, (row['inventory_id'],))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Item removed'}), 200
 
 if __name__ == '__main__':
     move_bots()
