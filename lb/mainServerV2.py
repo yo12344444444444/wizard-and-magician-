@@ -30,7 +30,7 @@ def ggeter(port):
 
 # Connect to (or create) the database
 
-    DATABASE = 'DATABASE_GAME.db'
+    DATABASE = '/app/database/servers_info.db'
 
     # ✅ Create the database and players table if they don't exist
     def init_db():

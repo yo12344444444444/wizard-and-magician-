@@ -7,7 +7,7 @@ class Servers:
     def __init__(self):
         self.servers = {}
         # Connect to (or create) the database
-        self.conn = sqlite3.connect('servers_info.db')
+        self.conn = sqlite3.connect('/app/database/servers_info.db')
         self.c = self.conn.cursor()
 
         # Create tables for servers and people if they don't exist
