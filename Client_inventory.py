@@ -902,6 +902,37 @@ def delete_item_inventory(object_id, slot_index):
 ##########################################################################################################
 # client not inventory:
 
+
+def attack(event):
+    """
+
+    :return:
+    """
+    global CLICKED
+    if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not CLICKED:
+        x, y = event.pos
+        CLICKED = True
+        # ui buttons:
+        if 271 < x < 349 or 374 < x < 450 or 473 < x < 550 and 34 < y < 106:
+            return
+        # mini map:
+        if 28 < x < 240 and 34 < y < 236:
+            return
+        # current holding:
+        if 152 < x < 283 and 572 < y < 701:
+            return
+        # inventory:
+        if 351 < x < 1032 and 570 < y < 698:
+            return
+        # hp bar:
+        if 351 < x < 745 and 522 < y < 555:
+            return
+        # money:
+        if 1110 < x < 1262 and 661 < y < 700:
+            return
+        print("hayo")
+
+
 # Load the ghost images
 def load_images():
     try:
@@ -1044,6 +1075,8 @@ def main():
                 running = False
         game_state = get_game_state(token, SCREEN_WIDTH, SCREEN_HEIGHT)
         player_data = get_player_data(token)
+
+        attack(event)
 
         if player_data:
             player_x = player_data.get('position_x', SCREEN_WIDTH // 2)
