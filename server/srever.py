@@ -6,20 +6,22 @@ from flasgger import Swagger
 import threading
 from functionsServer import *
 
+
 def move_bots():
-    start = time.time()
-    bots = get_all_bots()
-    players=get_all_players()
-    for bot in bots:
-        last_direction=bot['last_direction']
-        closest_player_id,player_x,player_y = get_closest_player(bot['position_x'],bot['position_y'],players)
-        if closest_player_id is None:
-            continue
-        dx,dy = calculate_dx_dy(bot['position_x'],bot['position_y'],player_x,player_y)
-        chosen = choose_direction(last_direction, dx, dy)
-        bot_action(chosen, bot)
-    print(f"end move_bot {time.time()-start}")
-    threading.Timer(1, move_bots).start()
+    while True:
+        start = time.time()
+        bots = get_all_bots()
+        players = get_all_players()
+        for bot in bots:
+            last_direction = bot['last_direction']
+            closest_player_id, player_x, player_y = get_closest_player(bot['position_x'], bot['position_y'], players)
+            if closest_player_id is None:
+                continue
+            dx, dy = calculate_dx_dy(bot['position_x'], bot['position_y'], player_x, player_y)
+            chosen = choose_direction(last_direction, dx, dy)
+            print(chosen)
+            bot_action(chosen, bot)
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -53,11 +55,14 @@ def token_required(f):
         except:
             return jsonify({'error': 'Token is invalid!'}), 403
         return f(user_id=user_id, *args, **kwargs)
+
     return decorated
+
 
 @app.route('/')
 def home():
     return "Welcome to the Game API!"
+
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -152,6 +157,7 @@ def login():
         conn.close()
         return jsonify({'error': 'Invalid username or password'}), 401
 
+
 @app.route('/logout', methods=['POST'])
 @token_required
 def logout(user_id):
@@ -193,6 +199,7 @@ def logout(user_id):
     conn.close()
 
     return jsonify({'message': 'User logged out successfully'})
+
 
 @app.route('/get_player', methods=['GET'])
 @token_required
@@ -250,17 +257,18 @@ def get_player(user_id):
     conn.close()
 
     if player:
-     return jsonify({
-         'player_id': player['player_id'],
-         'username': player['username'],
-         'position_x': player['position_x'],
-         'position_y': player['position_y'],
-         'health': player['health'],
-         'coins': player['coins'],
-         'status': player['status']
-     })
+        return jsonify({
+            'player_id': player['player_id'],
+            'username': player['username'],
+            'position_x': player['position_x'],
+            'position_y': player['position_y'],
+            'health': player['health'],
+            'coins': player['coins'],
+            'status': player['status']
+        })
     else:
-     return jsonify({'error': 'Player not found'}), 404
+        return jsonify({'error': 'Player not found'}), 404
+
 
 @app.route('/signup', methods=['POST'])
 def signup():
@@ -346,6 +354,8 @@ def signup():
             'status': user['status']
         }
     })
+
+
 @app.route('/game_state', methods=['POST'])
 @token_required
 def game_state(user_id):
@@ -414,9 +424,7 @@ def game_state(user_id):
         player_status['respawn_position'] = attack_result['respawn_position']
 
     game_state_data['player_status'] = player_status
-    print(f"game_state end:{time.time() - start}")
     return jsonify(game_state_data), 200
-
 
 
 def get_game_state(user_id, screen_width, screen_height):
@@ -499,6 +507,7 @@ def get_game_state(user_id, screen_width, screen_height):
         'objects': objects
     }
 
+
 @app.route('/movement', methods=['POST'])
 @token_required
 def movement(user_id):
@@ -573,17 +582,18 @@ def movement(user_id):
     if direction not in ['w', 'a', 's', 'd']:
         return jsonify({'error': 'Invalid direction'}), 400
 
-    #  עדכון המיקום של השחקן לפי המהירות וגם בדיקה שלא יצא מגבולות המסך
     if direction == 'w' and y + move_amount <= screen_height * 40:
         y -= move_amount
-    elif direction == 's' and y - move_amount >= 0:
+        print("w")
+    elif direction == 's' :
         y += move_amount
+        print("s")
     elif direction == 'a' and x - move_amount >= 0:
         x -= move_amount
     elif direction == 'd' and x + move_amount <= screen_width * 40:
         x += move_amount
+    #  עדכון המיקום של השחקן לפי המהירות וגם בדיקה שלא יצא מגבולות המסך
 
-    print(f"player location: x: {x}, y: {y}, speed: {speed}")
 
     # עדכון מיקום השחקן
     cursor.execute("UPDATE players SET position_x = ?, position_y = ? WHERE player_id = ?", (x, y, user_id))
@@ -598,14 +608,12 @@ def movement(user_id):
 
     # הוספת אובייקט אם נמצא
     if obj:
-        print("found")
         game_data['object_found'] = {
             'name': obj['name'],
             'file': obj['file']
         }
 
     import json
-    print(json.dumps(game_data, indent=2))
     return jsonify(game_data), 200
 
 
@@ -613,9 +621,10 @@ def is_within_area(center_x, center_y, point_x, point_y, width, height):
     half_w = width // 2
     half_h = height // 2
     return (
-        center_x - half_w <= point_x <= center_x + half_w and
-        center_y - half_h <= point_y <= center_y + half_h
+            center_x - half_w <= point_x <= center_x + half_w and
+            center_y - half_h <= point_y <= center_y + half_h
     )
+
 
 def check_collision(user_id, x, y):
     conn = get_db_connection()
@@ -639,16 +648,16 @@ def check_collision(user_id, x, y):
     conn.close()
     return {'collision': False}
 
+
 import math
+
 
 def is_in_attack_range(attacker_pos, target_pos, range_px):
     dx = attacker_pos['x'] - target_pos['x']
-    print(dx)
     dy = attacker_pos['y'] - target_pos['y']
-    print(dy)
-    distance = math.sqrt(dx**2 + dy**2)
-    print(distance)
+    distance = math.sqrt(dx ** 2 + dy ** 2)
     return distance <= range_px
+
 
 @app.route('/attack', methods=['POST'])
 @token_required
@@ -740,7 +749,6 @@ def attack(user_id):
 
     attacker_pos = {'x': attacker['position_x'], 'y': attacker['position_y']}
 
-    print("datetime.datetime.utcnow()",datetime.datetime.utcnow())
     # עדכון זמן התקיפה האחרון של התוקף
     cursor.execute("UPDATE players SET last_attack_time = ? WHERE player_id = ?",
                    (datetime.datetime.utcnow(), user_id))
@@ -753,8 +761,6 @@ def attack(user_id):
             return jsonify({'error': 'Player not found'}), 404
 
         target_pos = {'x': target['position_x'], 'y': target['position_y']}
-        print(is_in_attack_range(attacker_pos, target_pos, weapon_range))
-        print("weapon_range",weapon_range)
         if not is_in_attack_range(attacker_pos, target_pos, weapon_range):
             conn.close()
             return jsonify({'message': 'Target out of range'}), 200
@@ -831,10 +837,12 @@ def attack(user_id):
     conn.close()
     return jsonify({'error': 'Unhandled target type'}), 400
 
+
 def generate_drops():
     possible_drops = ["money", "apple", "bush", "Dark_Potion", "Life_Potion", "Fire_Potion", "Poison_Potion"]
     return random.sample(possible_drops, 2)
     # אם לא פגיעה
+
 
 def was_player_hit(player_id):
     conn = get_db_connection()
@@ -857,7 +865,6 @@ def was_player_hit(player_id):
     bots = cursor.fetchall()
 
     current_time = int(time.time())
-    print(current_time)
     was_attacked = False
     player_died = False
     respawn_position = None
@@ -894,7 +901,8 @@ def was_player_hit(player_id):
                 conn.commit()
 
     # טיפול בפגיעות משחקנים אחרים
-    cursor.execute("SELECT player_id, position_x, position_y, last_attack_time FROM players WHERE player_id != ?", (player_id,))
+    cursor.execute("SELECT player_id, position_x, position_y, last_attack_time FROM players WHERE player_id != ?",
+                   (player_id,))
     other_players = cursor.fetchall()
 
     for p in other_players:
@@ -925,10 +933,11 @@ def was_player_hit(player_id):
                         conn.commit()
                         player_health = new_health
 
-                    cursor.execute("UPDATE players SET last_attack_time = ? WHERE player_id = ?", (current_time, other_id))
+                    cursor.execute("UPDATE players SET last_attack_time = ? WHERE player_id = ?",
+                                   (current_time, other_id))
                     conn.commit()
             except:
-                print("##################################################other_id",other_id)
+                pass
     conn.close()
 
     response = {
@@ -939,7 +948,6 @@ def was_player_hit(player_id):
     if player_died:
         response['respawn_position'] = respawn_position
 
-    print(response)
     return response
 
 
@@ -1081,6 +1089,7 @@ def add_to_inventory(user_id):
 
     return jsonify({'success': True, 'message': f'{object_name} added to inventory'}), 200
 
+
 @app.route('/use_object', methods=['POST'])
 @token_required
 def use_object(user_id):
@@ -1168,6 +1177,7 @@ def use_object(user_id):
     conn.commit()
     conn.close()
     return jsonify({'effect': effect}), 200
+
 
 @app.route('/buy_object', methods=['POST'])
 @token_required
@@ -1258,6 +1268,7 @@ def buy_object(user_id):
 
     return jsonify({'message': f'{object_name} added to inventory. {amount} money deducted.'}), 200
 
+
 @app.route('/get_inventory', methods=['GET'])
 @token_required
 def get_inventory(user_id):
@@ -1327,6 +1338,7 @@ def get_inventory(user_id):
         for row in inventory
     ]
     return jsonify({"inventory": items}), 200
+
 
 @app.route('/remove_from_inventory', methods=['POST'])
 @token_required
@@ -1418,6 +1430,7 @@ def remove_from_inventory(user_id):
 
     return jsonify({'message': 'Item removed'}), 200
 
+
 @app.route('/respawn', methods=['POST'])
 @token_required
 def respawn(user_id):
@@ -1453,6 +1466,10 @@ def respawn(user_id):
         'health': new_health
     }), 200
 
+
+t1 = threading.Thread(move_bots())
+t2 = threading.Thread(app.run(host='0.0.0.0', port=5000, debug=False))
 if __name__ == '__main__':
-    move_bots()
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    t2.start()
+    t1.start()
+

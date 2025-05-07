@@ -150,14 +150,12 @@ def calculate_dx_dy(bot_x,bot_y,player_x,player_y):
     return dx, dy
 
 def get_all_bots():
-    print(f"get_all_bots start: {datetime.datetime.now()}")
     conn = sqlite3.connect("../DATABASE_GAME.db")
     conn.row_factory = sqlite3.Row  # מאפשר גישה לפי שמות
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM bots")
     rows = cursor.fetchall()
     conn.close()
-    print(f"get_all_bots end: {datetime.datetime.now()}")
     return [dict(row) for row in rows]  # הפיכת כל Row ל־dict
 
 def get_all_bot_ids():
