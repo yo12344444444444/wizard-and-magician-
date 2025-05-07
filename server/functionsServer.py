@@ -66,7 +66,6 @@ def bot_action(action,bot):
             x -= 7  # left
         cursor.execute("UPDATE bots SET position_x = ?, position_y = ? WHERE bot_id = ?", (x, y, bot['bot_id']))
         conn.commit()
-        print(f"bot_action 1-4 {time.time() - start}")
 
     elif action == 5:
         start = time.time()
@@ -84,16 +83,13 @@ def bot_action(action,bot):
                 new_health = max(0, player['health'] - 10)
                 cursor.execute("UPDATE players SET health = ? WHERE player_id = ?", (new_health, player_id))
                 conn.commit()
-                print(f"Bot {bot['bot_id']} attacked Player {player_id}, new health: {new_health}")
     conn.close()
-    print(f"bot_action end {time.time() - start}")
 
 
 def update_specific_bot(action,bot_id):
     conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    print(bot_id)
     # שלב 1: קח את הבוט הספציפי
     cursor.execute("SELECT * FROM bots WHERE bot_id = ?", (bot_id,))
     bot = cursor.fetchone()
@@ -127,7 +123,6 @@ def update_specific_bot(action,bot_id):
                     new_health = max(0, player['health'] - 10)
                     cursor.execute("UPDATE players SET health = ? WHERE player_id = ?", (new_health, player_id))
                     conn.commit()
-                    print(f"Bot {bot_id} attacked Player {player_id}, new health: {new_health}")
     conn.close()
 
 
@@ -219,4 +214,3 @@ def get_closest_player_id_to_bot(bot_id):
     conn.close()
     return closest_player_id
 
-print(get_last_bot_position(5))

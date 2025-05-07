@@ -34,7 +34,6 @@ def load_images():
         current_dir = os.getcwd()
         parent_dir = os.path.dirname(current_dir)
         base_path = os.path.join(parent_dir, 'graphic', 'bot')
-        print(f"Looking for images in: {base_path}")
         ghost_images = {
             'front': pygame.image.load(os.path.join(base_path, 'Ghost_Front.png')).convert(),
             'back': pygame.image.load(os.path.join(base_path, 'Ghost_Back.png')).convert(),
@@ -45,7 +44,6 @@ def load_images():
             ghost_images[key].set_colorkey(WHITE)
         return ghost_images
     except pygame.error as e:
-        print(f"Error loading bot images: {e}")
         return None
 
 # Load player image
@@ -54,10 +52,8 @@ def load_player_image():
         current_dir = os.getcwd()
         parent_dir = os.path.dirname(current_dir)
         player_path = os.path.join(parent_dir, 'graphic', 'Standing_front.png')
-        print(f"Looking for player image at: {player_path}")
         return pygame.image.load(player_path).convert_alpha()
     except pygame.error as e:
-        print(f"Error loading player image: {e}")
         return None
 
 # Draw an object relative to the player's position
@@ -80,7 +76,6 @@ def load_object_images():
         current_dir = os.getcwd()
         parent_dir = os.path.dirname(current_dir)
         object_path = os.path.join(parent_dir, 'graphic')
-        print(f"Looking for object images in: {object_path}")
         object_images = {}
 
         for filename in os.listdir(object_path):

@@ -1,3 +1,5 @@
+import socket
+
 from flask import Flask, request, jsonify
 from jose import jwt  # Replace PyJWT with jose.jwt
 import os
@@ -9,7 +11,6 @@ from functionsServer import *
 
 def move_bots():
     while True:
-        start = time.time()
         bots = get_all_bots()
         players = get_all_players()
         for bot in bots:
@@ -19,7 +20,6 @@ def move_bots():
                 continue
             dx, dy = calculate_dx_dy(bot['position_x'], bot['position_y'], player_x, player_y)
             chosen = choose_direction(last_direction, dx, dy)
-            print(chosen)
             bot_action(chosen, bot)
 
 
@@ -41,6 +41,7 @@ app.config['SWAGGER'] = {
 swagger = Swagger(app)
 app.config['SECRET_KEY'] = 'your_secret_key'
 DATABASE = ('../DATABASE_GAME.db')
+
 
 
 def token_required(f):
@@ -584,10 +585,8 @@ def movement(user_id):
 
     if direction == 'w' and y + move_amount <= screen_height * 40:
         y -= move_amount
-        print("w")
     elif direction == 's' :
         y += move_amount
-        print("s")
     elif direction == 'a' and x - move_amount >= 0:
         x -= move_amount
     elif direction == 'd' and x + move_amount <= screen_width * 40:
@@ -1466,10 +1465,12 @@ def respawn(user_id):
         'health': new_health
     }), 200
 
-
-t1 = threading.Thread(move_bots())
-t2 = threading.Thread(app.run(host='0.0.0.0', port=5000, debug=False))
+def run():
+    app.run(host='0.0.0.0', port=5000, debug=False)
+t1 = threading.Thread(target = move_bots , args = ())
+t2 = threading.Thread(target = run, args = ())
 if __name__ == '__main__':
-    t2.start()
+    pass
     t1.start()
+    t2.start()
 
