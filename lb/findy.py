@@ -10,7 +10,7 @@ def main():
     # Use UDP socket for broadcasting
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    client_socket.settimeout(0.1)
+    client_socket.settimeout(5)  # Increased timeout for better chances of receiving data
 
     # Send the broadcast to all ports in range
     for port in PORT_LIST:
@@ -23,10 +23,11 @@ def main():
     servers = {}  # List of (addr, response)
     start = time.time()
 
-    while time.time() - start < 3:
+    while time.time() - start < 5:  # Increased timeout duration
         try:
             data, addr = client_socket.recvfrom(BUFFER_SIZE)
-            servers[data.decode()]= addr
+            print(f"Received from {addr}: {data.decode()}")  # Log what we receive
+            servers[data.decode()[0:2]] = [addr[0], data.decode()[2:]]
         except socket.timeout:
             continue
 
@@ -34,4 +35,12 @@ def main():
     return servers
 
 if __name__ == '__main__':
-    print(main())
+    data = main()
+    print("Received data:", data)
+
+    # Check if 'lb' key exists in the received data before accessing it
+    if 'lb' in data:
+        addr = data['lb']
+        print(f"Address for 'lb': {addr}")
+    else:
+        print("'lb' not found in the response data")

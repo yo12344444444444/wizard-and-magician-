@@ -29,10 +29,12 @@ swagger = Swagger(app)
 app.config['SECRET_KEY'] = 'your_secret_key'
 DATABASE = ('../DATABASE_GAME.db')
 
+
 def get_db_connection():
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     return conn
+
 
 def token_required(f):
     @wraps(f)
@@ -46,11 +48,14 @@ def token_required(f):
         except:
             return jsonify({'error': 'Token is invalid!'}), 403
         return f(user_id=user_id, *args, **kwargs)
+
     return decorated
+
 
 @app.route('/')
 def home():
     return "Welcome to the Game API!"
+
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -145,6 +150,7 @@ def login():
         conn.close()
         return jsonify({'error': 'Invalid username or password'}), 401
 
+
 @app.route('/logout', methods=['POST'])
 @token_required
 def logout(user_id):
@@ -186,6 +192,7 @@ def logout(user_id):
     conn.close()
 
     return jsonify({'message': 'User logged out successfully'})
+
 
 @app.route('/get_player', methods=['GET'])
 @token_required
@@ -243,17 +250,18 @@ def get_player(user_id):
     conn.close()
 
     if player:
-     return jsonify({
-         'player_id': player['player_id'],
-         'username': player['username'],
-         'position_x': player['position_x'],
-         'position_y': player['position_y'],
-         'health': player['health'],
-         'coins': player['coins'],
-         'status': player['status']
-     })
+        return jsonify({
+            'player_id': player['player_id'],
+            'username': player['username'],
+            'position_x': player['position_x'],
+            'position_y': player['position_y'],
+            'health': player['health'],
+            'coins': player['coins'],
+            'status': player['status']
+        })
     else:
-     return jsonify({'error': 'Player not found'}), 404
+        return jsonify({'error': 'Player not found'}), 404
+
 
 @app.route('/signup', methods=['POST'])
 def signup():
@@ -340,6 +348,7 @@ def signup():
         }
     })
 
+
 @app.route('/game_state', methods=['POST'])
 @token_required
 def game_state(user_id):
@@ -418,7 +427,6 @@ def game_state(user_id):
     game_state_data['player_status'] = player_status
 
     return jsonify(game_state_data), 200
-
 
 
 def get_game_state(user_id, screen_width, screen_height):
@@ -500,6 +508,7 @@ def get_game_state(user_id, screen_width, screen_height):
         'bots': bots,
         'objects': objects
     }
+
 
 @app.route('/movement', methods=['POST'])
 @token_required
@@ -615,9 +624,10 @@ def is_within_area(center_x, center_y, point_x, point_y, width, height):
     half_w = width // 2
     half_h = height // 2
     return (
-        center_x - half_w <= point_x <= center_x + half_w and
-        center_y - half_h <= point_y <= center_y + half_h
+            center_x - half_w <= point_x <= center_x + half_w and
+            center_y - half_h <= point_y <= center_y + half_h
     )
+
 
 def check_collision(user_id, x, y):
     conn = get_db_connection()
@@ -641,16 +651,19 @@ def check_collision(user_id, x, y):
     conn.close()
     return {'collision': False}
 
+
 import math
+
 
 def is_in_attack_range(attacker_pos, target_pos, range_px):
     dx = attacker_pos['x'] - target_pos['x']
     print(dx)
     dy = attacker_pos['y'] - target_pos['y']
     print(dy)
-    distance = math.sqrt(dx**2 + dy**2)
+    distance = math.sqrt(dx ** 2 + dy ** 2)
     print(distance)
     return distance <= range_px
+
 
 @app.route('/attack', methods=['POST'])
 @token_required
@@ -755,7 +768,7 @@ def attack(user_id):
 
         target_pos = {'x': target['position_x'], 'y': target['position_y']}
         print(is_in_attack_range(attacker_pos, target_pos, weapon_range))
-        print("weapon_range",weapon_range)
+        print("weapon_range", weapon_range)
         if not is_in_attack_range(attacker_pos, target_pos, weapon_range):
             conn.close()
             return jsonify({'message': 'Target out of range'}), 200
@@ -832,10 +845,12 @@ def attack(user_id):
     conn.close()
     return jsonify({'error': 'Unhandled target type'}), 400
 
+
 def generate_drops():
     possible_drops = ["money", "apple", "bush", "Dark_Potion", "Life_Potion", "Fire_Potion", "Poison_Potion"]
     return random.sample(possible_drops, 2)
     # אם לא פגיעה
+
 
 def was_player_hit(player_id):
     conn = get_db_connection()
@@ -891,7 +906,8 @@ def was_player_hit(player_id):
                 cursor.execute("UPDATE bots SET last_attack_time = ? WHERE bot_id = ?", (current_time, bot_id))
 
     # טיפול בפגיעות משחקנים אחרים
-    cursor.execute("SELECT player_id, position_x, position_y, last_attack_time FROM players WHERE player_id != ?", (player_id,))
+    cursor.execute("SELECT player_id, position_x, position_y, last_attack_time FROM players WHERE player_id != ?",
+                   (player_id,))
     other_players = cursor.fetchall()
 
     for p in other_players:
@@ -1074,6 +1090,7 @@ def add_to_inventory(user_id):
 
     return jsonify({'success': True, 'message': f'{object_name} added to inventory'}), 200
 
+
 @app.route('/use_object', methods=['POST'])
 @token_required
 def use_object(user_id):
@@ -1161,6 +1178,7 @@ def use_object(user_id):
     conn.commit()
     conn.close()
     return jsonify({'effect': effect}), 200
+
 
 @app.route('/buy_object', methods=['POST'])
 @token_required
@@ -1251,6 +1269,7 @@ def buy_object(user_id):
 
     return jsonify({'message': f'{object_name} added to inventory. {amount} money deducted.'}), 200
 
+
 @app.route('/get_inventory', methods=['GET'])
 @token_required
 def get_inventory(user_id):
@@ -1320,38 +1339,57 @@ def get_inventory(user_id):
         for row in inventory
     ]
     return jsonify({"inventory": items}), 200
-def ipSender(port):
 
 
-    PORT = port
+def ipSender(udp_port, flask_port):
     BUFFER_SIZE = 1024
 
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_socket.bind(("", PORT))  # Listen on all IPs
+    try:
+        server_socket.bind(("", udp_port))
+    except OSError as e:
+        print(f"UDP bind failed on port {udp_port}: {e}")
+        return
 
     while True:
         data, addr = server_socket.recvfrom(BUFFER_SIZE)
         print(f"Received from {addr}: {data.decode()}")
 
         if data.decode().lower() == "hello":
-            server_socket.sendto(b"1", addr)
-def PortDefinder():
-    port = 5000
-    result=0
-    while result == 0:
+            response = f"1{flask_port}".encode()
+            server_socket.sendto(response, addr)
+
+
+def sendDbToLb(addr):
+    ip, port = addr
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.connect((ip, port))
+        CHUNK_SIZE = 4096
+        with open(DATABASE, "rb") as f:
+            while chunk := f.read(CHUNK_SIZE):
+                s.sendall(chunk)
+
+
+def PortDefinder(start_port):
+    port = start_port
+    while True:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            result = sock.connect_ex(('localhost', port))
-        if result == 0:
-                port+=1
-    return port
+            if sock.connect_ex(('localhost', port)) != 0:
+                return port
+        port += 1
+
 
 def run(port):
     app.run(host='0.0.0.0', port=port, debug=False)
 
+
 if __name__ == '__main__':
-    port = PortDefinder()
-    print(port)
-    t1 = threading.Thread(target= ipSender, args=(port,))
-    t2 = threading.Thread(target=run, args=(port,))
+    flask_port = PortDefinder(5000)
+    udp_port = PortDefinder(flask_port + 1)
+
+    print(f"Flask Port: {flask_port}, UDP Port: {udp_port}")
+
+    t1 = threading.Thread(target=ipSender, args=(udp_port, flask_port))
+    t2 = threading.Thread(target=run, args=(flask_port,))
     t2.start()
     t1.start()

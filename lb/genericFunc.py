@@ -3,7 +3,23 @@ import findy
 import socket
 import threading
 
+
+
+
 class Servers:
+    def get_player(self,port, p):
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.bind(("0.0.0.0", port))
+        print(f"Listening for UDP on port {port}")
+
+        while True:
+            data, addr = s.recvfrom(1024)
+            #print(f"Received from {addr}: {data.decode(errors='ignore')}")
+            msg = "lb"+str(p)
+            if data.decode(errors='ignore') == "r":
+                s.sendto(msg.encode(), addr)
+            elif data.decode(errors='ignore') == "p":
+                sendDb()
     def __init__(self):
         self.servers = {}
         # Connect to (or create) the database
@@ -42,16 +58,6 @@ class Servers:
         self.conn.commit()
 
     # Method to get a player (client) connection on a free port
-    def get_player(self,port):
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.bind(("0.0.0.0", port))
-        print(f"Listening for UDP on port {port}")
-
-        while True:
-            data, addr = s.recvfrom(1024)
-            print(f"Received from {addr}: {data.decode(errors='ignore')}")
-            if data.decode(errors='ignore') == "r":
-                s.sendto(b"lb", addr)
     # Close the database connection
     def close_connection(self):
         self.conn.close()
