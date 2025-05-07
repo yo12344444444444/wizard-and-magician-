@@ -61,7 +61,7 @@ def handle_chat_message(message):
 pygame.init()
 
 client = ChatClient('localhost',5005,handle_chat_message)
-client.connect("user")
+client.connect("user2")
 client.start()
 
 TEXT = ""

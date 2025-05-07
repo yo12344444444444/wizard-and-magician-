@@ -24,7 +24,7 @@ class ChatClient:
         self.username = username
         connect_message = {
             "type": "connect",
-            "client_name": self.username,
+            "client_name": self.username + ":",
             "client_port": self.client_address[1],
             "content": ""
         }
