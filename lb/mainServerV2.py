@@ -197,9 +197,9 @@ def add_test_user():
 
 add_test_user()
 port = PortDefinder(5000)
-p = PortDefinder(port+1)
+p = PortDefinder(port+2)
 s = Servers()
-print(p)
+print(p, port)
 t1 = threading.Thread(target=ggeter, args=(port, ))
 t2 = threading.Thread(target=s.get_player, args=(p, port,))
 
