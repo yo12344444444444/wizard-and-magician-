@@ -360,10 +360,12 @@ def main(ip, port):
     IP = ip
     PORT = port
     pygame.init()
-    screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+    screen_width = 1280
+    screen_height = 720
+    screen = pygame.display.set_mode((screen_width, screen_height))
     print()
     pygame.display.set_caption("game")
-    screen_width, screen_height = pygame.display.get_surface().get_size()
+
     print(screen_width, screen_height)
     token=home_screen(screen, screen_width, screen_height)
     if token:
