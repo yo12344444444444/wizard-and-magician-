@@ -1,8 +1,7 @@
 import pygame
+import socket
 from server import clientTest
-import requests
 DEFAULT_BUFFER_SIZE = 35
-API_URL = 'http://127.0.0.1:5000'
 
 HOME_SCREEN = 'screens\HomeScreen1.0.png'
 INSTRUCTION1 = 'screens\InstructionsA1.0.jpg'
@@ -170,6 +169,7 @@ def loging_screen(screen, screen_width, screen_height):
                 elif len(username_text) < 10:
                     username_text += event.unicode
 
+
             elif password_input_active and event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_BACKSPACE:
                     password_text = password_text[:-1]
@@ -302,7 +302,7 @@ def signing_screen(screen, screen_width, screen_height):
         pygame.display.flip()
 
 def create_user(username,password):
-    token=signup(username, password)
+    token=clientTest.signup(username, password)
 
     return token is not None
 
@@ -327,7 +327,7 @@ def create_user(username,password):
 #    return True
 
 def enter_user(username,password):
-    token=login(username, password)
+    token=clientTest.login(username, password)
     if not token:
         print("Login failed, exiting...")
         return None
@@ -354,27 +354,6 @@ def enter_user(username,password):
 #    if packed_data[0] == 0:
 #        return False # the user doesn't exist
 #    return True
-# Login and get token
-def login(username, password):
-    try:
-        response = requests.post(f'{API_URL}/login', json={'username': username, 'password': password})
-        if response.status_code == 200:
-            token = response.json().get('token')
-            print(f"Login successful! Token: {token}")
-            return token
-        else:
-            print(f"Login error: {response.status_code} - {response.text}")
-            return None
-    except requests.exceptions.RequestException as e:
-        print(f"Connection error: {e}")
-        return None
-
-def signup(username, password):
-    url = f"{API_URL}/signup"
-    response = requests.post(url, json={"username": username, "password": password})
-    if response.status_code == 201:
-        return response.json().get("token")  # או True אם אין טוקן
-    return None
 
 def main(ip, port):
     global IP, PORT
@@ -384,15 +363,13 @@ def main(ip, port):
     screen_width = 1280
     screen_height = 720
     screen = pygame.display.set_mode((screen_width, screen_height))
-    pygame.display.set_caption("Game")
+    print()
+    pygame.display.set_caption("game")
 
-    token = home_screen(screen, screen_width, screen_height)
+    print(screen_width, screen_height)
+    token=home_screen(screen, screen_width, screen_height)
     if token:
-        print("Token received, starting the game...")
-        clientTest.main(token)  # כאן תפעיל את הקליינט שלך עם הטוקן
-    else:
-        print("No token received, exiting.")
-
+        return token
     pygame.quit()
 
 if __name__ == "__main__":

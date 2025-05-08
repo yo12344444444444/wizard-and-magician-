@@ -221,5 +221,4 @@ def get_closest_player_id_to_bot(bot_id):
     conn.close()
     return closest_player_id
 
-
 print(get_last_bot_position(5))
