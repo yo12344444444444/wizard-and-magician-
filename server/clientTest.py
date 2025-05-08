@@ -56,6 +56,7 @@ def load_player_image():
         print(f"Error loading player image: {e}")
         return None
 
+
 # Draw an object relative to the player's position
 def draw_object(screen, obj, player_x, player_y, object_images):
     obj_x = obj.get('x', 0)
