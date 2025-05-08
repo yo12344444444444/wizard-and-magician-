@@ -371,9 +371,9 @@ def print_current_holding(display,event):
     cell = buttons.Button(x, y, image)
     if cell.draw(display) and not CLICKED:
         CLICKED = True
-        if item != "0" or "1" or "2" or "3" or "4" or "5" or "12" or "13" or "14":
+        if item not in ["0", "1", "2", "3", "4", "5", "12", "13", "14"]:
             send_use_object(item)
-        if item == "6" or "7" or "8" or "10" or "11":
+        if item in ["6", "7", "8", "10", "11"]:
             delete_item_from_json(item,  data_cells["cells"]["19"]["cell"])
 
     if data_items["items"][item]["stackable"]:
@@ -905,9 +905,14 @@ def delete_item_inventory(object_id, slot_index):
 
 def attack(event):
     """
-
+    sends to the server where the player attacked and the type of the weapon
     :return:
     """
+    with open("inventory.json", "r") as file_cells:
+        data_cells = json.load(file_cells)
+    cell = data_cells["cells"]["19"]["cell"]  # cell - number of the cell that the current holding holds
+    held_cell = data_cells["cells"][cell]
+    item = held_cell["item"]
     global CLICKED
     if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not CLICKED:
         x, y = event.pos
@@ -930,8 +935,28 @@ def attack(event):
         # money:
         if 1110 < x < 1262 and 661 < y < 700:
             return
+        if item not in ["1", "2", "3", "4", "5"]:
+            return
         print("hayo")
 
+        headers = {
+            'Authorization': f'Bearer {TOKEN}',
+            'Content-Type': 'application/json'
+        }
+        data = {
+            'x': x,
+            'y': y,
+            'weapon_type': id_to_name(item)
+        }
+        response = requests.post(API_URL, headers=headers, json=data)
+
+        try:
+            print("Status code:", response.status_code)
+            print("Response JSON:", response.json())
+        except Exception as e:
+            print("Failed to parse response as JSON:", e)
+            print("Raw response:", response.text)
+    return
 
 # Load the ghost images
 def load_images():
