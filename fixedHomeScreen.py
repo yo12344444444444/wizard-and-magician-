@@ -368,7 +368,6 @@ def login(username, password):
     except requests.exceptions.RequestException as e:
         print(f"Connection error: {e}")
         return None
-
 def signup(username, password):
     url = f"{API_URL}/signup"
     response = requests.post(url, json={"username": username, "password": password})
