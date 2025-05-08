@@ -1,6 +1,4 @@
 import pygame
-
-
 import buttons
 import json
 import requests

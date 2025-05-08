@@ -4,6 +4,8 @@ import os
 from functools import wraps
 from flasgger import Swagger
 import threading
+import json
+import math
 from functionsServer import *
 
 def move_bots():
@@ -556,8 +558,6 @@ def movement(user_id):
     direction = data.get('direction')
     screen_width = data.get('screen_width')
     screen_height = data.get('screen_height')
-
-    # קבלת המהירות מהטבלה של השחקן
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT position_x, position_y, speed FROM players WHERE player_id = ?", (user_id,))
@@ -568,19 +568,17 @@ def movement(user_id):
         return jsonify({'error': 'Player not found'}), 404
 
     x, y, speed = player['position_x'], player['position_y'], player['speed']
-    move_amount = speed  # המהירות תהיה לפי הערך בטבלה
-
+    move_amount = speed
     if direction not in ['w', 'a', 's', 'd']:
         return jsonify({'error': 'Invalid direction'}), 400
 
-    #  עדכון המיקום של השחקן לפי המהירות וגם בדיקה שלא יצא מגבולות המסך
-    if direction == 'w' and y + move_amount <= screen_height * 40:
+    if direction == 'w' and y + move_amount <= screen_height * 20:
         y -= move_amount
     elif direction == 's' and y - move_amount >= 0:
         y += move_amount
     elif direction == 'a' and x - move_amount >= 0:
         x -= move_amount
-    elif direction == 'd' and x + move_amount <= screen_width * 40:
+    elif direction == 'd' and x + move_amount <= screen_width * 20:
         x += move_amount
 
     print(f"player location: x: {x}, y: {y}, speed: {speed}")
@@ -604,7 +602,6 @@ def movement(user_id):
             'file': obj['file']
         }
 
-    import json
     print(json.dumps(game_data, indent=2))
     return jsonify(game_data), 200
 
@@ -638,8 +635,6 @@ def check_collision(user_id, x, y):
 
     conn.close()
     return {'collision': False}
-
-import math
 
 def is_in_attack_range(attacker_pos, target_pos, range_px):
     dx = attacker_pos['x'] - target_pos['x']

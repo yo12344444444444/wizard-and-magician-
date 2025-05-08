@@ -8,8 +8,8 @@ import os
 pygame.init()
 
 # Constants for screen dimensions
-SCREEN_WIDTH = 900
-SCREEN_HEIGHT = 700
+SCREEN_WIDTH = 1280
+SCREEN_HEIGHT = 720
 FPS = 30
 
 # Colors
@@ -27,12 +27,9 @@ pygame.display.set_caption('Bot Visualization')
 # Font for displaying text
 font = pygame.font.SysFont('Arial', 16)
 
-# Load ghost images (bot sprites)
 def load_images():
     try:
-        current_dir = os.getcwd()
-        parent_dir = os.path.dirname(current_dir)
-        base_path = os.path.join(parent_dir, 'graphic', 'bot')
+        base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'graphic', 'bot'))
         print(f"Looking for images in: {base_path}")
         ghost_images = {
             'front': pygame.image.load(os.path.join(base_path, 'Ghost_Front.png')).convert(),
@@ -41,7 +38,7 @@ def load_images():
             'right': pygame.image.load(os.path.join(base_path, 'Ghost_Right.png')).convert()
         }
         for key in ghost_images:
-            ghost_images[key].set_colorkey(WHITE)
+            ghost_images[key].set_colorkey((255, 255, 255))
         return ghost_images
     except pygame.error as e:
         print(f"Error loading bot images: {e}")
@@ -50,11 +47,11 @@ def load_images():
 # Load player image
 def load_player_image():
     try:
-        current_dir = os.getcwd()
-        parent_dir = os.path.dirname(current_dir)
-        player_path = os.path.join(parent_dir, 'graphic', 'Standing_front.png')
+        player_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'graphic'))
         print(f"Looking for player image at: {player_path}")
-        return pygame.image.load(player_path).convert_alpha()
+        player_image = pygame.image.load(os.path.join(player_path, 'Standing_front.png')).convert()
+        player_image.set_colorkey((0, 0, 0))
+        return player_image
     except pygame.error as e:
         print(f"Error loading player image: {e}")
         return None
@@ -76,9 +73,7 @@ def draw_object(screen, obj, player_x, player_y, object_images):
 # Load all object images from the graphic folder
 def load_object_images():
     try:
-        current_dir = os.getcwd()
-        parent_dir = os.path.dirname(current_dir)
-        object_path = os.path.join(parent_dir, 'graphic')
+        object_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'graphic'))
         print(f"Looking for object images in: {object_path}")
         object_images = {}
 
@@ -110,6 +105,13 @@ def login(username, password):
     except requests.exceptions.RequestException as e:
         print(f"Connection error: {e}")
         return None
+
+def signup(username, password):
+    url = f"{API_URL}/signup"
+    response = requests.post(url, json={"username": username, "password": password})
+    if response.status_code == 201:
+        return response.json().get("token")  # או True אם אין טוקן
+    return None
 
 # Handle player movement and request updated game state
 def handle_player_movement(token, screen_width, screen_height):
@@ -215,7 +217,7 @@ def draw_player(screen, player_image):
     screen.blit(player_image, player_rect)
 
 # Main game loop
-def main():
+def main(token):
     ghost_images = load_images()
     player_image = load_player_image()
     object_images = load_object_images()
@@ -228,13 +230,6 @@ def main():
         return
     if not object_images:
         print("Error: Object images were not loaded.")
-        return
-
-    username = '2212'
-    password = '2212'
-    token = login(username, password)
-    if not token:
-        print("Login failed. Exiting...")
         return
 
     clock = pygame.time.Clock()
