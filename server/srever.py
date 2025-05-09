@@ -726,7 +726,7 @@ def attack(user_id):
     }
 
     damage = weapon_damage.get(weapon_type, 5)
-    weapon_range = weapon_range_map.get(weapon_type, 50)
+    weapon_range = weapon_range_map.get(weapon_type, 150)
 
     conn = get_db_connection()
     conn.row_factory = sqlite3.Row
@@ -832,7 +832,8 @@ def attack(user_id):
     return jsonify({'error': 'Unhandled target type'}), 400
 
 def generate_drops():
-    possible_drops = ["money", "apple", "bush", "Dark_Potion", "Life_Potion", "Fire_Potion", "Poison_Potion"]
+    possible_drops = ["money", "apple", "blueberry", "Dark_Potion", "Life_Potion", "Fire_Potion", "Poison_Potion"]
+
     return random.sample(possible_drops, 2)
     # אם לא פגיעה
 
@@ -1080,6 +1081,166 @@ def add_to_inventory(user_id):
     conn.close()
 
     return jsonify({'success': True, 'message': f'{object_name} added to inventory'}), 200
+@app.route('/add_coin', methods=['POST'])
+@token_required
+def add_coin(user_id):
+    """
+    Add Coins to Player
+    ---
+    security:
+      - BearerAuth: []
+    tags:
+      - Game
+    consumes:
+      - application/json
+    parameters:
+      - name: Authorization
+        in: header
+        type: string
+        required: true
+        description: Bearer token (e.g., "Bearer <your_token>")
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - amount
+          properties:
+            amount:
+              type: integer
+              example: 100
+              description: Amount of coins to add
+    responses:
+      200:
+        description: Coins successfully added
+      400:
+        description: Missing or invalid data
+      401:
+        description: Unauthorized
+    """
+    data = request.get_json()
+    amount = data.get('amount')
+
+    if not isinstance(amount, int) or amount <= 0:
+        return jsonify({'error': 'Invalid amount'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Update player's currency
+    cursor.execute("""
+        UPDATE players SET currency = currency + ?
+        WHERE player_id = ?
+    """, (amount, user_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'success': True, 'message': f'{amount} coins added to player {user_id}'}), 200
+
+@app.route('/add_item', methods=['POST'])
+@token_required
+def add_item(user_id):
+    """
+    Add Item to Inventory via Drop
+    ---
+    security:
+      - BearerAuth: []
+    tags:
+      - Game
+    consumes:
+      - application/json
+    parameters:
+      - name: Authorization
+        in: header
+        type: string
+        required: true
+        description: Bearer token (e.g., "Bearer <your_token>")
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - item_name
+            - slot_index
+            - has_space_in_inventory
+          properties:
+            item_name:
+              type: string
+              example: "Apple_Inventory"
+              description: The name of the item to add to inventory
+            slot_index:
+              type: integer
+              example: 1
+              description: The index of the inventory slot
+            has_space_in_inventory:
+              type: boolean
+              example: true
+              description: Whether there is space for the item in inventory
+    responses:
+      200:
+        description: Item successfully added or status returned
+      400:
+        description: Missing or invalid data
+      401:
+        description: Unauthorized
+      404:
+        description: Item not found on map
+    """
+    data = request.get_json()
+    item_name = data.get('item_name')
+    has_space = data.get('has_space_in_inventory')
+    slot_index = data.get('slot_index')
+
+    if None in (item_name, has_space, slot_index):
+        return jsonify({'error': 'Missing data'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT * FROM map_objects WHERE name = ?
+    """, (item_name,))
+    obj = cursor.fetchone()
+
+    if not obj:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Item not found on map'}), 404
+
+    if not has_space:
+        conn.close()
+        return jsonify({'success': False, 'message': 'No space in inventory'}), 200
+
+    if obj['name'] in ['tree', 'bush']:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Item cannot be added to inventory'}), 200
+
+    cursor.execute("""
+        SELECT * FROM inventory
+        WHERE player_id = ? AND name = ? AND slot_index = ?
+    """, (user_id, obj['name'], slot_index))
+    existing_item = cursor.fetchone()
+
+    if existing_item:
+        cursor.execute("""
+            UPDATE inventory
+            SET quantity = quantity + 1
+            WHERE inventory_id = ?
+        """, (existing_item['inventory_id'],))
+    else:
+        cursor.execute("""
+            INSERT INTO inventory (player_id, name, slot_index, quantity)
+            VALUES (?, ?, ?, 1)
+        """, (user_id, obj['name'], slot_index))
+
+    cursor.execute("""
+        DELETE FROM map_objects WHERE object_id = ?
+    """, (obj['object_id'],))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'success': True, 'message': f'{item_name} added to inventory'}), 200
 
 @app.route('/use_object', methods=['POST'])
 @token_required

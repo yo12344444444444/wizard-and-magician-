@@ -479,7 +479,7 @@ def main(ip, port):
     token = home_screen(screen, screen_width, screen_height)
     if token:
         print("Token received, starting the game...")
-        clientTest.main()  # כאן תפעיל את הקליינט שלך עם הטוקן
+        clientTest.main(token)  # כאן תפעיל את הקליינט שלך עם הטוקן
     else:
         print("No token received, exiting.")
 
