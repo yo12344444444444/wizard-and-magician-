@@ -8,8 +8,8 @@ import os
 pygame.init()
 
 # Constants for screen dimensions
-SCREEN_WIDTH = 900
-SCREEN_HEIGHT = 700
+SCREEN_WIDTH = 1280
+SCREEN_HEIGHT = 720
 FPS = 30
 
 # Colors
@@ -27,12 +27,9 @@ pygame.display.set_caption('Bot Visualization')
 # Font for displaying text
 font = pygame.font.SysFont('Arial', 16)
 
-# Load ghost images (bot sprites)
 def load_images():
     try:
-        current_dir = os.getcwd()
-        parent_dir = os.path.dirname(current_dir)
-        base_path = os.path.join(parent_dir, 'graphic', 'bot')
+        base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'graphic', 'bot'))
         print(f"Looking for images in: {base_path}")
         ghost_images = {
             'front': pygame.image.load(os.path.join(base_path, 'Ghost_Front.png')).convert(),
@@ -41,7 +38,7 @@ def load_images():
             'right': pygame.image.load(os.path.join(base_path, 'Ghost_Right.png')).convert()
         }
         for key in ghost_images:
-            ghost_images[key].set_colorkey(WHITE)
+            ghost_images[key].set_colorkey((255, 255, 255))
         return ghost_images
     except pygame.error as e:
         print(f"Error loading bot images: {e}")
@@ -50,14 +47,15 @@ def load_images():
 # Load player image
 def load_player_image():
     try:
-        current_dir = os.getcwd()
-        parent_dir = os.path.dirname(current_dir)
-        player_path = os.path.join(parent_dir, 'graphic', 'Standing_front.png')
+        player_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'graphic'))
         print(f"Looking for player image at: {player_path}")
-        return pygame.image.load(player_path).convert_alpha()
+        player_image = pygame.image.load(os.path.join(player_path, 'Standing_front.png')).convert()
+        player_image.set_colorkey((0, 0, 0))
+        return player_image
     except pygame.error as e:
         print(f"Error loading player image: {e}")
         return None
+
 
 # Draw an object relative to the player's position
 def draw_object(screen, obj, player_x, player_y, object_images):
@@ -76,9 +74,7 @@ def draw_object(screen, obj, player_x, player_y, object_images):
 # Load all object images from the graphic folder
 def load_object_images():
     try:
-        current_dir = os.getcwd()
-        parent_dir = os.path.dirname(current_dir)
-        object_path = os.path.join(parent_dir, 'graphic')
+        object_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'graphic'))
         print(f"Looking for object images in: {object_path}")
         object_images = {}
 
@@ -95,21 +91,6 @@ def load_object_images():
     except pygame.error as e:
         print(f"Error loading object images: {e}")
         return {}
-
-# Login and get token
-def login(username, password):
-    try:
-        response = requests.post(f'{API_URL}/login', json={'username': username, 'password': password})
-        if response.status_code == 200:
-            token = response.json().get('token')
-            print(f"Login successful! Token: {token}")
-            return token
-        else:
-            print(f"Login error: {response.status_code} - {response.text}")
-            return None
-    except requests.exceptions.RequestException as e:
-        print(f"Connection error: {e}")
-        return None
 
 # Handle player movement and request updated game state
 def handle_player_movement(token, screen_width, screen_height):
@@ -134,6 +115,7 @@ def handle_player_movement(token, screen_width, screen_height):
         }
         try:
             response = requests.post(f'{API_URL}/movement', json=data, headers=headers)
+            print("movement:", response.json())
             if response.status_code == 200:
                 return response.json()
             else:
@@ -207,6 +189,29 @@ def draw_bot(screen, bot, player_x, player_y, ghost_images):
     else:
         print(f"[WARNING] No image found for bot direction: {direction}")
 
+import requests
+
+def send_attack_request(token, x, y, weapon_type, server_url='http://127.0.0.1:5000/attack'):
+    headers = {
+        'Authorization': f'Bearer {token}'
+    }
+    data = {
+        'x': x,
+        'y': y,
+        'weapon_type': weapon_type  # לדוגמה: 'Stone_Sword', 'Wood_Wand' וכו'
+    }
+
+    try:
+        response = requests.post(server_url, headers=headers, json=data)
+        if response.status_code == 200:
+            result = response.json()
+            print("Attack result:", result['message'])
+            return result
+        else:
+            print("Attack failed:", response.status_code, response.text)
+    except Exception as e:
+        print("Error sending attack:", e)
+
 # Draw the player in the center
 def draw_player(screen, player_image):
     center_x = SCREEN_WIDTH // 2
@@ -214,8 +219,7 @@ def draw_player(screen, player_image):
     player_rect = player_image.get_rect(center=(center_x, center_y))
     screen.blit(player_image, player_rect)
 
-# Main game loop
-def main():
+def main(token):
     ghost_images = load_images()
     player_image = load_player_image()
     object_images = load_object_images()
@@ -230,33 +234,51 @@ def main():
         print("Error: Object images were not loaded.")
         return
 
-    username = '2212'
-    password = '2212'
-    token = login(username, password)
-    if not token:
-        print("Login failed. Exiting...")
-        return
-
     clock = pygame.time.Clock()
     running = True
+    dropped_items = []
+    player_data = get_player_data(token)
+
     while running:
         start = time.time()
         for event in pygame.event.get():
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 running = False
-        print(f"part1: {time.time() - start}")
+            elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                click_world_x = mouse_x + player_data['position_x'] - SCREEN_WIDTH // 2
+                click_world_y = mouse_y + player_data['position_y'] - SCREEN_HEIGHT // 2
 
-        start = time.time()
+                weapon = "Stone_Sword"  # שים כאן את הנשק הפעיל של השחקן
+                result = send_attack_request(token, click_world_x, click_world_y, weapon)
+                if result and "dropped_items" in result:
+                    items = result["dropped_items"]
+                    if len(items) >= 1:
+                        dropped_items.append({
+                            "file": items[0],
+                            "x": click_world_x,
+                            "y": click_world_y
+                        })
+                    if len(items) >= 2:
+                        dropped_items.append({
+                            "file": items[1],
+                            "x": click_world_x + 50,
+                            "y": click_world_y
+                        })
+                print("attacked")
+
+        # שלח תנועה וקבל מצב משחק
         game_state = handle_player_movement(token, SCREEN_WIDTH, SCREEN_HEIGHT)
-        print(f"part2: {time.time() - start}")
-
-        start = time.time()
         if not game_state:
             game_state = get_game_state(token, SCREEN_WIDTH, SCREEN_HEIGHT)
-        print(f"part3: {time.time() - start}")
 
-        start = time.time()
-        player_data = get_player_data(token)
+        # עדכן את player_data מתוך game_state אם יש
+        if game_state and 'player' in game_state:
+            player_data = game_state['player']
+        else:
+            player_data = get_player_data(token)
+
+        # בדיקה אם השחקן מת
         if player_data and player_data.get('health', 100) <= 0:
             print("[INFO] Player is dead. Attempting to respawn...")
             try:
@@ -269,37 +291,36 @@ def main():
                     print(f"[ERROR] Respawn failed: {respawn_response.status_code} - {respawn_response.text}")
             except requests.exceptions.RequestException as e:
                 print(f"[ERROR] Connection error while respawning: {e}")
+
+        # ציור
         screen.fill(GREEN)
-        print(f"part4: {time.time() - start}")
 
-        start = time.time()
-        if player_data and game_state and 'objects' in game_state:
+        if player_data:
             player_x = player_data.get('position_x', SCREEN_WIDTH // 2)
             player_y = player_data.get('position_y', SCREEN_HEIGHT // 2)
-            for obj in game_state['objects']:
-                draw_object(screen, obj, player_x, player_y, object_images)
 
-        if player_data and game_state and 'bots' in game_state:
-            player_x = player_data.get('position_x', SCREEN_WIDTH // 2)
-            player_y = player_data.get('position_y', SCREEN_HEIGHT // 2)
-            for bot in game_state['bots']:
-                draw_bot(screen, bot, player_x, player_y, ghost_images)
-        print(f"part5: {time.time() - start}")
+            print(f"[DEBUG] Player position: {player_x}, {player_y}")
 
-        start = time.time()
-        if player_image:
+            if game_state and 'objects' in game_state:
+                for obj in game_state['objects']:
+                    draw_object(screen, obj, player_x, player_y, object_images)
+
+            for item in dropped_items:
+                draw_object(screen, item, player_x, player_y, object_images)
+
+            if game_state and 'bots' in game_state:
+                for bot in game_state['bots']:
+                    draw_bot(screen, bot, player_x, player_y, ghost_images)
+
             draw_player(screen, player_image)
-        print(f"part6: {time.time() - start}")
 
-        start = time.time()
         status_text = font.render("Bot Visualization - Press ESC to exit", True, WHITE)
         screen.blit(status_text, (10, 10))
         pygame.display.flip()
         clock.tick(FPS)
-        print(f"loop: {time.time() - start}")
 
     pygame.quit()
     sys.exit()
 
 if __name__ == '__main__':
-    main()
+    main("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoyLCJleHAiOjE3NDY4NDgyODZ9.nnuG2APBJNeLkdrnJa321z-wwrqeIk322NF60MsGbss")
