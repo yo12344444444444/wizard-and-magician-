@@ -8,8 +8,8 @@
             "mini_button_pressed?": false
         },
         "2": {
-            "item": "0",
-            "quantity": 0,
+            "item": "1",
+            "quantity": 1,
             "topleft_x": 479,
             "topleft_y": 586,
             "mini_button_pressed?": false
@@ -127,7 +127,7 @@
             "mini_button_pressed?": false
         },
         "19": {
-            "cell": "3",
+            "cell": "2",
             "topleft_x": 166,
             "topleft_y": 586,
             "mini_button_pressed?": false

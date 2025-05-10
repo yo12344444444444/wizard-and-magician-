@@ -519,6 +519,17 @@ def switch_items_in_inventory(cell_num1, cell_num2):
     data_cells["cells"][str(cell_num2)]["item"] = item1
     data_cells["cells"][str(cell_num2)]["quantity"] = quantity1
 
+    # delete the info of both in the sever:
+    delete_item_inventory(item1,cell_num1, quantity1)
+    delete_item_inventory(item2, cell_num2, quantity2)
+
+    #switch in the server:
+    if item2 != "0":
+        add_item_inventory(item2, cell_num1, True, quantity2)
+    if item1 != "0":
+        add_item_inventory(item1,cell_num2,True,quantity1)
+
+
     for cell in data_cells["cells"].values():
         cell["mini_button_pressed?"] = False
 
@@ -662,6 +673,7 @@ def look_for_empty_slot():
         if data_cells["cells"][str(i)]["item"] == "0":
             return i
     return 0
+
 ##########################################################################################################
 # build inventory:
 
@@ -797,6 +809,19 @@ def get_coins():
     data = get_player_state()
     return data["coins"]
 
+
+def check_obj():
+    """
+    check if there are any objects the player can take on the map
+    :return:
+    """
+    game_state = get_game_state(TOKEN,SCREEN_WIDTH, SCREEN_HEIGHT)
+    if game_state and 'objects' in game_state:
+        objects = game_state['objects']
+        for obj in objects:
+            print(f"אובייקט: {obj['id']} במיקום ({obj['x']}, {obj['y']}) עם קובץ {obj['file']}")
+
+
 ##########################################################################################################
 # send things to the server:
 
@@ -827,42 +852,55 @@ def buy_item(item_id, money):
     return True
 
 
-def add_item_inventory(object_id, slot_index, has_space):
+def add_item_inventory(object_id, slot_index, has_space, amount=1):
     """
-
-    :return:
+    שולח בקשה לשרת להוספת פריט לאינבנטורי
+    :param object_id: מזהה פנימי של הפריט (יומר לשם)
+    :param slot_index: מספר הסלוט באינבנטורי
+    :param has_space: האם יש מקום באינבנטורי
+    :param amount: כמות להוסיף (ברירת מחדל: 1)
+    :return: תשובת השרת (dict) או None במקרה של כשל
     """
     object_name = id_to_name(object_id)
     if object_name is None:
-        print(f"Invalid object_id: {object_id}")
+        print(f"❌ Invalid object_id: {object_id}")
         return None
+
     url = f"{API_URL}/add-to-inventory"
     headers = {
         'Authorization': f'Bearer {TOKEN}',
         'Content-Type': 'application/json'
     }
+
     data = {
-        "has_space_in_inventory": has_space,
         "object_name": object_name,
-        "slot_index": slot_index
-        }
-    print("hayo",data)
+        "slot_index": slot_index,
+        "has_space_in_inventory": has_space,
+        "amount": amount
+    }
+
+    print("📤 Sending:", data)
     try:
         response = requests.post(url, json=data, headers=headers)
         if response.status_code == 200:
             result = response.json()
-            print(f"Server Response: {result['message']}")
-            return result
+            if result.get("success"):
+                print(f"✅ Added to inventory: {result.get('message')}")
+                return result
+            else:
+                print(f"ℹ️ Not added: {result.get('message')}")
         elif response.status_code == 404:
-            print("Object not found on the map.")
+            print("❌ Object not found on the map.")
         elif response.status_code == 400:
-            print("Bad request: Missing or invalid data.",response)
+            print("❌ Bad request: Missing or invalid data.", response.text)
         elif response.status_code == 401:
-            print("Unauthorized: Invalid or missing token.")
+            print("❌ Unauthorized: Invalid or missing token.")
         else:
-            print(f"Unexpected error: {response.status_code} - {response.text}")
+            print(f"❌ Unexpected error: {response.status_code} - {response.text}")
     except requests.exceptions.RequestException as e:
-        print(f"Error connecting to server: {e}")
+        print(f"⚠️ Error connecting to server: {e}")
+
+    return None
 
 
 def send_use_object(item):
@@ -894,12 +932,14 @@ def send_use_object(item):
         return None
 
 
-def delete_item_inventory(item_name, slot_index, server_url="http://localhost:5000"):
+def delete_item_inventory(item_name, slot_index, amount=1, server_url="http://localhost:5000"):
     """
+    שולחת בקשה לשרת להסרת פריט מהאינבנטורי לפי שם, מיקום וסכום.
 
-    :param object_id:
-    :param slot_index:
-    :return:
+    :param item_name: שם הפריט (או מזהה שלו אם יש צורך בתרגום)
+    :param slot_index: אינדקס הסלוט ממנו להסיר
+    :param amount: כמות להסרה (ברירת מחדל: 1)
+    :param server_url: כתובת השרת
     """
     url = f"{server_url}/remove_from_inventory"
     headers = {
@@ -907,9 +947,11 @@ def delete_item_inventory(item_name, slot_index, server_url="http://localhost:50
         "Content-Type": "application/json"
     }
     payload = {
-        "item_name": id_to_name(item_name),
-        "slot_index": slot_index
+        "item_name": id_to_name(item_name),  # אם item_name כבר שם, הסירי את הקריאה הזו
+        "slot_index": slot_index,
+        "amount": amount
     }
+
     print("sent to server:", url, payload, headers)
     try:
         response = requests.post(url, json=payload, headers=headers)
@@ -919,6 +961,7 @@ def delete_item_inventory(item_name, slot_index, server_url="http://localhost:50
             print(f"❌ Error {response.status_code}: {response.json().get('error')}")
     except Exception as e:
         print(f"⚠️ Request failed: {e}")
+
 
 
 ##########################################################################################################
@@ -1005,6 +1048,7 @@ def load_images():
         print(f"Error loading bot images: {e}")
         return None
 
+
 # Load player image
 def load_player_image():
     try:
@@ -1032,6 +1076,7 @@ def draw_object(screen, obj, player_x, player_y, object_images):
         obj_rect = obj_img.get_rect(center=(object_location_x, object_location_y))
         screen.blit(obj_img, obj_rect)
 
+
 # Load all object images from the graphic folder
 def load_object_images():
     try:
@@ -1052,6 +1097,7 @@ def load_object_images():
     except pygame.error as e:
         print(f"Error loading object images: {e}")
         return {}
+
 
 # Handle player movement and request updated game state
 def handle_player_movement(token, screen_width, screen_height):
@@ -1085,6 +1131,7 @@ def handle_player_movement(token, screen_width, screen_height):
             print(f"Error sending movement: {e}")
     return None
 
+
 # Get current player data
 def get_player_data(token):
     try:
@@ -1098,6 +1145,7 @@ def get_player_data(token):
     except requests.exceptions.RequestException as e:
         print(f"Connection error fetching player data: {e}")
         return None
+
 
 # Get full game state
 def get_game_state(token, screen_width, screen_height):
@@ -1118,6 +1166,8 @@ def get_game_state(token, screen_width, screen_height):
     except requests.exceptions.RequestException as e:
         print(f"Connection error fetching game state: {e}")
     return None
+
+
 
 # Draw a bot relative to the player
 def draw_bot(screen, bot, player_x, player_y, ghost_images):
@@ -1240,7 +1290,7 @@ def main(token):
         game_state = handle_player_movement(token, SCREEN_WIDTH, SCREEN_HEIGHT)
         if not game_state:
             game_state = get_game_state(token, SCREEN_WIDTH, SCREEN_HEIGHT)
-
+        check_obj()
         # עדכן את player_data מתוך game_state אם יש
         if game_state and 'player' in game_state:
             player_data = game_state['player']
