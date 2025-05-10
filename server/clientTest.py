@@ -1274,6 +1274,8 @@ def main(token):
                     draw_object(screen, obj, player_x, player_y, object_images)
             # print("dropped_items",dropped_items)
             for item in dropped_items:
+                if item['file'].lower() == 'money':
+                    continue
                 try:
                     filename = f"{os.path.splitext(item['file'])[0]}_Inventory.png"
                     image = pygame.image.load(os.path.join("inventory", filename)).convert_alpha()
