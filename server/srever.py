@@ -1,27 +1,25 @@
 from flask import Flask, request, jsonify
-import sqlite3
 from jose import jwt  # Replace PyJWT with jose.jwt
-import datetime
+import os
 from functools import wraps
 from flasgger import Swagger
-import time
 import threading
 from functionsServer import *
 
 def move_bots():
-    bots=get_all_bots()
+    start = time.time()
+    bots = get_all_bots()
+    players=get_all_players()
     for bot in bots:
         last_direction=bot['last_direction']
-        closest_player_id,player_x,player_y = get_closest_player(bot['position_x'],bot['position_y'])
+        closest_player_id,player_x,player_y = get_closest_player(bot['position_x'],bot['position_y'],players)
         if closest_player_id is None:
-            print(f"Bot {bot['bot_id']}: אין שחקן קרוב.")
             continue
         dx,dy = calculate_dx_dy(bot['position_x'],bot['position_y'],player_x,player_y)
         chosen = choose_direction(last_direction, dx, dy)
         bot_action(chosen, bot)
-
-    # חזור על הפעולה כל 2 שניות
-    threading.Timer(0.2, move_bots).start()
+    print(f"end move_bot {time.time()-start}")
+    threading.Timer(1, move_bots).start()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -307,7 +305,7 @@ def signup():
     # Create new user
     cursor.execute("""
         INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status)
-        VALUES (?, ?, 0, 100, 100, 0, 'active')
+        VALUES (?, ?, 0, 100, 100, 100, 'active')
     """, (username, password))
     player_id = cursor.lastrowid
 
@@ -348,7 +346,6 @@ def signup():
             'status': user['status']
         }
     })
-
 @app.route('/game_state', methods=['POST'])
 @token_required
 def game_state(user_id):
@@ -391,6 +388,7 @@ def game_state(user_id):
       401:
         description: Unauthorized - token missing or invalid
     """
+    start = time.time()
     data = request.get_json()
     screen_width = data.get('screen_width')
     screen_height = data.get('screen_height')
@@ -416,7 +414,7 @@ def game_state(user_id):
         player_status['respawn_position'] = attack_result['respawn_position']
 
     game_state_data['player_status'] = player_status
-
+    print(f"game_state end:{time.time() - start}")
     return jsonify(game_state_data), 200
 
 
@@ -449,13 +447,13 @@ def get_game_state(user_id, screen_width, screen_height):
             'color': '#00ff00',
             'animation_frames': [
                 "player_move/Walking_Front.gif",
-                "player_move/Walking_Front_2.jpg",
-                "player_move/Walking_Left_1.jpg",
-                "player_move/Walking_Left_2.jpg",
-                "player_move/Walking_Right_1.jpg",
-                "player_move/Walking_Right_2.jpg"
+                "player_move/Walking_Front_2.png",
+                "player_move/Walking_Left_1.png",
+                "player_move/Walking_Left_2.png",
+                "player_move/Walking_Right_1.png",
+                "player_move/Walking_Right_2.png"
             ],
-            'idle_frame': "player/Standing_front.jpg"
+            'idle_frame': "player/Standing_front.png"
         }
         for p in cursor.fetchall()
         if min_x <= p['position_x'] <= max_x and min_y <= p['position_y'] <= max_y
@@ -481,17 +479,18 @@ def get_game_state(user_id, screen_width, screen_height):
     ]
 
     cursor.execute("SELECT * FROM map_objects")
-    objects = [
-        {
-            'id': f"obj{o['object_id']}",
-            'x': o['position_x'],
-            'y': o['position_y'],
-            'size': 40,
-            'file': o['file']
-        }
-        for o in cursor.fetchall()
-        if min_x <= o['position_x'] <= max_x and min_y <= o['position_y'] <= max_y
-    ]
+    objects = []
+    for o in cursor.fetchall():
+        if min_x <= o['position_x'] <= max_x and min_y <= o['position_y'] <= max_y:
+            file_name = o['file']
+            base_name, ext = os.path.splitext(file_name)
+            objects.append({
+                'id': f"obj{o['object_id']}",
+                'x': o['position_x'],
+                'y': o['position_y'],
+                'size': 40,
+                'file': f"{base_name}.png"  # Force the .png extension
+            })
 
     conn.close()
     return {
@@ -576,9 +575,9 @@ def movement(user_id):
 
     #  עדכון המיקום של השחקן לפי המהירות וגם בדיקה שלא יצא מגבולות המסך
     if direction == 'w' and y + move_amount <= screen_height * 40:
-        y += move_amount
-    elif direction == 's' and y - move_amount >= 0:
         y -= move_amount
+    elif direction == 's' and y - move_amount >= 0:
+        y += move_amount
     elif direction == 'a' and x - move_amount >= 0:
         x -= move_amount
     elif direction == 'd' and x + move_amount <= screen_width * 40:
@@ -719,15 +718,15 @@ def attack(user_id):
     }
 
     weapon_range_map = {
-        'Stone_Sword': 50,
-        'Iron_Sword': 50,
-        'Gold_Sword': 50,
-        'Wood_Wand': 100,
-        'Gold_Wand': 50
+        'Stone_Sword': 150,
+        'Iron_Sword': 150,
+        'Gold_Sword': 150,
+        'Wood_Wand': 250,
+        'Gold_Wand': 150
     }
 
     damage = weapon_damage.get(weapon_type, 5)
-    weapon_range = weapon_range_map.get(weapon_type, 50)
+    weapon_range = weapon_range_map.get(weapon_type, 150)
 
     conn = get_db_connection()
     conn.row_factory = sqlite3.Row
@@ -833,7 +832,8 @@ def attack(user_id):
     return jsonify({'error': 'Unhandled target type'}), 400
 
 def generate_drops():
-    possible_drops = ["money", "apple", "bush", "Dark_Potion", "Life_Potion", "Fire_Potion", "Poison_Potion"]
+    possible_drops = ["money", "apple", "blueberry", "Dark_Potion", "Life_Potion", "Fire_Potion", "Poison_Potion"]
+
     return random.sample(possible_drops, 2)
     # אם לא פגיעה
 
@@ -1081,6 +1081,166 @@ def add_to_inventory(user_id):
     conn.close()
 
     return jsonify({'success': True, 'message': f'{object_name} added to inventory'}), 200
+@app.route('/add_coin', methods=['POST'])
+@token_required
+def add_coin(user_id):
+    """
+    Add Coins to Player
+    ---
+    security:
+      - BearerAuth: []
+    tags:
+      - Game
+    consumes:
+      - application/json
+    parameters:
+      - name: Authorization
+        in: header
+        type: string
+        required: true
+        description: Bearer token (e.g., "Bearer <your_token>")
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - amount
+          properties:
+            amount:
+              type: integer
+              example: 100
+              description: Amount of coins to add
+    responses:
+      200:
+        description: Coins successfully added
+      400:
+        description: Missing or invalid data
+      401:
+        description: Unauthorized
+    """
+    data = request.get_json()
+    amount = data.get('amount')
+
+    if not isinstance(amount, int) or amount <= 0:
+        return jsonify({'error': 'Invalid amount'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Update player's currency
+    cursor.execute("""
+        UPDATE players SET currency = currency + ?
+        WHERE player_id = ?
+    """, (amount, user_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'success': True, 'message': f'{amount} coins added to player {user_id}'}), 200
+
+@app.route('/add_item', methods=['POST'])
+@token_required
+def add_item(user_id):
+    """
+    Add Item to Inventory via Drop
+    ---
+    security:
+      - BearerAuth: []
+    tags:
+      - Game
+    consumes:
+      - application/json
+    parameters:
+      - name: Authorization
+        in: header
+        type: string
+        required: true
+        description: Bearer token (e.g., "Bearer <your_token>")
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - item_name
+            - slot_index
+            - has_space_in_inventory
+          properties:
+            item_name:
+              type: string
+              example: "Apple_Inventory"
+              description: The name of the item to add to inventory
+            slot_index:
+              type: integer
+              example: 1
+              description: The index of the inventory slot
+            has_space_in_inventory:
+              type: boolean
+              example: true
+              description: Whether there is space for the item in inventory
+    responses:
+      200:
+        description: Item successfully added or status returned
+      400:
+        description: Missing or invalid data
+      401:
+        description: Unauthorized
+      404:
+        description: Item not found on map
+    """
+    data = request.get_json()
+    item_name = data.get('item_name')
+    has_space = data.get('has_space_in_inventory')
+    slot_index = data.get('slot_index')
+
+    if None in (item_name, has_space, slot_index):
+        return jsonify({'error': 'Missing data'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT * FROM map_objects WHERE name = ?
+    """, (item_name,))
+    obj = cursor.fetchone()
+
+    if not obj:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Item not found on map'}), 404
+
+    if not has_space:
+        conn.close()
+        return jsonify({'success': False, 'message': 'No space in inventory'}), 200
+
+    if obj['name'] in ['tree', 'bush']:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Item cannot be added to inventory'}), 200
+
+    cursor.execute("""
+        SELECT * FROM inventory
+        WHERE player_id = ? AND name = ? AND slot_index = ?
+    """, (user_id, obj['name'], slot_index))
+    existing_item = cursor.fetchone()
+
+    if existing_item:
+        cursor.execute("""
+            UPDATE inventory
+            SET quantity = quantity + 1
+            WHERE inventory_id = ?
+        """, (existing_item['inventory_id'],))
+    else:
+        cursor.execute("""
+            INSERT INTO inventory (player_id, name, slot_index, quantity)
+            VALUES (?, ?, ?, 1)
+        """, (user_id, obj['name'], slot_index))
+
+    cursor.execute("""
+        DELETE FROM map_objects WHERE object_id = ?
+    """, (obj['object_id'],))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'success': True, 'message': f'{item_name} added to inventory'}), 200
 
 @app.route('/use_object', methods=['POST'])
 @token_required
@@ -1329,6 +1489,130 @@ def get_inventory(user_id):
     ]
     return jsonify({"inventory": items}), 200
 
+@app.route('/remove_from_inventory', methods=['POST'])
+@token_required
+def remove_from_inventory(user_id):
+    """
+    Remove item from inventory
+    ---
+    tags:
+      - Inventory
+    consumes:
+      - application/json
+    parameters:
+      - in: header
+        name: Authorization
+        type: string
+        required: true
+        description: Bearer token for authentication
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          properties:
+            item_name:
+              type: string
+              example: Health Potion
+            slot_index:
+              type: integer
+              example: 2
+    responses:
+      200:
+        description: Item successfully removed from inventory
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: Item removed
+      400:
+        description: Item not found or does not match slot
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: Item not found in the specified slot
+      401:
+        description: Unauthorized
+        schema:
+          type: object
+          properties:
+            error:
+              type: string
+              example: Token is missing or invalid
+    """
+    data = request.get_json()
+
+    item_name = data.get('item_name')
+    slot_index = data.get('slot_index')
+
+    if not item_name or slot_index is None:
+        return jsonify({'error': 'Missing item_name or slot_index'}), 400
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Check if the item exists in this player's inventory at that slot
+    cursor.execute("""
+        SELECT * FROM inventory
+        WHERE player_id = ? AND slot_index = ?
+    """, (user_id, slot_index))
+    row = cursor.fetchone()
+
+    if row is None:
+        conn.close()
+        return jsonify({'error': 'No item found in that slot'}), 400
+
+    if row['name'] != item_name:
+        conn.close()
+        return jsonify({'error': f"Item in slot {slot_index} is '{row['name']}', not '{item_name}'"}), 400
+
+    # Proceed to delete
+    cursor.execute("""
+        DELETE FROM inventory
+        WHERE inventory_id = ?
+    """, (row['inventory_id'],))
+    conn.commit()
+    conn.close()
+
+    return jsonify({'message': 'Item removed'}), 200
+
+@app.route('/respawn', methods=['POST'])
+@token_required
+def respawn(user_id):
+    conn = sqlite3.connect('DATABASE_GAME.db')
+    c = conn.cursor()
+
+    # Get current health
+    c.execute('SELECT health FROM players WHERE id = ?', (user_id,))
+    row = c.fetchone()
+    if not row:
+        conn.close()
+        return jsonify({'error': 'Player not found'}), 404
+
+    health = row[0]
+    if health > 0:
+        conn.close()
+        return jsonify({'message': 'Player is still alive'}), 400
+
+    # Respawn at a random location (adjust range as needed)
+    new_x = random.randint(100, 800)
+    new_y = random.randint(100, 600)
+    new_health = 100
+
+    # Update player
+    c.execute('UPDATE players SET position_x = ?, position_y = ?, health = ? WHERE id = ?',
+              (new_x, new_y, new_health, user_id))
+    conn.commit()
+    conn.close()
+
+    return jsonify({
+        'message': 'Player respawned',
+        'new_position': {'x': new_x, 'y': new_y},
+        'health': new_health
+    }), 200
 
 if __name__ == '__main__':
     move_bots()

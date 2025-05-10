@@ -1,6 +1,8 @@
 import random
 import sqlite3
+import time
 from math import hypot
+import datetime
 
 DATABASE = ('../DATABASE_GAME.db')
 
@@ -48,23 +50,26 @@ def choose_direction(last_direction, dx, dy):
     return max(weights, key=weights.get)
 
 def bot_action(action,bot):
+    start=time.time()
     conn = get_db_connection()
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     if action in [1, 2, 3, 4]:
         x, y = bot['position_x'], bot['position_y']
         if action == 1:
-            y += 3  # down
+            y += 7  # down
         elif action == 2:
-            x += 3  # right
+            x += 7  # right
         elif action == 3:
-            y -= 3  # up
+            y -= 7  # up
         elif action == 4:
-            x -= 3  # left
+            x -= 7  # left
         cursor.execute("UPDATE bots SET position_x = ?, position_y = ? WHERE bot_id = ?", (x, y, bot['bot_id']))
         conn.commit()
+        print(f"bot_action 1-4 {time.time() - start}")
 
     elif action == 5:
+        start = time.time()
         # שלב 2: חפש שחקנים במרחק של עד 50 פיקסלים מהבוט הספציפי
         cursor.execute("SELECT * FROM players WHERE status = 'active'")
         players = cursor.fetchall()
@@ -81,6 +86,7 @@ def bot_action(action,bot):
                 conn.commit()
                 print(f"Bot {bot['bot_id']} attacked Player {player_id}, new health: {new_health}")
     conn.close()
+    print(f"bot_action end {time.time() - start}")
 
 
 def update_specific_bot(action,bot_id):
@@ -143,38 +149,15 @@ def calculate_dx_dy(bot_x,bot_y,player_x,player_y):
     dy = bot_y - player_y
     return dx, dy
 
-def calculate_dx_dy_from_db(bot_id, player_id, db_path="../DATABASE_GAME.db"):
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-
-    # קבל את מיקום הבוט
-    cursor.execute("SELECT position_x, position_y FROM bots WHERE bot_id = ?", (bot_id,))
-    bot_result = cursor.fetchone()
-
-    # קבל את מיקום השחקן
-    cursor.execute("SELECT position_x, position_y FROM players WHERE player_id = ?", (player_id,))
-    player_result = cursor.fetchone()
-
-    conn.close()
-
-    if bot_result and player_result:
-        bot_x, bot_y = bot_result
-        player_x, player_y = player_result
-
-        dx = player_x - bot_x
-        dy = player_y - bot_y
-
-        return dx, dy
-    else:
-        return None, None  # אם אחד מהם לא נמצא
-
 def get_all_bots():
+    print(f"get_all_bots start: {datetime.datetime.now()}")
     conn = sqlite3.connect("../DATABASE_GAME.db")
     conn.row_factory = sqlite3.Row  # מאפשר גישה לפי שמות
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM bots")
     rows = cursor.fetchall()
     conn.close()
+    print(f"get_all_bots end: {datetime.datetime.now()}")
     return [dict(row) for row in rows]  # הפיכת כל Row ל־dict
 
 def get_all_bot_ids():
@@ -185,12 +168,18 @@ def get_all_bot_ids():
     conn.close()
     return bot_ids
 
-def get_closest_player(bot_x, bot_y):
+def get_all_players():
+    start = time.time()
     conn = sqlite3.connect("../DATABASE_GAME.db")
     cursor = conn.cursor()
     # כל השחקנים הפעילים
     cursor.execute("SELECT player_id, position_x, position_y FROM players WHERE status = 'active'")
     players = cursor.fetchall()
+    conn.close()
+    print(f"get_closest_player:{time.time() - start}")
+    return players
+
+def get_closest_player(bot_x, bot_y,players):
     min_dist = float('inf')
     closest_player_id = None
     play_x=None
@@ -204,7 +193,6 @@ def get_closest_player(bot_x, bot_y):
             closest_player_id = player_id
             play_x=player_x
             play_y = player_y
-    conn.close()
     return closest_player_id,play_x,play_y
 
 

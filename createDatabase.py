@@ -28,8 +28,6 @@ CREATE TABLE players (
 )
 """)
 
-
-# טבלת bots
 cursor.execute("""
 CREATE TABLE bots (
     bot_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -43,19 +41,17 @@ CREATE TABLE bots (
 );
 """)
 
-# טבלת items (עודכנה)
 cursor.execute("""
 CREATE TABLE items (
     item_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    player_id INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    slot_index INTEGER NOT NULL,
-    quantity INTEGER NOT NULL DEFAULT 1,
-    FOREIGN KEY (player_id) REFERENCES players(player_id)
+    name TEXT NOT NULL,            
+    x INTEGER NOT NULL,            
+    y INTEGER NOT NULL,            
+    slot_index INTEGER,            
+    quantity INTEGER DEFAULT 1     
 );
 """)
 
-# טבלת map_objects
 cursor.execute("""
 CREATE TABLE map_objects (
     object_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -67,7 +63,6 @@ CREATE TABLE map_objects (
 );
 """)
 
-# ✅ טבלת inventory
 cursor.execute("""
 CREATE TABLE inventory (
     inventory_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -83,76 +78,45 @@ CREATE UNIQUE INDEX IF NOT EXISTS unique_inventory_player_object
 ON inventory (player_id, name);
 """)
 
-# סיסמאות
 def hash_password(password):
     salt = bcrypt.gensalt()
     hashed_password = bcrypt.hashpw(password.encode(), salt)
     return hashed_password
+# הגדרות מסך
+screen_width = 900
+screen_height = 700
+screens_x = 8
+screens_y = 5
+objects_per_screen = 12
+player_screen_x = 0 // screen_width
+player_screen_y = 100 // screen_height
 
-# הכנסת שחקנים עם מהירות
-cursor.execute(
-    "INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status, speed) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
-    ("Player1", hash_password("password123"), 21600, 38400, 100, 200, 'active', 1))
-cursor.execute(
-    "INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status, speed) VALUES (?, ?, ?, ?, ?, ?, ?, ?);",
-    ("Player2", hash_password("mysecurepass"), 21600, 38400, 100, 200, 'active', 1))
-
-
-# פריטים
-cursor.execute("INSERT INTO items (player_id, name, slot_index, quantity) VALUES (1, 'Sword', 0, 1);")
-cursor.execute("INSERT INTO items (player_id, name, slot_index, quantity) VALUES (1, 'HealthPotion', 1, 3);")
-cursor.execute("INSERT INTO items (player_id, name, slot_index, quantity) VALUES (2, 'Bow', 0, 1);")
-
-
-# שחקנים נוספים
-cursor.execute("""
-INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status, speed)
-VALUES 
-('player1', 'hashed_password_1', 100, 100, 100, 200, 'active', 1),
-('player2', 'hashed_password_2', 500, 500, 100, 200, 'active', 1),
-('player3', 'hashed_password_3', 1500, 1500, 100, 200, 'active', 1);
-""")
-
-# ✅ הוספת 100 בוטים רנדומליים למסד הנתונים
-for _ in range(100):
-    position_x = random.randint(0, 50000)
-    position_y = random.randint(0, 50000)
-    health = random.randint(80, 120)
+# הוספת בוטים: קודם כל נוסיף 8 למסך השחקן
+for _ in range(8):
+    pos_x = random.randint(player_screen_x * screen_width, (player_screen_x + 1) * screen_width - 1)
+    pos_y = random.randint(player_screen_y * screen_height, (player_screen_y + 1) * screen_height - 1)
     bot_type = random.choice(['melee', 'ranged'])
-    last_direction_time = 0
-    last_attack_time = 0
-    last_direction = 1
-    cursor.execute("""
-        INSERT INTO bots (position_x, position_y, health, bot_type, last_direction_time, last_attack_time,last_direction)
-        VALUES (?, ?, ?, ?, ?, ?,?)
-    """, (position_x, position_y, health, bot_type, last_direction_time, last_attack_time,last_direction))
-
-nearby_positions = [
-    (10, 90),
-    (30, 110),
-    (200, 157)
-]
-
-for pos_x, pos_y in nearby_positions:
-    health = random.randint(80, 120)
-    bot_type = random.choice(['melee', 'ranged'])
-    last_direction_time = 0
-    last_attack_time = 0
-    last_direction = 1
     cursor.execute("""
         INSERT INTO bots (position_x, position_y, health, bot_type, last_direction_time, last_attack_time, last_direction)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (pos_x, pos_y, health, bot_type, last_direction_time, last_attack_time, last_direction))
+    """, (pos_x, pos_y, 100, bot_type, 0, 0, 1))
 
-# אובייקטים
-cursor.execute("""
-INSERT INTO map_objects (name, file, rotation, position_x, position_y)
-VALUES
-('tree', 'tree.png', 0, 100, 100),
-('rock', 'rock.png', 0, 200, 200),
-('bush', 'bush.png', 1, 1500, 1500);
-""")
+# נוסיף עוד 100 בוטים רנדומליים במסכים אחרים
+for _ in range(100):
+    pos_x = random.randint(0, screen_width * screens_x - 1)
+    pos_y = random.randint(0, screen_height * screens_y - 1)
 
+    # לא נשכפל למסך של השחקן
+    if pos_x // screen_width == player_screen_x and pos_y // screen_height == player_screen_y:
+        continue
+
+    bot_type = random.choice(['melee', 'ranged'])
+    cursor.execute("""
+        INSERT INTO bots (position_x, position_y, health, bot_type, last_direction_time, last_attack_time, last_direction)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (pos_x, pos_y, 100, bot_type, 0, 0, 1))
+
+# אובייקטים למפה
 map_objects_json = {
     "On map objects": {
         "apple_tree": {"file": "Apple_Tree.jpg", "rotation": False},
@@ -160,9 +124,6 @@ map_objects_json = {
         "blueberry_bush": {"file": "Blueberry_Bush.jpg", "rotation": False},
         "bush": {"file": "Bush.jpg", "rotation": False},
         "grass": {"file": "Grass.jpg", "rotation": False},
-        "iron_sword": {"file": "Iron_Sword.jpg", "rotation": False},
-        "gold_sword": {"file": "Gold_Sword.jpg", "rotation": False},
-        "stone_sword": {"file": "Stones_Sword.jpg", "rotation": False},
         "blue_flower": {"file": "Blue_Flower.jpg", "rotation": False},
         "pink_flower": {"file": "Pink_Flower.jpg", "rotation": False},
         "purple_flower": {"file": "Purple_Flower.jpg", "rotation": False},
@@ -170,48 +131,37 @@ map_objects_json = {
         "yellow_flower": {"file": "Yellow_Flower.jpg", "rotation": False}
     }
 }
+object_keys = list(map_objects_json["On map objects"].keys())
 
-# יצירת אובייקטים אקראיים
-for key, obj in map_objects_json["On map objects"].items():
-    x = random.randint(0, 1000)
-    y = random.randint(0, 1000)
+# הוספת לפחות 7 למסך של השחקן
+for _ in range(7):
+    obj_name = random.choice(object_keys)
+    obj_data = map_objects_json["On map objects"][obj_name]
+    x = random.randint(player_screen_x * screen_width, (player_screen_x + 1) * screen_width - 1)
+    y = random.randint(player_screen_y * screen_height, (player_screen_y + 1) * screen_height - 1)
+
     cursor.execute("""
         INSERT INTO map_objects (name, file, rotation, position_x, position_y)
         VALUES (?, ?, ?, ?, ?)
-    """, (key, obj["file"], obj["rotation"], x, y))
+    """, (obj_name, obj_data["file"], obj_data["rotation"], x, y))
 
-# ✅ הוספת אובייקט מיוחד בנקודה (0, 0)
-cursor.execute("""
-    INSERT INTO map_objects (name, file, rotation, position_x, position_y)
-    VALUES (?, ?, ?, ?, ?)
-""", ('rock', 'rock.png', False, 0, 1))
+# מסכים אחרים – רנדומליים
+for screen_y in range(screens_y):
+    for screen_x in range(screens_x):
+        # דלג על המסך של השחקן
+        if screen_x == player_screen_x and screen_y == player_screen_y:
+            continue
+        for _ in range(objects_per_screen):
+            obj_name = random.choice(object_keys)
+            obj_data = map_objects_json["On map objects"][obj_name]
+            x = screen_x * screen_width + random.randint(0, screen_width - 1)
+            y = screen_y * screen_height + random.randint(0, screen_height - 1)
 
-# הוספת אובייקטים עם מיקומים קבועים
-x_positions = [21500, 22000, 22500, 23000, 23500, 24000, 24500]
-y_positions = [38500, 39000, 39500, 40000, 40500, 41000, 41500]
-
-for idx, (code, data) in enumerate(map_objects_json["On map objects"].items()):
-    position_x = x_positions[idx % len(x_positions)]
-    position_y = y_positions[idx % len(y_positions)]
-    cursor.execute("""
-    INSERT INTO map_objects (name, file, rotation, position_x, position_y)
-    VALUES (?, ?, ?, ?, ?);
-    """, (code, data["file"], data["rotation"], position_x, position_y))
+            cursor.execute("""
+                INSERT INTO map_objects (name, file, rotation, position_x, position_y)
+                VALUES (?, ?, ?, ?, ?)
+            """, (obj_name, obj_data["file"], obj_data["rotation"], x, y))
 
 conn.commit()
-conn.close()
+print("✅ Database initialized: player screen includes 8 bots and 7+ objects.")
 
-def print_all_bots():
-    conn = sqlite3.connect("DATABASE_GAME.db")
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT * FROM bots")
-    bots = cursor.fetchall()
-
-    for bot in bots:
-        print(bot)
-
-    conn.close()
-print_all_bots()
-
-print("✅ Database successfully created with map object positions, inventory table, and speed column in players!")
