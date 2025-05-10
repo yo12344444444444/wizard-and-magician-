@@ -718,11 +718,11 @@ def attack(user_id):
     }
 
     weapon_range_map = {
-        'Stone_Sword': 50,
-        'Iron_Sword': 50,
-        'Gold_Sword': 50,
-        'Wood_Wand': 100,
-        'Gold_Wand': 50
+        'Stone_Sword': 150,
+        'Iron_Sword': 150,
+        'Gold_Sword': 150,
+        'Wood_Wand': 250,
+        'Gold_Wand': 150
     }
 
     damage = weapon_damage.get(weapon_type, 5)

@@ -189,8 +189,6 @@ def draw_bot(screen, bot, player_x, player_y, ghost_images):
     else:
         print(f"[WARNING] No image found for bot direction: {direction}")
 
-import requests
-
 def send_attack_request(token, x, y, weapon_type, server_url='http://127.0.0.1:5000/attack'):
     headers = {
         'Authorization': f'Bearer {token}'
@@ -219,42 +217,6 @@ def draw_player(screen, player_image):
     player_rect = player_image.get_rect(center=(center_x, center_y))
     screen.blit(player_image, player_rect)
 
-def send_add_coin_request(token, amount):
-    headers = {'Authorization': f'Bearer {token}'}
-    data = {'amount': amount}
-    try:
-        response = requests.post(f'{API_URL}/add_coin', headers=headers, json=data)
-        print("Coins added:", response.json())
-    except Exception as e:
-        print("Error adding coins:", e)
-
-def send_add_item_request(token, item_name):
-    headers = {'Authorization': f'Bearer {token}'}
-    data = {'item_name': item_name}
-    try:
-        response = requests.post(f'{API_URL}/add_item', headers=headers, json=data)
-        print("Item added:", response.json())
-    except Exception as e:
-        print("Error adding item:", e)
-
-def draw_dropped_item(screen, item, player_x, player_y, object_images, font):
-    item_x = item.get('x', 0)
-    item_y = item.get('y', 0)
-    file_name = item.get('file')
-
-    item_screen_x = (item_x - player_x) + (SCREEN_WIDTH // 2)
-    item_screen_y = (item_y - player_y) + (SCREEN_HEIGHT // 2)
-
-    if file_name and file_name.lower().endswith('.png') and file_name.lower() in object_images:
-        item_img = object_images[file_name.lower()]
-        item_rect = item_img.get_rect(center=(item_screen_x, item_screen_y))
-        screen.blit(item_img, item_rect)
-
-        # Draw item name above the image
-        label_text = file_name.split('.')[0].replace('_', ' ').title()
-        label_surface = font.render(label_text, True, WHITE)
-        label_rect = label_surface.get_rect(center=(item_screen_x, item_screen_y - 20))
-        screen.blit(label_surface, label_rect)
 
 
 def main(token):
@@ -278,6 +240,7 @@ def main(token):
     player_data = get_player_data(token)
 
     while running:
+        start = time.time()
         for event in pygame.event.get():
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 running = False
@@ -286,27 +249,24 @@ def main(token):
                 click_world_x = mouse_x + player_data['position_x'] - SCREEN_WIDTH // 2
                 click_world_y = mouse_y + player_data['position_y'] - SCREEN_HEIGHT // 2
 
-                weapon = "Stone_Sword"
+                weapon = "Stone_Sword"  # שים כאן את הנשק הפעיל של השחקן
                 result = send_attack_request(token, click_world_x, click_world_y, weapon)
-
-                if result and "dropped_items" in result:
-                    items = result["dropped_items"]
-                    print("[INFO] Items dropped:")
-                    for idx, item_name in enumerate(items):
-                        item_name = item_name.lower()
-                        print(f"  - {item_name}")
-                        if item_name == "coin":
-                            send_add_coin_request(token, 100)
-                        else:
-                            send_add_item_request(token, item_name)
-
-                        # Simulate a dropped item in the game world near the click location
-                        dropped_item = {
-                            "file": item_name + ".png",
-                            "x": click_world_x + 30 + idx * 20,
-                            "y": click_world_y + 10
-                        }
-                        dropped_items.append(dropped_item)
+                if result and "drops" in result:
+                    items = result["drops"]
+                    if len(items) >= 1:
+                        dropped_items.append({
+                            "file": items[0],
+                            "x": click_world_x,
+                            "y": click_world_y
+                        })
+                    if len(items) >= 2:
+                        dropped_items.append({
+                            "file": items[1],
+                            "x": click_world_x + 100,
+                            "y": click_world_y
+                        })
+                    #print("dropped_items", dropped_items)
+            print("attacked")
 
         # שלח תנועה וקבל מצב משחק
         game_state = handle_player_movement(token, SCREEN_WIDTH, SCREEN_HEIGHT)
@@ -339,13 +299,23 @@ def main(token):
         if player_data:
             player_x = player_data.get('position_x', SCREEN_WIDTH // 2)
             player_y = player_data.get('position_y', SCREEN_HEIGHT // 2)
+            print(f"[DEBUG] Player position: {player_x}, {player_y}")
 
             if game_state and 'objects' in game_state:
                 for obj in game_state['objects']:
                     draw_object(screen, obj, player_x, player_y, object_images)
-
+            print("dropped_items",dropped_items)
             for item in dropped_items:
-                draw_dropped_item(screen, item, player_x, player_y, object_images, font)
+                try:
+                    filename = f"{os.path.splitext(item['file'])[0]}_Inventory.png"
+                    image = pygame.image.load(os.path.join("inventory", filename)).convert_alpha()
+                    image.set_colorkey((255, 255, 255))
+                    screen.blit(image, (
+                        item["x"] - player_x + SCREEN_WIDTH // 2,
+                        item["y"] - player_y + SCREEN_HEIGHT // 2
+                    ))
+                except FileNotFoundError:
+                    print(f"Image file not found: {filename}")
 
             if game_state and 'bots' in game_state:
                 for bot in game_state['bots']:
