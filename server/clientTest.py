@@ -925,6 +925,34 @@ def delete_item_inventory(item_name, slot_index, server_url="http://localhost:50
 # client not inventory:
 
 
+def send_item_drop_to_server(items, token):
+    print("send start")
+    headers = {"Authorization": f"Bearer {token}"}
+    seen = set()  # לשמירת פריטים שנשלחו
+
+    for item in items:
+        if 'file' in item:
+            key = (item['file'], item['x'], item['y'])
+            if key in seen:
+                continue  # כבר נשלח
+            seen.add(key)
+
+            amount = 100 if item['file'].lower() == 'money' else 1
+            data = {
+                "name": item['file'],
+                "x": item['x'],
+                "y": item['y'],
+                "amount": amount
+            }
+            print(data)
+            try:
+                response = requests.post(f"{API_URL}/drop_item_on_map", json=data, headers=headers)
+                if response.status_code != 200:
+                    print(f"Failed to drop item {item['file']} on map: {response.json()}")
+            except Exception as e:
+                print(f"Error dropping {item['file']} on map:", e)
+
+
 def check_click_not_on_ui(x,y):
     """
     check if the player clicked on the ui or have an item you cant attack with
