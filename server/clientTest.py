@@ -829,8 +829,10 @@ def check_obj():
     if game_state and 'objects' in game_state:
         objects = game_state['objects']
         for obj in objects:
-            pass
-             # print(f"אובייקט: {obj['name']} במיקום ({obj['x']}, {obj['y']}) עם קובץ {obj['file']}")
+            print(f"אובייקט: {obj['name']} במיקום ({obj['x']}, {obj['y']}) עם קובץ {obj['file']}")
+            if name_to_id(obj['name']) is not None:
+                add_item(name_to_id(obj['name']),1)
+
 
 
 ##########################################################################################################
