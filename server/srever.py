@@ -21,7 +21,7 @@ def move_bots():
         tuple=bot_action(chosen, bot)
         if tuple:
             tuples.append(tuple)
-    # saveTuples(tuples)
+    saveTuples(tuples)
     print(f"end move_bot {time.time()-start}")
     threading.Timer(0.2, move_bots).start()
 
