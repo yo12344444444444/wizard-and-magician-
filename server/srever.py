@@ -1432,6 +1432,7 @@ class lbconector:
             sock.sendto(message, self.lBaddr)
             sock.close()
         else:
+            pass
 
     def PortDefinder(self,start_port):
         port = start_port
