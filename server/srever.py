@@ -10,6 +10,7 @@ def move_bots():
     start = time.time()
     bots = get_all_bots()
     players=get_all_players()
+    tuples = []
     for bot in bots:
         last_direction=bot['last_direction']
         closest_player_id,player_x,player_y = get_closest_player(bot['position_x'],bot['position_y'],players)
@@ -17,9 +18,12 @@ def move_bots():
             continue
         dx,dy = calculate_dx_dy(bot['position_x'],bot['position_y'],player_x,player_y)
         chosen = choose_direction(last_direction, dx, dy)
-        bot_action(chosen, bot)
+        tuple=bot_action(chosen, bot)
+        if tuple:
+            tuples.append(tuple)
+    # saveTuples(tuples)
     print(f"end move_bot {time.time()-start}")
-    threading.Timer(1, move_bots).start()
+    threading.Timer(0.2, move_bots).start()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -31,7 +35,7 @@ app.config['SWAGGER'] = {
             'type': 'apiKey',
             'name': 'Authorization',
             'in': 'header',
-            'description': 'Enter token with *Bearer* prefix. Example: "Bearer your_token_here"'
+            'description': 'Enter token with **Bearer** prefix. Example: "Bearer your_token_here"'
         }
     },
     'security': [{'BearerAuth': []}]
@@ -483,7 +487,7 @@ def get_game_state(user_id, screen_width, screen_height):
             file_name = o['file']
             base_name, ext = os.path.splitext(file_name)
             objects.append({
-                'name': f"obj{o['name']}",
+                'id': f"obj{o['object_id']}",
                 'x': o['position_x'],
                 'y': o['position_y'],
                 'size': 40,
@@ -644,7 +648,7 @@ def is_in_attack_range(attacker_pos, target_pos, range_px):
     print(dx)
     dy = attacker_pos['y'] - target_pos['y']
     print(dy)
-    distance = math.sqrt(dx*2 + dy*2)
+    distance = math.sqrt(dx**2 + dy**2)
     print(distance)
     return distance <= range_px
 
@@ -1024,7 +1028,7 @@ def add_to_inventory(user_id):
     has_space = data.get('has_space_in_inventory')
     player_id = user_id
     slot_index = data.get('slot_index')
-    amount = data.get('amount', 1)  # ברירת מחדל ל-1 אם לא נשלח מהלקוח
+    amount = data.get('amount', 1)  # default to 1
 
     if None in (object_name, has_space, player_id, slot_index):
         return jsonify({'error': 'Missing data'}), 400
@@ -1032,52 +1036,43 @@ def add_to_inventory(user_id):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # שליפת האובייקט לפי הקוד
-    cursor.execute("""
-        SELECT * FROM map_objects WHERE name = ?
-    """, (object_name,))
+    # Try to fetch the object from the map, but allow it to not exist
+    cursor.execute("SELECT * FROM map_objects WHERE name = ?", (object_name,))
     obj = cursor.fetchone()
-
-    if not obj:
-        conn.close()
-        return jsonify({'success': False, 'message': 'Object not found'}), 404
-
 
     if not has_space:
         conn.close()
         return jsonify({'success': False, 'message': 'No space in inventory'}), 200
 
-    if obj['name'] in ['tree', 'bush']:
+    if object_name in ['tree', 'bush']:
         conn.close()
         return jsonify({'success': False, 'message': 'Object cannot be added to inventory'}), 200
 
-    # בדיקה אם האובייקט כבר קיים בתא הזה של השחקן
+    # Check if item already exists in inventory
     cursor.execute("""
         SELECT * FROM inventory
         WHERE player_id = ? AND name = ? AND slot_index = ?
-    """, (player_id, obj['name'], slot_index))
+    """, (player_id, object_name, slot_index))
     existing_item = cursor.fetchone()
 
     if existing_item:
-        # הגדלת כמות ב-1
+        # Increase quantity
         cursor.execute("""
             UPDATE inventory
             SET quantity = quantity + ?
             WHERE inventory_id = ?
-        """, (amount,existing_item['inventory_id'],))
-        conn.commit()
+        """, (amount, existing_item['inventory_id']))
     else:
-        # יצירת פריט חדש עם כמות 1
+        # Insert new item
         cursor.execute("""
             INSERT INTO inventory (player_id, name, slot_index, quantity)
             VALUES (?, ?, ?, ?)
-        """, (player_id, obj['name'], slot_index,amount))
-        conn.commit()
-    # הסרה מהמפה
+        """, (player_id, object_name, slot_index, amount))
 
-    cursor.execute("""
-        DELETE FROM map_objects WHERE object_id = ?
-    """, (obj['object_id'],))
+    # If object existed on the map, delete it
+    if obj:
+        cursor.execute("DELETE FROM map_objects WHERE object_id = ?", (obj['object_id'],))
+
     conn.commit()
     conn.close()
 
@@ -1669,4 +1664,4 @@ def respawn(user_id):
 
 if __name__ == '__main__':
     move_bots()
-    app.run(host='0.0.0.0', port=5000,debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=False)

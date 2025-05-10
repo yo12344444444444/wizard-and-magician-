@@ -133,35 +133,60 @@ map_objects_json = {
 }
 object_keys = list(map_objects_json["On map objects"].keys())
 
-# הוספת לפחות 7 למסך של השחקן
-for _ in range(7):
-    obj_name = random.choice(object_keys)
-    obj_data = map_objects_json["On map objects"][obj_name]
-    x = random.randint(player_screen_x * screen_width, (player_screen_x + 1) * screen_width - 1)
-    y = random.randint(player_screen_y * screen_height, (player_screen_y + 1) * screen_height - 1)
+conn = sqlite3.connect('DATABASE_GAME.db')
+cursor = conn.cursor()
 
-    cursor.execute("""
-        INSERT INTO map_objects (name, file, rotation, position_x, position_y)
-        VALUES (?, ?, ?, ?, ?)
-    """, (obj_name, obj_data["file"], obj_data["rotation"], x, y))
+screen_width = 1280
+screen_height = 720
+screens_x = 8
+screens_y = 5  # 8*5 = 40 screens
+# Base object positions within one screen (relative to screen origin)
+base_objects = [
+    ("grass", 63, 150),
+    ("blue_flower", 243, 150),
+    ("purple_flower", 517, 150),
+    ("red_flower", 792, 150),
+    ("blueberry_bush", 1143, 150),
 
-# מסכים אחרים – רנדומליים
+    ("apple_tree", 243, 308),
+    ("bush", 593, 308),
+    ("stone", 867, 308),
+    ("blue_flower", 1143, 308),
+
+    ("blueberry_bush", 275, 466),
+    ("red_flower", 625, 466),
+    ("apple_tree", 926, 466),
+    ("tree", 1176, 466),
+
+    ("blueberry_bush", 243, 624),
+    ("stone", 593, 624),
+    ("grass", 867, 624),
+    ("purple_flower", 1142, 750),  # shifted down to avoid overlapping tree
+
+    ("tree", 243, 782),
+    ("yellow_flower", 593, 782),
+    ("grass", 867, 782),
+    ("purple_flower", 1142, 908),  # shifted down to avoid any overlap
+
+    ("blueberry_bush", 243, 940),
+    ("stone", 593, 940),
+    ("grass", 867, 940),
+    ("purple_flower", 1142, 1066),  # shifted down below previous flower
+]
+
 for screen_y in range(screens_y):
     for screen_x in range(screens_x):
-        # דלג על המסך של השחקן
-        if screen_x == player_screen_x and screen_y == player_screen_y:
-            continue
-        for _ in range(objects_per_screen):
-            obj_name = random.choice(object_keys)
-            obj_data = map_objects_json["On map objects"][obj_name]
-            x = screen_x * screen_width + random.randint(0, screen_width - 1)
-            y = screen_y * screen_height + random.randint(0, screen_height - 1)
-
-            cursor.execute("""
-                INSERT INTO map_objects (name, file, rotation, position_x, position_y)
-                VALUES (?, ?, ?, ?, ?)
-            """, (obj_name, obj_data["file"], obj_data["rotation"], x, y))
+        base_x = screen_x * screen_width
+        base_y = screen_y * screen_height
+        for name, rel_x, rel_y in base_objects:
+            obj = map_objects_json["On map objects"].get(name)
+            if obj:
+                cursor.execute("""
+                    INSERT INTO map_objects (name, file, rotation, position_x, position_y)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (name, obj["file"], obj["rotation"], base_x + rel_x, base_y + rel_y))
 
 conn.commit()
-print("✅ Database initialized: player screen includes 8 bots and 7+ objects.")
+conn.close()
 
+print("✅ Objects placed across 40 screens as per layout.")
