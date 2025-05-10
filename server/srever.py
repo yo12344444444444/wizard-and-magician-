@@ -31,7 +31,7 @@ app.config['SWAGGER'] = {
             'type': 'apiKey',
             'name': 'Authorization',
             'in': 'header',
-            'description': 'Enter token with **Bearer** prefix. Example: "Bearer your_token_here"'
+            'description': 'Enter token with *Bearer* prefix. Example: "Bearer your_token_here"'
         }
     },
     'security': [{'BearerAuth': []}]
@@ -483,7 +483,7 @@ def get_game_state(user_id, screen_width, screen_height):
             file_name = o['file']
             base_name, ext = os.path.splitext(file_name)
             objects.append({
-                'id': f"obj{o['object_id']}",
+                'name': f"obj{o['name']}",
                 'x': o['position_x'],
                 'y': o['position_y'],
                 'size': 40,
@@ -644,7 +644,7 @@ def is_in_attack_range(attacker_pos, target_pos, range_px):
     print(dx)
     dy = attacker_pos['y'] - target_pos['y']
     print(dy)
-    distance = math.sqrt(dx**2 + dy**2)
+    distance = math.sqrt(dx*2 + dy*2)
     print(distance)
     return distance <= range_px
 
@@ -1042,6 +1042,7 @@ def add_to_inventory(user_id):
         conn.close()
         return jsonify({'success': False, 'message': 'Object not found'}), 404
 
+
     if not has_space:
         conn.close()
         return jsonify({'success': False, 'message': 'No space in inventory'}), 200
@@ -1073,6 +1074,7 @@ def add_to_inventory(user_id):
         """, (player_id, obj['name'], slot_index,amount))
         conn.commit()
     # הסרה מהמפה
+
     cursor.execute("""
         DELETE FROM map_objects WHERE object_id = ?
     """, (obj['object_id'],))
@@ -1667,4 +1669,4 @@ def respawn(user_id):
 
 if __name__ == '__main__':
     move_bots()
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=5000,debug=False)

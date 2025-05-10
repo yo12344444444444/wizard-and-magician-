@@ -50,6 +50,14 @@ CLICKED = False
 API_URL = 'http://127.0.0.1:5000'
 TOKEN = ""
 
+WORLD_WIDTH  = SCREEN_WIDTH * 40
+WORLD_HEIGHT = SCREEN_HEIGHT * 40
+
+auto_walk = False
+auto_stage = 0   # 0=למעלה, 1=ימינה, 2=למטה, 3=שמאלה
+auto_last_move_time = 0
+AUTO_DELAY = 0.05  # השהייה בין צעדים (שניות)
+
 # Pygame screen setup
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption('Bot Visualization')
@@ -520,8 +528,10 @@ def switch_items_in_inventory(cell_num1, cell_num2):
     data_cells["cells"][str(cell_num2)]["quantity"] = quantity1
 
     # delete the info of both in the sever:
-    delete_item_inventory(item1,cell_num1, quantity1)
-    delete_item_inventory(item2, cell_num2, quantity2)
+    if item1 != "0":
+        delete_item_inventory(item1,cell_num1, quantity1)
+    if item2 != "0":
+        delete_item_inventory(item2, cell_num2, quantity2)
 
     #switch in the server:
     if item2 != "0":
@@ -819,7 +829,8 @@ def check_obj():
     if game_state and 'objects' in game_state:
         objects = game_state['objects']
         for obj in objects:
-            print(f"אובייקט: {obj['id']} במיקום ({obj['x']}, {obj['y']}) עם קובץ {obj['file']}")
+            pass
+             # print(f"אובייקט: {obj['name']} במיקום ({obj['x']}, {obj['y']}) עם קובץ {obj['file']}")
 
 
 ##########################################################################################################
@@ -1031,10 +1042,75 @@ def check_click_not_on_ui(x,y):
     return False, item
 
 
+def handle_auto_movement(token, player_data):
+    """
+    זז לאורך גבולות המפה בסדר מחזורי (ימינה, למעלה, שמאלה, למטה)
+    ומחליף כיוון אוטומטית כשהגיע לגבול.
+    """
+    global auto_stage, auto_last_move_time
+
+    now = time.time()
+    if now - auto_last_move_time < AUTO_DELAY:
+        return None
+    auto_last_move_time = now
+
+    px = player_data['position_x']
+    py = player_data['position_y']
+
+    for _ in range(4):  # ננסה עד שנמצא כיוון חוקי
+        direction = None
+        print(f"[AUTO] Stage: {auto_stage}, Pos: ({px}, {py})")
+
+        if auto_stage == 0:  # ימינה
+            if px < WORLD_WIDTH - SCREEN_WIDTH // 2:
+                direction = 'd'
+            else:
+                auto_stage = 1
+                continue
+        elif auto_stage == 1:  # למעלה
+            if py > SCREEN_HEIGHT // 2:
+                direction = 'w'
+            else:
+                auto_stage = 2
+                continue
+        elif auto_stage == 2:  # שמאלה
+            if px > SCREEN_WIDTH // 2 + 5:
+                direction = 'a'
+            else:
+                auto_stage = 3
+                continue
+        elif auto_stage == 3:  # למטה
+            if py < WORLD_HEIGHT - SCREEN_HEIGHT // 2 - 5:
+                direction = 's'
+            else:
+                auto_stage = 0
+                continue
+
+        if direction:
+            print(f"[AUTO] Moving {direction}")
+            headers = {'Authorization': f'Bearer {token}'}
+            data = {
+                'direction': direction,
+                'screen_width': SCREEN_WIDTH,
+                'screen_height': SCREEN_HEIGHT
+            }
+            try:
+                resp = requests.post(f'{API_URL}/movement', json=data, headers=headers)
+                if resp.status_code == 200:
+                    return resp.json()
+                else:
+                    print(f"[AUTO] Movement failed: {resp.status_code}")
+            except Exception as e:
+                print(f"[AUTO] Request error: {e}")
+            break
+
+    return None
+
+
 def load_images():
     try:
         base_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'graphic', 'bot'))
-        # print(f"Looking for images in: {base_path}")
+        print(f"Looking for images in: {base_path}")
         ghost_images = {
             'front': pygame.image.load(os.path.join(base_path, 'Ghost_Front.png')).convert(),
             'back': pygame.image.load(os.path.join(base_path, 'Ghost_Back.png')).convert(),
@@ -1048,12 +1124,11 @@ def load_images():
         print(f"Error loading bot images: {e}")
         return None
 
-
 # Load player image
 def load_player_image():
     try:
         player_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'graphic'))
-        # print(f"Looking for player image at: {player_path}")
+         #print(f"Looking for player image at: {player_path}")
         player_image = pygame.image.load(os.path.join(player_path, 'Standing_front.png')).convert()
         player_image.set_colorkey((0, 0, 0))
         return player_image
@@ -1076,12 +1151,11 @@ def draw_object(screen, obj, player_x, player_y, object_images):
         obj_rect = obj_img.get_rect(center=(object_location_x, object_location_y))
         screen.blit(obj_img, obj_rect)
 
-
 # Load all object images from the graphic folder
 def load_object_images():
     try:
         object_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'graphic'))
-         # print(f"Looking for object images in: {object_path}")
+        print(f"Looking for object images in: {object_path}")
         object_images = {}
 
         for filename in os.listdir(object_path):
@@ -1097,7 +1171,6 @@ def load_object_images():
     except pygame.error as e:
         print(f"Error loading object images: {e}")
         return {}
-
 
 # Handle player movement and request updated game state
 def handle_player_movement(token, screen_width, screen_height):
@@ -1122,7 +1195,7 @@ def handle_player_movement(token, screen_width, screen_height):
         }
         try:
             response = requests.post(f'{API_URL}/movement', json=data, headers=headers)
-             # print("movement:", response.json())
+            # print("movement:", response.json())
             if response.status_code == 200:
                 return response.json()
             else:
@@ -1130,7 +1203,6 @@ def handle_player_movement(token, screen_width, screen_height):
         except Exception as e:
             print(f"Error sending movement: {e}")
     return None
-
 
 # Get current player data
 def get_player_data(token):
@@ -1146,7 +1218,6 @@ def get_player_data(token):
         print(f"Connection error fetching player data: {e}")
         return None
 
-
 # Get full game state
 def get_game_state(token, screen_width, screen_height):
     start = time.time()
@@ -1158,7 +1229,7 @@ def get_game_state(token, screen_width, screen_height):
             game_state_data = response.json()
             if 'bots' in game_state_data:
                 pass
-                 # print(f"[DEBUG] Received {len(game_state_data['bots'])} bots from server.")
+                # print(f"[DEBUG] Received {len(game_state_data['bots'])} bots from server.")
             # print(f"get_game_state client: {time.time() - start}")
             return game_state_data
         else:
@@ -1166,8 +1237,6 @@ def get_game_state(token, screen_width, screen_height):
     except requests.exceptions.RequestException as e:
         print(f"Connection error fetching game state: {e}")
     return None
-
-
 
 # Draw a bot relative to the player
 def draw_bot(screen, bot, player_x, player_y, ghost_images):
@@ -1193,14 +1262,13 @@ def draw_bot(screen, bot, player_x, player_y, ghost_images):
         # print(f"[DEBUG] Bot direction: {direction}, using image: right")
     else:
         ghost_img = ghost_images.get('front')
-         # print(f"[DEBUG] Unknown bot direction: {direction}, using image: front")
+        # print(f"[DEBUG] Unknown bot direction: {direction}, using image: front")
 
     if ghost_img:
         img_rect = ghost_img.get_rect(center=(bot_location_x, bot_location_y))
         screen.blit(ghost_img, img_rect)
     else:
         print(f"[WARNING] No image found for bot direction: {direction}")
-
 
 def send_attack_request(token, x, y, weapon_type, server_url='http://127.0.0.1:5000/attack'):
     headers = {
@@ -1231,6 +1299,34 @@ def draw_player(screen, player_image):
     screen.blit(player_image, player_rect)
 
 
+def send_item_drop_to_server(items, token):
+    print("send start")
+    headers = {"Authorization": f"Bearer {token}"}
+    seen = set()  # לשמירת פריטים שנשלחו
+
+    for item in items:
+        if 'file' in item:
+            key = (item['file'], item['x'], item['y'])
+            if key in seen:
+                continue  # כבר נשלח
+            seen.add(key)
+
+            amount = 100 if item['file'].lower() == 'money' else 1
+            data = {
+                "name": item['file'],
+                "x": item['x'],
+                "y": item['y'],
+                "amount": amount
+            }
+            print(data)
+            try:
+                response = requests.post(f"{API_URL}/drop_item_on_map", json=data, headers=headers)
+                if response.status_code != 200:
+                    print(f"Failed to drop item {item['file']} on map: {response.json()}")
+            except Exception as e:
+                print(f"Error dropping {item['file']} on map:", e)
+
+
 
 def main(token):
     global TOKEN
@@ -1253,14 +1349,20 @@ def main(token):
     running = True
     dropped_items = []
     player_data = get_player_data(token)
+
     inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon = create_icons()
     enter_inventory_data_to_json()
+
     while running:
         screen.fill(BACK)
         start = time.time()
         for event in pygame.event.get():
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_t:
+                    global auto_walk
+                    auto_walk = not auto_walk
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mouse_x, mouse_y = pygame.mouse.get_pos()
                 bad_attack, weapon = check_click_not_on_ui(mouse_x, mouse_y)
@@ -1286,8 +1388,10 @@ def main(token):
                         #print("dropped_items", dropped_items)
                     print("attacked")
 
-        # שלח תנועה וקבל מצב משחק
-        game_state = handle_player_movement(token, SCREEN_WIDTH, SCREEN_HEIGHT)
+        if auto_walk:
+            game_state = handle_auto_movement(token, player_data)
+        else:
+            game_state = handle_player_movement(token, SCREEN_WIDTH, SCREEN_HEIGHT)
         if not game_state:
             game_state = get_game_state(token, SCREEN_WIDTH, SCREEN_HEIGHT)
         check_obj()
@@ -1323,6 +1427,7 @@ def main(token):
                 for obj in game_state['objects']:
                     draw_object(screen, obj, player_x, player_y, object_images)
             # print("dropped_items",dropped_items)
+
             for item in dropped_items:
                 if item['file'].lower() == 'money':
                     continue
@@ -1334,6 +1439,7 @@ def main(token):
                         item["x"] - player_x + SCREEN_WIDTH // 2,
                         item["y"] - player_y + SCREEN_HEIGHT // 2
                     ))
+                    send_item_drop_to_server(dropped_items, token)
                 except FileNotFoundError:
                     print(f"Image file not found: {filename}")
 
@@ -1351,6 +1457,3 @@ def main(token):
 
     pygame.quit()
     sys.exit()
-
-if __name__ == '__main__':
-    main("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoyLCJleHAiOjE3NDY4NDgyODZ9.nnuG2APBJNeLkdrnJa321z-wwrqeIk322NF60MsGbss")

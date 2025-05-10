@@ -1,8 +1,8 @@
 {
     "cells": {
         "1": {
-            "item": "4",
-            "quantity": 1,
+            "item": "0",
+            "quantity": 0,
             "topleft_x": 370,
             "topleft_y": 586,
             "mini_button_pressed?": false
@@ -106,8 +106,8 @@
             "mini_button_pressed?": false
         },
         "16": {
-            "item": "0",
-            "quantity": 0,
+            "item": "4",
+            "quantity": 1,
             "topleft_x": 479,
             "topleft_y": 465,
             "mini_button_pressed?": false
