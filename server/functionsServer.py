@@ -49,6 +49,15 @@ def choose_direction(last_direction, dx, dy):
             return direction
     return max(weights, key=weights.get)
 
+def saveTuples(tuples):
+    conn = get_db_connection()
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    cursor.executemany(
+        "UPDATE bots SET position_x = ?, position_y = ? WHERE bot_id = ?",tuples)
+    conn.commit()
+    conn.close()
+
 def bot_action(action,bot):
     start=time.time()
     conn = get_db_connection()
@@ -64,10 +73,11 @@ def bot_action(action,bot):
             y -= 7  # up
         elif action == 4:
             x -= 7  # left
-        cursor.execute("UPDATE bots SET position_x = ?, position_y = ? WHERE bot_id = ?", (x, y, bot['bot_id']))
-        conn.commit()
+#        cursor.execute("UPDATE bots SET position_x = ?, position_y = ? WHERE bot_id = ?", (x, y, bot['bot_id']))
+#        conn.commit()
         print(f"bot_action 1-4 {time.time() - start}")
-
+        conn.close()
+        return x, y, bot['bot_id']
     elif action == 5:
         start = time.time()
         # שלב 2: חפש שחקנים במרחק של עד 50 פיקסלים מהבוט הספציפי

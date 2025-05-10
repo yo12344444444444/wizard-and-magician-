@@ -10,7 +10,7 @@ pygame.init()
 # Constants for screen dimensions
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
-FPS = 30
+FPS = 50
 
 # Colors
 BLACK = (0, 0, 0)
@@ -342,11 +342,11 @@ def main(token):
 
     clock = pygame.time.Clock()
     running = True
-    dropped_items = []
     player_data = get_player_data(token)
 
     while running:
         start = time.time()
+        dropped_items = []
         for event in pygame.event.get():
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 running = False
@@ -417,34 +417,34 @@ def main(token):
             if game_state and 'objects' in game_state:
                 for obj in game_state['objects']:
                     draw_object(screen, obj, player_x, player_y, object_images)
-            print("dropped_items",dropped_items)
 
-            for item in dropped_items:
-                if item['file'].lower() == 'money':
-                    continue
-                try:
-                    filename = f"{os.path.splitext(item['file'])[0]}_Inventory.png"
-                    image = pygame.image.load(os.path.join("inventory", filename)).convert_alpha()
-                    image.set_colorkey((255, 255, 255))
-                    screen.blit(image, (
-                        item["x"] - player_x + SCREEN_WIDTH // 2,
-                        item["y"] - player_y + SCREEN_HEIGHT // 2
-                    ))
-                    # שליחת פרטי החפץ לשרת
-                    send_item_drop_to_server(dropped_items,token)
-                except FileNotFoundError:
-                    print(f"Image file not found: {filename}")
+            print("dropped_items",dropped_items)
+            # שליחת פרטי החפץ לשרת
+            send_item_drop_to_server(dropped_items, token)
+
+#            for item in dropped_items:
+#                if item['file'].lower() == 'money':
+#                    continue
+#                try:
+#                    filename = f"{os.path.splitext(item['file'])[0]}_Inventory.png"
+#                    image = pygame.image.load(os.path.join("inventory", filename)).convert_alpha()
+#                    image.set_colorkey((255, 255, 255))
+#                    screen.blit(image, (
+#                        item["x"] - player_x + SCREEN_WIDTH // 2,
+#                        item["y"] - player_y + SCREEN_HEIGHT // 2
+#                    ))
+#                except FileNotFoundError:
+#                    print(f"Image file not found: {filename}")
 
             if game_state and 'bots' in game_state:
                 for bot in game_state['bots']:
                     draw_bot(screen, bot, player_x, player_y, ghost_images)
-
             draw_player(screen, player_image)
 
         status_text = font.render("Bot Visualization - Press ESC to exit", True, WHITE)
         screen.blit(status_text, (10, 10))
         pygame.display.flip()
-        clock.tick(FPS)
+#        clock.tick(FPS)
 
     pygame.quit()
     sys.exit()
