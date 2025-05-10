@@ -417,8 +417,6 @@ def game_state(user_id):
     print(f"game_state end:{time.time() - start}")
     return jsonify(game_state_data), 200
 
-
-
 def get_game_state(user_id, screen_width, screen_height):
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -1026,6 +1024,7 @@ def add_to_inventory(user_id):
     has_space = data.get('has_space_in_inventory')
     player_id = user_id
     slot_index = data.get('slot_index')
+    amount = data.get('amount', 1)  # ברירת מחדל ל-1 אם לא נשלח מהלקוח
 
     if None in (object_name, has_space, player_id, slot_index):
         return jsonify({'error': 'Missing data'}), 400
@@ -1062,16 +1061,16 @@ def add_to_inventory(user_id):
         # הגדלת כמות ב-1
         cursor.execute("""
             UPDATE inventory
-            SET quantity = quantity + 1
+            SET quantity = quantity + ?
             WHERE inventory_id = ?
-        """, (existing_item['inventory_id'],))
+        """, (amount,existing_item['inventory_id'],))
         conn.commit()
     else:
         # יצירת פריט חדש עם כמות 1
         cursor.execute("""
             INSERT INTO inventory (player_id, name, slot_index, quantity)
-            VALUES (?, ?, ?, 1)
-        """, (player_id, obj['name'], slot_index))
+            VALUES (?, ?, ?, ?)
+        """, (player_id, obj['name'], slot_index,amount))
         conn.commit()
     # הסרה מהמפה
     cursor.execute("""
@@ -1241,6 +1240,61 @@ def add_item(user_id):
     conn.close()
 
     return jsonify({'success': True, 'message': f'{item_name} added to inventory'}), 200
+@app.route('/drop_item_on_map', methods=['POST'])
+@token_required
+def drop_item_on_map(user_id):
+    """
+    Drop item on the map or add money directly
+    """
+    print("drop ,server 1")
+    data = request.get_json()
+    name = data.get("name")
+    x = data.get("x")
+    y = data.get("y")
+    amount = data.get("amount")
+    file = f"{name}.png"
+    print("drop ,server 2")
+
+    if not all([name, isinstance(x, (int, float)), isinstance(y, (int, float)), isinstance(amount, int)]):
+        return jsonify({"error": "Invalid data"}), 400
+
+    print("drop ,server 3")
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    print("drop ,server 4")
+
+    if name.lower() == "money":
+        # Update player currency
+        cursor.execute("""
+            UPDATE players SET coins = coins + ?
+            WHERE player_id = ?
+        """, (amount, user_id))
+        message = f"{amount} coins added to player {user_id}"
+        print("drop ,server 5")
+    else:
+        # Check if item already exists at same position
+        cursor.execute("""
+            SELECT COUNT(*) FROM map_objects
+            WHERE name = ? AND position_x = ? AND position_y = ?
+        """, (name, x, y))
+        exists = cursor.fetchone()[0]
+
+        if exists:
+            message = f"{name} already exists at ({x}, {y}), not inserted again"
+            print("drop ,server 6 - already exists")
+        else:
+            # Insert item on the map
+            cursor.execute("""
+                INSERT INTO map_objects (name, file, rotation, position_x, position_y)
+                VALUES (?, ?, ?, ?, ?)
+            """, (name, file, False, x, y))
+            message = f"{name} x{amount} dropped at ({x}, {y})"
+            print("drop ,server 6 - inserted")
+
+    conn.commit()
+    conn.close()
+
+    return jsonify({'success': True, 'message': message}), 200
 
 @app.route('/use_object', methods=['POST'])
 @token_required
@@ -1517,44 +1571,32 @@ def remove_from_inventory(user_id):
             slot_index:
               type: integer
               example: 2
+            amount:
+              type: integer
+              example: 1
     responses:
       200:
         description: Item successfully removed from inventory
-        schema:
-          type: object
-          properties:
-            message:
-              type: string
-              example: Item removed
       400:
         description: Item not found or does not match slot
-        schema:
-          type: object
-          properties:
-            error:
-              type: string
-              example: Item not found in the specified slot
       401:
         description: Unauthorized
-        schema:
-          type: object
-          properties:
-            error:
-              type: string
-              example: Token is missing or invalid
     """
     data = request.get_json()
-
     item_name = data.get('item_name')
     slot_index = data.get('slot_index')
+    amount = data.get('amount', 1)  # ברירת מחדל: 1
 
     if not item_name or slot_index is None:
         return jsonify({'error': 'Missing item_name or slot_index'}), 400
 
+    if not isinstance(amount, int) or amount <= 0:
+        return jsonify({'error': 'Invalid amount'}), 400
+
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Check if the item exists in this player's inventory at that slot
+    # שליפת הפריט מהמלאי
     cursor.execute("""
         SELECT * FROM inventory
         WHERE player_id = ? AND slot_index = ?
@@ -1569,15 +1611,24 @@ def remove_from_inventory(user_id):
         conn.close()
         return jsonify({'error': f"Item in slot {slot_index} is '{row['name']}', not '{item_name}'"}), 400
 
-    # Proceed to delete
-    cursor.execute("""
-        DELETE FROM inventory
-        WHERE inventory_id = ?
-    """, (row['inventory_id'],))
+    if row['quantity'] > amount:
+        # רק מפחיתים מהכמות
+        cursor.execute("""
+            UPDATE inventory
+            SET quantity = quantity - ?
+            WHERE inventory_id = ?
+        """, (amount, row['inventory_id']))
+    else:
+        # מוחקים את כל השורה אם הכמות קטנה או שווה
+        cursor.execute("""
+            DELETE FROM inventory
+            WHERE inventory_id = ?
+        """, (row['inventory_id'],))
+
     conn.commit()
     conn.close()
 
-    return jsonify({'message': 'Item removed'}), 200
+    return jsonify({'message': f'{amount} of {item_name} removed'}), 200
 
 @app.route('/respawn', methods=['POST'])
 @token_required

@@ -26,6 +26,86 @@ pygame.display.set_caption('Bot Visualization')
 
 # Font for displaying text
 font = pygame.font.SysFont('Arial', 16)
+# אחרי ההגדרות שלך:
+WORLD_WIDTH  = SCREEN_WIDTH * 40
+WORLD_HEIGHT = SCREEN_HEIGHT * 40
+
+auto_walk = False
+auto_stage = 0   # 0=למעלה, 1=ימינה, 2=למטה, 3=שמאלה
+auto_last_move_time = 0
+AUTO_DELAY = 0.05  # השהייה בין צעדים (שניות)
+
+def handle_auto_movement(token, player_data):
+    """
+    זז לאורך גבולות המפה בסדר מחזורי (ימינה, למעלה, שמאלה, למטה)
+    ומחליף כיוון אוטומטית כשהגיע לגבול.
+    """
+    global auto_stage, auto_last_move_time
+
+    now = time.time()
+    if now - auto_last_move_time < AUTO_DELAY:
+        return None
+    auto_last_move_time = now
+
+    px = player_data['position_x']
+    py = player_data['position_y']
+
+    for _ in range(4):  # ננסה עד שנמצא כיוון חוקי
+        direction = None
+        print(f"[AUTO] Stage: {auto_stage}, Pos: ({px}, {py})")
+
+        if auto_stage == 0:  # ימינה
+            if px < WORLD_WIDTH - SCREEN_WIDTH // 2:
+                direction = 'd'
+            else:
+                auto_stage = 1
+                continue
+        elif auto_stage == 1:  # למעלה
+            if py > SCREEN_HEIGHT // 2:
+                direction = 'w'
+            else:
+                auto_stage = 2
+                continue
+        elif auto_stage == 2:  # שמאלה
+            if px > SCREEN_WIDTH // 2 + 5:
+                direction = 'a'
+            else:
+                auto_stage = 3
+                continue
+        elif auto_stage == 3:  # למטה
+            if py < WORLD_HEIGHT - SCREEN_HEIGHT // 2 - 5:
+                direction = 's'
+            else:
+                auto_stage = 0
+                continue
+
+        if direction:
+            print(f"[AUTO] Moving {direction}")
+            headers = {'Authorization': f'Bearer {token}'}
+            data = {
+                'direction': direction,
+                'screen_width': SCREEN_WIDTH,
+                'screen_height': SCREEN_HEIGHT
+            }
+            try:
+                resp = requests.post(f'{API_URL}/movement', json=data, headers=headers)
+                if resp.status_code == 200:
+                    return resp.json()
+                else:
+                    print(f"[AUTO] Movement failed: {resp.status_code}")
+            except Exception as e:
+                print(f"[AUTO] Request error: {e}")
+            break
+
+    return None
+
+def draw_health_bar(screen, x, y, health, max_health=100):
+    bar_width = 40
+    bar_height = 6
+    health_ratio = health / max_health
+    pygame.draw.rect(screen, (255, 0, 0), (x - bar_width//2, y - 30, bar_width, bar_height))
+    pygame.draw.rect(screen, (0, 255, 0), (x - bar_width//2, y - 30, int(bar_width * health_ratio), bar_height))
+
 
 def load_images():
     try:
@@ -218,6 +298,32 @@ def draw_player(screen, player_image):
     screen.blit(player_image, player_rect)
 
 
+def send_item_drop_to_server(items, token):
+    print("send start")
+    headers = {"Authorization": f"Bearer {token}"}
+    seen = set()  # לשמירת פריטים שנשלחו
+
+    for item in items:
+        if 'file' in item:
+            key = (item['file'], item['x'], item['y'])
+            if key in seen:
+                continue  # כבר נשלח
+            seen.add(key)
+
+            amount = 100 if item['file'].lower() == 'money' else 1
+            data = {
+                "name": item['file'],
+                "x": item['x'],
+                "y": item['y'],
+                "amount": amount
+            }
+            print(data)
+            try:
+                response = requests.post(f"{API_URL}/drop_item_on_map", json=data, headers=headers)
+                if response.status_code != 200:
+                    print(f"Failed to drop item {item['file']} on map: {response.json()}")
+            except Exception as e:
+                print(f"Error dropping {item['file']} on map:", e)
 
 def main(token):
     ghost_images = load_images()
@@ -244,6 +350,11 @@ def main(token):
         for event in pygame.event.get():
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_t:
+                    global auto_walk
+                    auto_walk = not auto_walk
+                    print(f"[INFO] Auto walk mode: {'ON' if auto_walk else 'OFF'}")
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mouse_x, mouse_y = pygame.mouse.get_pos()
                 click_world_x = mouse_x + player_data['position_x'] - SCREEN_WIDTH // 2
@@ -268,8 +379,10 @@ def main(token):
                     #print("dropped_items", dropped_items)
             print("attacked")
 
-        # שלח תנועה וקבל מצב משחק
-        game_state = handle_player_movement(token, SCREEN_WIDTH, SCREEN_HEIGHT)
+        if auto_walk:
+            game_state = handle_auto_movement(token, player_data)
+        else:
+            game_state = handle_player_movement(token, SCREEN_WIDTH, SCREEN_HEIGHT)
         if not game_state:
             game_state = get_game_state(token, SCREEN_WIDTH, SCREEN_HEIGHT)
 
@@ -305,7 +418,10 @@ def main(token):
                 for obj in game_state['objects']:
                     draw_object(screen, obj, player_x, player_y, object_images)
             print("dropped_items",dropped_items)
+
             for item in dropped_items:
+                if item['file'].lower() == 'money':
+                    continue
                 try:
                     filename = f"{os.path.splitext(item['file'])[0]}_Inventory.png"
                     image = pygame.image.load(os.path.join("inventory", filename)).convert_alpha()
@@ -314,6 +430,8 @@ def main(token):
                         item["x"] - player_x + SCREEN_WIDTH // 2,
                         item["y"] - player_y + SCREEN_HEIGHT // 2
                     ))
+                    # שליחת פרטי החפץ לשרת
+                    send_item_drop_to_server(dropped_items,token)
                 except FileNotFoundError:
                     print(f"Image file not found: {filename}")
 
@@ -331,5 +449,5 @@ def main(token):
     pygame.quit()
     sys.exit()
 
-if __name__ == '__main__':
-    main("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoyLCJleHAiOjE3NDY4NDgyODZ9.nnuG2APBJNeLkdrnJa321z-wwrqeIk322NF60MsGbss")
+#if __name__ == '__main__':
+ #   main("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoyLCJleHAiOjE3NDY4NDgyODZ9.nnuG2APBJNeLkdrnJa321z-wwrqeIk322NF60MsGbss")

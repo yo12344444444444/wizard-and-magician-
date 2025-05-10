@@ -86,8 +86,6 @@ def bot_action(action,bot):
                 conn.commit()
                 print(f"Bot {bot['bot_id']} attacked Player {player_id}, new health: {new_health}")
     conn.close()
-    print(f"bot_action end {time.time() - start}")
-
 
 def update_specific_bot(action,bot_id):
     conn = get_db_connection()
