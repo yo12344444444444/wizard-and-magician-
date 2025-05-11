@@ -5,6 +5,7 @@ import time
 import os
 import buttons
 import json
+from ChatClient import ChatClient
 
 # Initialize Pygame
 pygame.init()
@@ -160,12 +161,47 @@ def put_icons_on_screen(screen,inventory_icon, mini_map_icon, exit_icon, chat_ic
 
 
 ##########################################################################################################
+# chat:
+
+def handle_chat_message(message):
+    """Callback function to handle incoming chat messages"""
+    print("Handling the Chat Message")
+    global received_messages
+    if not hasattr(handle_chat_message, 'received_messages'):
+        handle_chat_message.received_messages = []
+    print("befor cheaking if chat")
+    print(message['type'])
+    print(message['content'])
+    if message['type'] == 'chat':
+        print("message is chat")
+        del messegas[0]
+        messegas.append(message['content'])
+        del users[0]
+        users.append(message['client_name'])
+
+client = ChatClient('localhost',5005,handle_chat_message)
+client.connect("user")
+client.start()
+
+TEXT = ""
+TEXT_ACTIVE = False
+messegas = [" ", " ", " ", " ", " ", "  ", " ", " "]
+users = [" ", " ", " ", " ", " ", "  ", " ", " "]
+
+##########################################################################################################
 # open windows:
 
 def open_chat(screen):
     """
     opens the chat window
     """
+    global TEXT
+    global TEXT_ACTIVE
+    global chat_client
+
+    # Initialize chat client if not already done
+    # if not hasattr(open_chat, 'receive_thread'):
+
     path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'graphic'))
     open_chat_first_layer_image = pygame.image.load(os.path.join(path,CHAT_WINDOW_LAYER_1)).convert_alpha()
     open_chat_first_layer_image.set_colorkey(WHITE)
@@ -177,6 +213,57 @@ def open_chat(screen):
     open_chat_second_layer_image.set_colorkey(WHITE)
     chat_second_layer = buttons.Button(810, 30, open_chat_second_layer_image)
     chat_second_layer.draw(screen)
+
+    # prints the messages on the chat
+    font = pygame.font.Font(None, 20)
+    count_print_text = 0
+    count_messages = 0
+    print_messages_y = 50
+    while count_print_text < 8:
+        the_message = users[count_messages] + "   " + messegas[count_messages]
+        # the_user = users[count_messages]
+        text_surface = font.render(the_message, True, WHITE)
+        text_position = (840, print_messages_y)
+        screen.blit(text_surface, text_position)
+        count_print_text = count_print_text + 1
+        count_messages = count_messages + 1
+        print_messages_y = print_messages_y + 20
+
+    # Display received messages
+    font = pygame.font.Font(None, 20)
+    if hasattr(handle_chat_message, 'received_messages'):
+        y_offset = 50
+        for msg in handle_chat_message.received_messages:
+            text_surface = font.render(msg, True, WHITE)
+            text_position = (840, y_offset)
+            screen.blit(text_surface, text_position)
+            y_offset += 20
+
+    font = pygame.font.Font(None, 20)
+    for event in pygame.event.get():
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == LEFT:
+            x = pygame.mouse.get_pos()[0]
+            y = pygame.mouse.get_pos()[1]
+
+            if 834 < x < 1190 and 225 < y < 251:
+                TEXT_ACTIVE = True
+                print("true")
+
+            if 1190 < x < 1226 and 225 < y < 251:
+                print("send button")
+                client.chat_message(TEXT)
+                TEXT = ""
+
+        if TEXT_ACTIVE and event.type == pygame.KEYDOWN:  # and event.type == pygame.KEYDOWN
+            print("yes")
+            if event.key == pygame.K_BACKSPACE:
+                TEXT = TEXT[:-1]
+            elif len(TEXT) < 40:
+                TEXT += event.unicode
+
+    text_surface = font.render(TEXT, True, WHITE)
+    text_position = (840, 235)
+    screen.blit(text_surface, text_position)
 
 
 def open_full_inventory_items(screen, event):
