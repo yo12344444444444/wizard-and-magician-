@@ -17,6 +17,7 @@ cursor.execute("""
 CREATE TABLE players (
     player_id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
+    server INTEGERNOT NULL DEFAULT 0,
     password_hash TEXT NOT NULL,
     position_x INTEGER NOT NULL DEFAULT 0,
     position_y INTEGER NOT NULL DEFAULT 0,
