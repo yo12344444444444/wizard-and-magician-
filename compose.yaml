@@ -23,8 +23,8 @@ services:
     depends_on: [build_db]
     ports:
       # Only here do we bind the full range to the host
-      - "5000-6000:5000-6000/udp"
-      - "5000-6000:5000-6000/tcp"
+      - "5000-5100:5000-5100/udp"
+      - "5000-5100:5000-5100/tcp"
     command: ["python", "lb/mainServerV2.py"]
     restart: always
 
@@ -35,10 +35,10 @@ services:
     networks: [my_custom_network]
     volumes: [ "./DATABASE_GAME.db:/app/database/DATABASE_GAME.db" ]
     depends_on: [build_db, load_balancer]
-    expose:
-      # Internal-only: other containers can talk to these
-      - "5000-6000/udp"
-      - "5000-6000/tcp"
+    ports:
+      # Only here do we bind the full range to the host
+      - "5150-5250:5150-5250/udp"
+      - "5150-5250:5150-5250/tcp"
     command: ["python", "server/srever.py"]
     restart: always
 
@@ -49,7 +49,7 @@ services:
     networks: [my_custom_network]
     depends_on: [server_flask]
     expose:
-      - "5000-6000/udp"
-      - "5000-6000/tcp"
+      - "5000-5100/udp"
+      - "5000-5100/tcp"
     command: ["python", "chatCervice1.py"]
     restart: always
