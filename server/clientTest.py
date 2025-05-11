@@ -832,6 +832,7 @@ def check_obj():
             print(f"אובייקט: {obj['name']} במיקום ({obj['x']}, {obj['y']}) עם קובץ {obj['file']}")
             if name_to_id(obj['name']) is not None:
                 add_item(name_to_id(obj['name']),1)
+                print(obj['name'])
 
 
 
@@ -981,33 +982,6 @@ def delete_item_inventory(item_name, slot_index, amount=1, server_url="http://lo
 # client not inventory:
 
 
-def send_item_drop_to_server(items, token):
-    print("send start")
-    headers = {"Authorization": f"Bearer {token}"}
-    seen = set()  # לשמירת פריטים שנשלחו
-
-    for item in items:
-        if 'file' in item:
-            key = (item['file'], item['x'], item['y'])
-            if key in seen:
-                continue  # כבר נשלח
-            seen.add(key)
-
-            amount = 100 if item['file'].lower() == 'money' else 1
-            data = {
-                "name": item['file'],
-                "x": item['x'],
-                "y": item['y'],
-                "amount": amount
-            }
-            print(data)
-            try:
-                response = requests.post(f"{API_URL}/drop_item_on_map", json=data, headers=headers)
-                if response.status_code != 200:
-                    print(f"Failed to drop item {item['file']} on map: {response.json()}")
-            except Exception as e:
-                print(f"Error dropping {item['file']} on map:", e)
-
 
 def check_click_not_on_ui(x,y):
     """
@@ -1020,28 +994,29 @@ def check_click_not_on_ui(x,y):
     item = held_cell["item"]
 
     # ui buttons:
-    if 271 < x < 349 or 374 < x < 450 or 473 < x < 550 and 34 < y < 106:
+    if (271 < x < 349) or (374 < x < 450) or (473 < x < 550) and (34 < y < 106):
         return True, None
     # mini map:
-    if 28 < x < 240 and 34 < y < 236:
+    if (28 < x < 240) and (34 < y < 236):
         return True, None
     # current holding:
-    if 152 < x < 283 and 572 < y < 701:
+    if (152 < x < 283) and (572 < y < 701):
         return True, None
     # inventory:
-    if 351 < x < 1032 and 570 < y < 698:
+    if (351 < x < 1032) and (570 < y < 698):
         return True, None
     # hp bar:
-    if 351 < x < 745 and 522 < y < 555:
+    if (351 < x < 74) and (522 < y < 555):
         return True, None
     # money:
-    if 1110 < x < 1262 and 661 < y < 700:
+    if (1110 < x < 1262) and (661 < y < 700):
         return True, None
     if item not in ["1", "2", "3", "4", "5"]:
         return True, None
     print("hayo")
 
     return False,item
+
 
 def handle_auto_movement(token, player_data):
     """
@@ -1088,7 +1063,7 @@ def handle_auto_movement(token, player_data):
                 continue
 
         if direction:
-            print(f"[AUTO] Moving {direction}")
+            # print(f"[AUTO] Moving {direction}")
             headers = {'Authorization': f'Bearer {token}'}
             data = {
                 'direction': direction,
@@ -1106,6 +1081,7 @@ def handle_auto_movement(token, player_data):
             break
 
     return None
+
 
 def draw_health_bar(screen, x, y, health, max_health=100):
     bar_width = 40
@@ -1136,7 +1112,7 @@ def load_images():
 def load_player_image():
     try:
         player_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'graphic'))
-        print(f"Looking for player image at: {player_path}")
+        # print(f"Looking for player image at: {player_path}")
         player_image = pygame.image.load(os.path.join(player_path, 'Standing_front.png')).convert()
         player_image.set_colorkey((0, 0, 0))
         return player_image
@@ -1163,7 +1139,7 @@ def draw_object(screen, obj, player_x, player_y, object_images):
 def load_object_images():
     try:
         object_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'graphic'))
-        print(f"Looking for object images in: {object_path}")
+        # print(f"Looking for object images in: {object_path}")
         object_images = {}
 
         for filename in os.listdir(object_path):
@@ -1203,7 +1179,7 @@ def handle_player_movement(token, screen_width, screen_height):
         }
         try:
             response = requests.post(f'{API_URL}/movement', json=data, headers=headers)
-            print("movement:", response.json())
+            print("movementy:", response.json())
             if response.status_code == 200:
                 return response.json()
             else:
@@ -1236,7 +1212,8 @@ def get_game_state(token, screen_width, screen_height):
         if response.status_code == 200:
             game_state_data = response.json()
             if 'bots' in game_state_data:
-                print(f"[DEBUG] Received {len(game_state_data['bots'])} bots from server.")
+                pass
+                # print(f"[DEBUG] Received {len(game_state_data['bots'])} bots from server.")
             print(f"get_game_state client: {time.time() - start}")
             return game_state_data
         else:
@@ -1247,7 +1224,7 @@ def get_game_state(token, screen_width, screen_height):
 
 # Draw a bot relative to the player
 def draw_bot(screen, bot, player_x, player_y, ghost_images):
-    print(f"[DEBUG] Drawing bot: {bot}")
+    # print(f"[DEBUG] Drawing bot: {bot}")
     bot_x = bot.get('x', 0)
     bot_y = bot.get('y', 0)
     direction = bot.get('direction', 'front').lower()
@@ -1257,16 +1234,16 @@ def draw_bot(screen, bot, player_x, player_y, ghost_images):
 
     if direction in ('up', 'back'):
         ghost_img = ghost_images.get('back')
-        print(f"[DEBUG] Bot direction: {direction}, using image: back")
+        # print(f"[DEBUG] Bot direction: {direction}, using image: back")
     elif direction in ('down', 'front'):
         ghost_img = ghost_images.get('front')
-        print(f"[DEBUG] Bot direction: {direction}, using image: front")
+        # print(f"[DEBUG] Bot direction: {direction}, using image: front")
     elif direction == 'left':
         ghost_img = ghost_images.get('left')
-        print(f"[DEBUG] Bot direction: {direction}, using image: left")
+        # print(f"[DEBUG] Bot direction: {direction}, using image: left")
     elif direction == 'right':
         ghost_img = ghost_images.get('right')
-        print(f"[DEBUG] Bot direction: {direction}, using image: right")
+        # print(f"[DEBUG] Bot direction: {direction}, using image: right")
     else:
         ghost_img = ghost_images.get('front')
         print(f"[DEBUG] Unknown bot direction: {direction}, using image: front")
@@ -1276,6 +1253,7 @@ def draw_bot(screen, bot, player_x, player_y, ghost_images):
         screen.blit(ghost_img, img_rect)
     else:
         print(f"[WARNING] No image found for bot direction: {direction}")
+
 
 def send_attack_request(token, x, y, weapon_type, server_url='http://127.0.0.1:5000/attack'):
     headers = {
@@ -1434,6 +1412,7 @@ def main(token):
             print("dropped_items",dropped_items)
             # שליחת פרטי החפץ לשרת
             send_item_drop_to_server(dropped_items, token)
+            check_obj()
 
 #            for item in dropped_items:
 #                if item['file'].lower() == 'money':
