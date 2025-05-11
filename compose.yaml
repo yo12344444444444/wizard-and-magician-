@@ -1,5 +1,6 @@
 services:
     build_db:
+      network_mode: "host"
       container_name: "build-db"
       image: nettahalamish/cyber-project-grade-11:latest
       build:
@@ -10,6 +11,7 @@ services:
       restart: on-failure
 
     load_balancer:
+      network_mode: "host"
       container_name: "load-balancer"
       image: nettahalamish/cyber-project-grade-11:latest
       build:
@@ -22,6 +24,7 @@ services:
       restart: always
 
     server_flask:
+      network_mode: "host"
       container_name: "server-flask"
       image: nettahalamish/cyber-project-grade-11:latest
       build:
@@ -48,6 +51,7 @@ services:
 #      restart: always
 
     server_chat:
+      network_mode: "host"
       container_name: "server-chat"
       image: nettahalamish/cyber-project-grade-11:latest
       build:
