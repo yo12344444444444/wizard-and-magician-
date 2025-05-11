@@ -2,7 +2,7 @@ import sqlite3
 import bcrypt
 import random
 
-conn = sqlite3.connect("DATABASE_GAME.db")
+conn = sqlite3.connect("DATABASE_GAME2.db")
 cursor = conn.cursor()
 
 # מחיקת טבלאות ישנות אם קיימות
@@ -17,6 +17,7 @@ cursor.execute("""
 CREATE TABLE players (
     player_id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
+    server INTEGERNOT NULL DEFAULT 0,
     password_hash TEXT NOT NULL,
     position_x INTEGER NOT NULL DEFAULT 0,
     position_y INTEGER NOT NULL DEFAULT 0,

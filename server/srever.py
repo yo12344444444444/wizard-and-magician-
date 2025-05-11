@@ -1688,6 +1688,7 @@ class lbconector:
                 portLb = int(data.decode().lower()[1:])
                 lBaddr = (addr[0], portLb)
             elif decoded[0] == "u":
+                print("hi")
                 self.save_player_data(decoded[1:])
 
     def save_player_data(self,player_data, db_path='../DATABASE_GAME.db'):

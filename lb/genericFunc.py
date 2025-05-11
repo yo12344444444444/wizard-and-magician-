@@ -6,11 +6,11 @@ import json
 
 
 class Servers:
-    def send_player_data(self, addr, username, db_path='../DATABASE_GAME.db'):
+    def send_player_data(self, server, username, db_path='../DATABASE_GAME2.db'):
         # Connect to SQLite database
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
-
+        addr = self.servers[server]
         # Query player by username
         c.execute("SELECT * FROM players WHERE username = ?", (username,))
         row = c.fetchone()
@@ -145,14 +145,15 @@ class Servers:
 
         self.conn.commit()
 
-    def sendDb(self, addr, username, db_path='../DATABASE_GAME2.db'):
+    def sendDb(self, server, username, db_path='../DATABASE_GAME2.db'):
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
-
+        addr = self.servers[str(server)]
+        addr = (addr[0], int(addr[1])+1)
         # Query player by username
         c.execute("SELECT * FROM players WHERE username = ?", (username,))
         row = c.fetchone()
-
+        print("addr", addr)
         conn.close()
 
         if row:
@@ -160,20 +161,20 @@ class Servers:
             player_data = {
                 "player_id": row[0],
                 "username": row[1],
-                "password_hash": row[2],
-                "position_x": row[3],
-                "position_y": row[4],
-                "health": row[5],
-                "coins": row[6],
-                "status": row[7],
-                "speed": row[8],
-                "last_attack_time": row[9]
+                "password_hash": row[3],
+                "position_x": row[4],
+                "position_y": row[5],
+                "health": row[6],
+                "coins": row[7],
+                "status": row[8],
+                "speed": row[9],
+                "last_attack_time": row[10]
             }
 
             # Send back over UDP
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            message = json.dumps(player_data, default=str).encode()
-            sock.sendto(message, addr)
+            message = "u"+json.dumps(player_data, default=str)
+            sock.sendto(message.encode(), addr)
             sock.close()
         else:
             pass
