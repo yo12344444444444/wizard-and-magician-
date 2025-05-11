@@ -1,3 +1,6 @@
+import json
+import socket
+
 from flask import Flask, request, jsonify
 from jose import jwt  # Replace PyJWT with jose.jwt
 import os
@@ -1687,6 +1690,118 @@ def respawn(user_id):
         'health': new_health
     }), 200
 
+class lbconector:
+    def __init__(self):
+        self.lBaddr = ()
+    def ipSender(self,udp_port, flask_port):
+        global ip, portLb
+        BUFFER_SIZE = 1024
+        server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            server_socket.bind(("", udp_port))
+        except OSError as e:
+            return
+
+        while True:
+            data, addr = server_socket.recvfrom(BUFFER_SIZE)
+            print(f"Received from {addr}: {data.decode()}")
+            decoded = data.decode(errors='ignore')
+            if data.decode().lower()[0] == "r":
+                response = f"1|{flask_port}".encode()  # Safer format
+                server_socket.sendto(response, addr)
+                portLb = int(data.decode().lower()[1:])
+                lBaddr = (addr[0], portLb)
+            elif decoded[0] == "u":
+                self.save_player_data(decoded[1:])
+
+    def save_player_data(self,player_data, db_path='../DATABASE_GAME.db'):
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+        player_data = json.loads(player_data)
+        # Upsert by player_id
+        c.execute("""
+                INSERT INTO players (player_id, username, password_hash, position_x, position_y, health, coins, status, speed, last_attack_time)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(player_id) DO UPDATE SET
+                    username = excluded.username,
+                    password_hash = excluded.password_hash,
+                    position_x = excluded.position_x,
+                    position_y = excluded.position_y,
+                    health = excluded.health,
+                    coins = excluded.coins,
+                    status = excluded.status,
+                    speed = excluded.speed,
+                    last_attack_time = excluded.last_attack_time
+            """, (
+            player_data["player_id"],
+            player_data["username"],
+            player_data["password_hash"],
+            player_data["position_x"],
+            player_data["position_y"],
+            player_data["health"],
+            player_data["coins"],
+            player_data["status"],
+            player_data["speed"],
+            player_data["last_attack_time"]
+
+        ))
+        conn.commit()
+        conn.close()
+
+    def send_player_data(self,username, db_path='../DATABASE_GAME.db'):
+        # Connect to SQLite database
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+
+        # Query player by username
+        c.execute("SELECT * FROM players WHERE username = ?", (username,))
+        row = c.fetchone()
+
+        conn.close()
+
+        if row:
+            # Convert row to dict
+            player_data = {
+                "player_id": row[0],
+                "username": row[1],
+                "password_hash": row[2],
+                "position_x": row[3],
+                "position_y": row[4],
+                "health": row[5],
+                "coins": row[6],
+                "status": row[7],
+                "speed": row[8],
+                "last_attack_time": row[9]
+            }
+
+            # Send back over UDP
+            sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            message = b"u" + json.dumps(player_data, default=str).encode()
+            sock.sendto(message, self.lBaddr)
+            sock.close()
+        else:
+            pass
+
+    def PortDefinder(self,start_port):
+        port = start_port
+        while True:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                if sock.connect_ex(('localhost', port)) != 0:
+                    return port
+            port += 1
+
+    def run(self,port):
+        app.run(host='0.0.0.0', port=port, debug=False)
+
+
 if __name__ == '__main__':
-    move_bots()
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    lb = lbconector()
+    flask_port = lb.PortDefinder(5100)
+    udp_port = lb.PortDefinder(flask_port + 1)
+
+    print(f"Flask Port: {flask_port}, UDP Port: {udp_port}")
+
+    t1 = threading.Thread(target=lb.ipSender, args=(udp_port, flask_port))
+    t2 = threading.Thread(target=lb.run, args=(flask_port,))
+    t2.start()
+    t1.start()
