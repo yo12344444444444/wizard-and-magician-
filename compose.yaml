@@ -6,7 +6,7 @@ networks:
 
 services:
   build_db:
-    container_name: "build-db"
+    container_name: build-db
     image: nettahalamish/cyber-project-grade-11:latest
     build:
       context: .
@@ -14,11 +14,11 @@ services:
       - my_custom_network
     volumes:
       - ./DATABASE_GAME.db:/app/database/DATABASE_GAME.db
-    command: [ "python", "createDatabase.py" ]
+    command: ["python", "createDatabase.py"]
     restart: on-failure
 
   load_balancer:
-    container_name: "load-balancer"
+    container_name: load-balancer
     image: nettahalamish/cyber-project-grade-11:latest
     build:
       context: .
@@ -29,12 +29,14 @@ services:
     depends_on:
       - build_db
     ports:
-      - "5000-6000:5000-6000"  # Exposing range of ports for load balancer
+      # Expose ports 5000–6000 for both UDP and TCP
+      - "5000-6000:5000-6000/udp"
+      - "5000-6000:5000-6000/tcp"
     command: ["python", "lb/mainServerV2.py"]
     restart: always
 
   server_flask:
-    container_name: "server-flask"
+    container_name: server-flask
     image: nettahalamish/cyber-project-grade-11:latest
     build:
       context: .
@@ -46,20 +48,24 @@ services:
       - build_db
       - load_balancer
     ports:
-      - "5000-6000:5000-6000"  # Exposing range of ports for server_flask
+      # Expose the same dynamic range for Flask (UDP & TCP)
+      - "5000-6000:5000-6000/udp"
+      - "5000-6000:5000-6000/tcp"
     command: ["python", "server/srever.py"]
     restart: always
 
   server_chat:
-    container_name: "server-chat"
+    container_name: server-chat
     image: nettahalamish/cyber-project-grade-11:latest
     build:
       context: .
     networks:
       - my_custom_network
-    ports:
-      - "5000-6000:5000-6000"  # Exposing range of ports for server_chat
     depends_on:
       - server_flask
+    ports:
+      # Expose ports 5000–6000 (UDP & TCP) if needed by chat service
+      - "5000-6000:5000-6000/udp"
+      - "5000-6000:5000-6000/tcp"
     command: ["python", "chatCervice1.py"]
     restart: always
