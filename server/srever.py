@@ -577,7 +577,6 @@ def movement(user_id):
 
     screens_x = 8
     screens_y = 5
-
     if direction == 'w' and y - move_amount >= 0:
         y -= move_amount
     elif direction == 's' and y + move_amount <= screen_height * screens_y:

@@ -156,6 +156,7 @@ base_objects = [
     ("grass", 867, 624),
     ("purple_flower", 1142, 750),  # shifted down to avoid overlapping tree
 
+
     ("tree", 243, 742),
     ("yellow_flower", 593, 782),
     ("grass", 867, 782),
