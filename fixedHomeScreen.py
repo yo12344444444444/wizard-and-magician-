@@ -1,8 +1,10 @@
+import socket
+import server.clientTest
 import pygame
 from server import clientTest
 import requests
+from lb.findy import findy
 DEFAULT_BUFFER_SIZE = 35
-API_URL = 'http://127.0.0.1:5000'
 
 HOME_SCREEN = 'screens\Home_Screen.png'
 INSTRUCTION1 = 'screens\Instruction_1.png'
@@ -465,11 +467,14 @@ def signup(username, password):
     if response.status_code == 201:
         return response.json().get("token")  # או True אם אין טוקן
     return None
-
-def main(ip, port):
-    global IP, PORT
-    IP = ip
-    PORT = port
+def get_player_data(API_URL, token):
+    headers = {'Authorization': f'Bearer {token}'}
+    response = requests.get(f'{API_URL}/get_player', headers=headers)
+    addr = data[str(response.json().get('server'))]
+    API_URL = "http://" + addr[0] + ":" + str(addr[1])
+    print(API_URL)
+    return API_URL
+def main(API_URL):
     pygame.init()
     screen_width = 1280
     screen_height = 720
@@ -477,13 +482,31 @@ def main(ip, port):
     pygame.display.set_caption("Game")
 
     token = home_screen(screen, screen_width, screen_height)
+    API_URL = get_player_data(API_URL, token)
+    print(API_URL)
     if token:
         print("Token received, starting the game...")
-        clientTest.main(token)  # כאן תפעיל את הקליינט שלך עם הטוקן
+        c = clientTest.clientTest(apiUrl=API_URL, data=data)
+        c.main(token)  # כאן תפעיל את הקליינט שלך עם הטוקן
     else:
         print("No token received, exiting.")
 
     pygame.quit()
-
+def PortDefinder(port):
+    port = port
+    result = 0
+    while result == 0:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            result = sock.connect_ex(('localhost', port))
+        if result == 0:
+            port += 1
+    return port
 if __name__ == "__main__":
-    main('192.168.1.79', 8827)
+    port = PortDefinder(4000)
+    finder = findy()
+    data = finder.main(port)
+    addr = data['lb']
+    API_URL= "http://" + addr[0] + ":" + str(addr[1])
+
+    print(API_URL)
+    main(API_URL)
