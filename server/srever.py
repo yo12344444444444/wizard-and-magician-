@@ -606,8 +606,7 @@ def movement(user_id):
     elif direction == 'd' and x + move_amount <= screen_width * screens_x:
         x += move_amount
 
-    print(f"player location: x: {x}, y: {y}, speed: {speed}")
-
+    #print(f"player location: x: {x}, y: {y}, speed: {speed}")
     new_server = check_server_transition(x, y, screen_width, screen_height)
     if new_server!=ServerNumber:
         cursor.execute("SELECT username FROM players WHERE player_id = ?", (user_id,))
