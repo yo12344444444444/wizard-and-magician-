@@ -1,64 +1,65 @@
+version: '3.7'
+
+networks:
+  my_custom_network:
+    driver: bridge
+
 services:
-    build_db:
-      network_mode: "host"
-      container_name: "build-db"
-      image: nettahalamish/cyber-project-grade-11:latest
-      build:
-        context: .
-      volumes:
-        - ./DATABASE_GAME.db:/app/database/DATABASE_GAME.db
-      command: [ "python", "createDatabase.py" ]
-      restart: on-failure
+  build_db:
+    container_name: "build-db"
+    image: nettahalamish/cyber-project-grade-11:latest
+    build:
+      context: .
+    networks:
+      - my_custom_network
+    volumes:
+      - ./DATABASE_GAME.db:/app/database/DATABASE_GAME.db
+    command: [ "python", "createDatabase.py" ]
+    restart: on-failure
 
-    load_balancer:
-      network_mode: "host"
-      container_name: "load-balancer"
-      image: nettahalamish/cyber-project-grade-11:latest
-      build:
-        context: .
-      volumes:
-        - ./DATABASE_GAME2.db:/app/database/DATABASE_GAME2.db
-      depends_on:
-        - build_db
-      command: ["python", "lb/mainServerV2.py"]
-      restart: always
+  load_balancer:
+    container_name: "load-balancer"
+    image: nettahalamish/cyber-project-grade-11:latest
+    build:
+      context: .
+    networks:
+      - my_custom_network
+    volumes:
+      - ./DATABASE_GAME2.db:/app/database/DATABASE_GAME2.db
+    depends_on:
+      - build_db
+    ports:
+      - "5000-6000:5000-6000"  # Exposing range of ports for load balancer
+    command: ["python", "lb/mainServerV2.py"]
+    restart: always
 
-    server_flask:
-      network_mode: "host"
-      container_name: "server-flask"
-      image: nettahalamish/cyber-project-grade-11:latest
-      build:
-        context: .
-      volumes:
-        - ./DATABASE_GAME.db:/app/database/DATABASE_GAME.db
-      depends_on:
-        - build_db
-        - load_balancer
-      command: ["python", "server/srever.py" ]
-      restart: always
+  server_flask:
+    container_name: "server-flask"
+    image: nettahalamish/cyber-project-grade-11:latest
+    build:
+      context: .
+    networks:
+      - my_custom_network
+    volumes:
+      - ./DATABASE_GAME.db:/app/database/DATABASE_GAME.db
+    depends_on:
+      - build_db
+      - load_balancer
+    ports:
+      - "5000-6000:5000-6000"  # Exposing range of ports for server_flask
+    command: ["python", "server/srever.py"]
+    restart: always
 
-#    server_1:
-#      container_name: "server-flask"
-#      image: nettahalamish/cyber-project-grade-11:latest
-#      build:
-#        context: .
-#      volumes:
-#        - ./DATABASE_GAME.db:/app/database
-#      depends_on:
-#        - build_db
-#        - load_balancer
-#      command: [ "python", "server/srever.py" ]
-#      restart: always
-
-    server_chat:
-      network_mode: "host"
-      container_name: "server-chat"
-      image: nettahalamish/cyber-project-grade-11:latest
-      build:
-        context: .
-      ports:
-        - "5005:5005"
-      depends_on:
-        - server_flask
-      command: ["python", "chatCervice1.py"]
-      restart: always
+  server_chat:
+    container_name: "server-chat"
+    image: nettahalamish/cyber-project-grade-11:latest
+    build:
+      context: .
+    networks:
+      - my_custom_network
+    ports:
+      - "5000-6000:5000-6000"  # Exposing range of ports for server_chat
+    depends_on:
+      - server_flask
+    command: ["python", "chatCervice1.py"]
+    restart: always
