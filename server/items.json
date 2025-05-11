@@ -1,0 +1,21 @@
+{
+  "items": {
+    "0":{ "stackable": false, "icon": "Empty.png"},
+    "1":{ "stackable": false, "icon": "Stone_Sword_Inventory.png"},
+    "2":{ "stackable": false,  "icon": "Iron_Sword_Inventory.png"},
+    "3":{ "stackable": false, "icon": "Gold_Sword_Inventory.png"},
+    "4":{ "stackable": false, "icon": "Wood_Wand_Inventory.png"},
+    "5":{ "stackable": false, "icon": "Gold_Wand_Inventory.png"},
+    "6":{ "stackable": true, "icon": "Dark_Potion_Inventory.png"},
+    "7":{ "stackable": true, "icon": "Life_Potion_Inventory.png"},
+    "8":{ "stackable": true, "icon": "Fire_Potion_Inventory.png"},
+    "9":{ "stackable": true, "icon": "Poison_Potion_Inventory.png"},
+    "10":{ "stackable": true, "icon": "Apple_Inventory.png"},
+    "11":{ "stackable": true, "icon": "Blueberry_Inventory.png"},
+    "12":{ "stackable": true, "icon": "Gold_Inventory.png"},
+    "13":{ "stackable": true, "icon": "Iron_Inventory.png"},
+    "14":{ "stackable": true, "icon": "Stone_Inventory.png"}
+
+
+}
+    }
