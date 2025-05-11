@@ -143,6 +143,7 @@ def ggeter(port):
         conn.close()
         if user:
             print("server", user['server'])
+
             return jsonify({'id': user['id'], 'username': user['username'], 'server': user['server']})
         else:
             return jsonify({'error': 'User not found'}), 404
