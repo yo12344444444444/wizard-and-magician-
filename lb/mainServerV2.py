@@ -1,16 +1,14 @@
-import socket
-
-import lb.genericFunc
-from genericFunc import Servers
-from flask import Flask, request, jsonify
-import sqlite3
-from jose import jwt
 import datetime
-from functools import wraps
-from flasgger import Swagger
+import socket
+import sqlite3
 import threading
-from findy import findy
-import os
+from functools import wraps
+
+from flasgger import Swagger
+from flask import Flask, request, jsonify
+from jose import jwt
+
+from genericFunc import Servers
 
 DATABASE = '/app/database/servers_info.db'
 
