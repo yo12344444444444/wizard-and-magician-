@@ -1,4 +1,3 @@
-import ast
 import sqlite3
 from findy import findy
 import socket

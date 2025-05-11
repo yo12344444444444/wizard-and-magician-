@@ -1,5 +1,6 @@
 import socket
 
+import lb.genericFunc
 from genericFunc import Servers
 from flask import Flask, request, jsonify
 import sqlite3
@@ -143,7 +144,7 @@ def ggeter(port):
         conn.close()
         if user:
             print("server", user['server'])
-
+            s.sendDb()
             return jsonify({'id': user['id'], 'username': user['username'], 'server': user['server']})
         else:
             return jsonify({'error': 'User not found'}), 404
