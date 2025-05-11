@@ -487,7 +487,7 @@ def get_game_state(user_id, screen_width, screen_height):
             file_name = o['file']
             base_name, ext = os.path.splitext(file_name)
             objects.append({
-                'name': f"{o['name']}",
+                'name': o['name'],
                 'x': o['position_x'],
                 'y': o['position_y'],
                 'size': 40,
