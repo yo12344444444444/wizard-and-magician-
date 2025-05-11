@@ -31,7 +31,7 @@ SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
 window_height = 720
 window_width = 1280
-FPS = 30
+FPS = 50
 
 # Colors
 BLACK = (0, 0, 0)
@@ -901,7 +901,7 @@ def add_item_inventory(object_id, slot_index, has_space, amount=1):
                 print(f"✅ Added to inventory: {result.get('message')}")
                 return result
             else:
-                print(f"ℹ️ Not added: {result.get('message')}")
+                print(f"ℹ Not added: {result.get('message')}")
         elif response.status_code == 404:
             print("❌ Object not found on the map.")
         elif response.status_code == 400:
@@ -911,7 +911,7 @@ def add_item_inventory(object_id, slot_index, has_space, amount=1):
         else:
             print(f"❌ Unexpected error: {response.status_code} - {response.text}")
     except requests.exceptions.RequestException as e:
-        print(f"⚠️ Error connecting to server: {e}")
+        print(f"⚠ Error connecting to server: {e}")
 
     return None
 
@@ -973,7 +973,7 @@ def delete_item_inventory(item_name, slot_index, amount=1, server_url="http://lo
         else:
             print(f"❌ Error {response.status_code}: {response.json().get('error')}")
     except Exception as e:
-        print(f"⚠️ Request failed: {e}")
+        print(f"⚠ Request failed: {e}")
 
 
 
@@ -1041,8 +1041,7 @@ def check_click_not_on_ui(x,y):
         return True, None
     print("hayo")
 
-    return False, item
-
+    return False,item
 
 def handle_auto_movement(token, player_data):
     """
@@ -1108,6 +1107,13 @@ def handle_auto_movement(token, player_data):
 
     return None
 
+def draw_health_bar(screen, x, y, health, max_health=100):
+    bar_width = 40
+    bar_height = 6
+    health_ratio = health / max_health
+    pygame.draw.rect(screen, (255, 0, 0), (x - bar_width//2, y - 30, bar_width, bar_height))
+    pygame.draw.rect(screen, (0, 255, 0), (x - bar_width//2, y - 30, int(bar_width * health_ratio), bar_height))
+
 
 def load_images():
     try:
@@ -1130,7 +1136,7 @@ def load_images():
 def load_player_image():
     try:
         player_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'graphic'))
-         #print(f"Looking for player image at: {player_path}")
+        print(f"Looking for player image at: {player_path}")
         player_image = pygame.image.load(os.path.join(player_path, 'Standing_front.png')).convert()
         player_image.set_colorkey((0, 0, 0))
         return player_image
@@ -1197,7 +1203,7 @@ def handle_player_movement(token, screen_width, screen_height):
         }
         try:
             response = requests.post(f'{API_URL}/movement', json=data, headers=headers)
-            # print("movement:", response.json())
+            print("movement:", response.json())
             if response.status_code == 200:
                 return response.json()
             else:
@@ -1230,9 +1236,8 @@ def get_game_state(token, screen_width, screen_height):
         if response.status_code == 200:
             game_state_data = response.json()
             if 'bots' in game_state_data:
-                pass
-                # print(f"[DEBUG] Received {len(game_state_data['bots'])} bots from server.")
-            # print(f"get_game_state client: {time.time() - start}")
+                print(f"[DEBUG] Received {len(game_state_data['bots'])} bots from server.")
+            print(f"get_game_state client: {time.time() - start}")
             return game_state_data
         else:
             print(f"Error fetching game state: {response.status_code} - {response.text}")
@@ -1242,7 +1247,7 @@ def get_game_state(token, screen_width, screen_height):
 
 # Draw a bot relative to the player
 def draw_bot(screen, bot, player_x, player_y, ghost_images):
-    # print(f"[DEBUG] Drawing bot: {bot}")
+    print(f"[DEBUG] Drawing bot: {bot}")
     bot_x = bot.get('x', 0)
     bot_y = bot.get('y', 0)
     direction = bot.get('direction', 'front').lower()
@@ -1252,19 +1257,19 @@ def draw_bot(screen, bot, player_x, player_y, ghost_images):
 
     if direction in ('up', 'back'):
         ghost_img = ghost_images.get('back')
-        # print(f"[DEBUG] Bot direction: {direction}, using image: back")
+        print(f"[DEBUG] Bot direction: {direction}, using image: back")
     elif direction in ('down', 'front'):
         ghost_img = ghost_images.get('front')
-        # print(f"[DEBUG] Bot direction: {direction}, using image: front")
+        print(f"[DEBUG] Bot direction: {direction}, using image: front")
     elif direction == 'left':
         ghost_img = ghost_images.get('left')
-        # print(f"[DEBUG] Bot direction: {direction}, using image: left")
+        print(f"[DEBUG] Bot direction: {direction}, using image: left")
     elif direction == 'right':
         ghost_img = ghost_images.get('right')
-        # print(f"[DEBUG] Bot direction: {direction}, using image: right")
+        print(f"[DEBUG] Bot direction: {direction}, using image: right")
     else:
         ghost_img = ghost_images.get('front')
-        # print(f"[DEBUG] Unknown bot direction: {direction}, using image: front")
+        print(f"[DEBUG] Unknown bot direction: {direction}, using image: front")
 
     if ghost_img:
         img_rect = ghost_img.get_rect(center=(bot_location_x, bot_location_y))
@@ -1328,8 +1333,6 @@ def send_item_drop_to_server(items, token):
             except Exception as e:
                 print(f"Error dropping {item['file']} on map:", e)
 
-
-
 def main(token):
     global TOKEN
     TOKEN = token
@@ -1349,15 +1352,13 @@ def main(token):
 
     clock = pygame.time.Clock()
     running = True
-    dropped_items = []
     player_data = get_player_data(token)
 
     inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon = create_icons()
     enter_inventory_data_to_json()
-
     while running:
-        screen.fill(BACK)
         start = time.time()
+        dropped_items = []
         for event in pygame.event.get():
             if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 running = False
@@ -1365,10 +1366,11 @@ def main(token):
                 if event.key == pygame.K_t:
                     global auto_walk
                     auto_walk = not auto_walk
+                    print(f"[INFO] Auto walk mode: {'ON' if auto_walk else 'OFF'}")
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mouse_x, mouse_y = pygame.mouse.get_pos()
-                bad_attack, weapon = check_click_not_on_ui(mouse_x, mouse_y)
-                if not bad_attack:
+                bad, weapon = check_click_not_on_ui(mouse_x, mouse_y)
+                if not bad:
                     click_world_x = mouse_x + player_data['position_x'] - SCREEN_WIDTH // 2
                     click_world_y = mouse_y + player_data['position_y'] - SCREEN_HEIGHT // 2
 
@@ -1388,7 +1390,7 @@ def main(token):
                                 "y": click_world_y
                             })
                         #print("dropped_items", dropped_items)
-                    print("attacked")
+                print("attacked")
 
         if auto_walk:
             game_state = handle_auto_movement(token, player_data)
@@ -1396,7 +1398,7 @@ def main(token):
             game_state = handle_player_movement(token, SCREEN_WIDTH, SCREEN_HEIGHT)
         if not game_state:
             game_state = get_game_state(token, SCREEN_WIDTH, SCREEN_HEIGHT)
-        check_obj()
+
         # עדכן את player_data מתוך game_state אם יש
         if game_state and 'player' in game_state:
             player_data = game_state['player']
@@ -1405,57 +1407,61 @@ def main(token):
 
         # בדיקה אם השחקן מת
         if player_data and player_data.get('health', 100) <= 0:
-            # print("[INFO] Player is dead. Attempting to respawn...")
+            print("[INFO] Player is dead. Attempting to respawn...")
             try:
                 headers = {'Authorization': f'Bearer {token}'}
                 respawn_response = requests.post(f'{API_URL}/respawn', headers=headers)
                 if respawn_response.status_code == 200:
-                    # print("[INFO] Player respawned successfully.")
+                    print("[INFO] Player respawned successfully.")
                     player_data = get_player_data(token)
                 else:
                     print(f"[ERROR] Respawn failed: {respawn_response.status_code} - {respawn_response.text}")
             except requests.exceptions.RequestException as e:
-                 print(f"[ERROR] Connection error while respawning: {e}")
+                print(f"[ERROR] Connection error while respawning: {e}")
 
         # ציור
-
+        screen.fill(BACK)
 
         if player_data:
             player_x = player_data.get('position_x', SCREEN_WIDTH // 2)
             player_y = player_data.get('position_y', SCREEN_HEIGHT // 2)
-            # print(f"[DEBUG] Player position: {player_x}, {player_y}")
+            print(f"[DEBUG] Player position: {player_x}, {player_y}")
 
             if game_state and 'objects' in game_state:
                 for obj in game_state['objects']:
                     draw_object(screen, obj, player_x, player_y, object_images)
-            # print("dropped_items",dropped_items)
 
-            for item in dropped_items:
-                if item['file'].lower() == 'money':
-                    continue
-                try:
-                    filename = f"{os.path.splitext(item['file'])[0]}_Inventory.png"
-                    image = pygame.image.load(os.path.join("inventory", filename)).convert_alpha()
-                    image.set_colorkey((255, 255, 255))
-                    screen.blit(image, (
-                        item["x"] - player_x + SCREEN_WIDTH // 2,
-                        item["y"] - player_y + SCREEN_HEIGHT // 2
-                    ))
-                    send_item_drop_to_server(dropped_items, token)
-                except FileNotFoundError:
-                    print(f"Image file not found: {filename}")
+            print("dropped_items",dropped_items)
+            # שליחת פרטי החפץ לשרת
+            send_item_drop_to_server(dropped_items, token)
+
+#            for item in dropped_items:
+#                if item['file'].lower() == 'money':
+#                    continue
+#                try:
+#                    filename = f"{os.path.splitext(item['file'])[0]}_Inventory.png"
+#                    image = pygame.image.load(os.path.join("inventory", filename)).convert_alpha()
+#                    image.set_colorkey((255, 255, 255))
+#                    screen.blit(image, (
+#                        item["x"] - player_x + SCREEN_WIDTH // 2,
+#                        item["y"] - player_y + SCREEN_HEIGHT // 2
+#                    ))
+#                except FileNotFoundError:
+#                    print(f"Image file not found: {filename}")
 
             if game_state and 'bots' in game_state:
                 for bot in game_state['bots']:
                     draw_bot(screen, bot, player_x, player_y, ghost_images)
-
             draw_player(screen, player_image)
-            if not put_icons_on_screen(screen, inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding,money_icon, event):
-                running = False
+        if not put_icons_on_screen(screen, inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding,money_icon, event):
+            running = False
         status_text = font.render("Bot Visualization - Press ESC to exit", True, WHITE)
         screen.blit(status_text, (10, 10))
         pygame.display.flip()
-        clock.tick(FPS)
+#        clock.tick(FPS)
 
     pygame.quit()
     sys.exit()
+
+#if __name__ == '__main__':
+ #   main("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoyLCJleHAiOjE3NDY4NDgyODZ9.nnuG2APBJNeLkdrnJa321z-wwrqeIk322NF60MsGbss")
