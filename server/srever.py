@@ -6,6 +6,8 @@ from flasgger import Swagger
 import threading
 from functionsServer import *
 
+ServerNumber = 1
+
 def move_bots():
     start = time.time()
     bots = get_all_bots()
@@ -487,7 +489,7 @@ def get_game_state(user_id, screen_width, screen_height):
             file_name = o['file']
             base_name, ext = os.path.splitext(file_name)
             objects.append({
-                'id': f"obj{o['object_id']}",
+                'name': f"{o['name']}",
                 'x': o['position_x'],
                 'y': o['position_y'],
                 'size': 40,
@@ -500,6 +502,21 @@ def get_game_state(user_id, screen_width, screen_height):
         'bots': bots,
         'objects': objects
     }
+def check_server_transition(x,y,screen_width=1280,screen_height=720):
+    screen_x = x // screen_width
+    screen_y = y // screen_height
+
+    if screen_x < 20 and screen_y < 20:
+        return 1
+    elif screen_x >= 20 and screen_y < 20:
+        return 2
+    elif screen_x < 20 and screen_y >= 20:
+        return 3
+    else:
+        return 4
+
+def send_lb(num_server,username):
+    return None
 
 @app.route('/movement', methods=['POST'])
 @token_required
@@ -587,6 +604,12 @@ def movement(user_id):
         x += move_amount
 
     print(f"player location: x: {x}, y: {y}, speed: {speed}")
+
+    new_server = check_server_transition(x, y, screen_width, screen_height)
+    if new_server!=ServerNumber:
+        cursor.execute("SELECT username FROM players WHERE player_id = ?", (user_id,))
+        username = cursor.fetchone()['username']
+        send_lb(new_server,username)
 
     # עדכון מיקום השחקן
     cursor.execute("UPDATE players SET position_x = ?, position_y = ? WHERE player_id = ?", (x, y, user_id))
@@ -1238,6 +1261,7 @@ def add_item(user_id):
     conn.close()
 
     return jsonify({'success': True, 'message': f'{item_name} added to inventory'}), 200
+
 @app.route('/drop_item_on_map', methods=['POST'])
 @token_required
 def drop_item_on_map(user_id):
