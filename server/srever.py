@@ -1773,7 +1773,7 @@ class lbconector:
 
 if __name__ == '__main__':
     lb = lbconector()
-    flask_port = lb.PortDefinder(5100)
+    flask_port = lb.PortDefinder(5150)
     udp_port = lb.PortDefinder(flask_port + 1)
 
     print(f"Flask Port: {flask_port}, UDP Port: {udp_port}")
