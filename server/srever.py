@@ -1707,14 +1707,24 @@ class lbconector:
                 print("hi")
                 self.save_player_data(decoded[1:])
 
-    def save_player_data(self,player_data, db_path='/app/database/DATABASE_GAME.db'):
+    def save_player_data(self,player_data, db_path='app/database/DATABASE_GAME.db'):
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
         player_data = json.loads(player_data)
+        c.execute("SELECT username FROM players WHERE username = ?", (player_data['username'],))
+        result = c.fetchone()
+        c.execute("SELECT 1 FROM players WHERE username = ?", (player_data['username'],))
+        if c.fetchone():
+            # username already taken → clean up and signal error
+            conn.close()
+            return -1
         # Upsert by player_id
+        print("player_data", player_data["player_id"])
         c.execute("""
-                INSERT INTO players (player_id, username, password_hash, position_x, position_y, health, coins, status, speed, last_attack_time)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO players (
+                    player_id, username, password_hash, position_x, position_y,
+                    health, coins, status, speed, last_attack_time
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(player_id) DO UPDATE SET
                     username = excluded.username,
                     password_hash = excluded.password_hash,
@@ -1726,18 +1736,18 @@ class lbconector:
                     speed = excluded.speed,
                     last_attack_time = excluded.last_attack_time
             """, (
-            player_data["player_id"],
-            player_data["username"],
-            player_data["password_hash"],
-            player_data["position_x"],
-            player_data["position_y"],
-            player_data["health"],
-            player_data["coins"],
-            player_data["status"],
-            player_data["speed"],
-            player_data["last_attack_time"]
+                player_data["player_id"],
+                player_data["username"],
+                player_data["password_hash"],
+                player_data["position_x"],
+                player_data["position_y"],
+                player_data["health"],
+                player_data["coins"],
+                player_data["status"],
+                player_data["speed"],
+                player_data["last_attack_time"]
+            ))
 
-        ))
         conn.commit()
         conn.close()
 
