@@ -10,7 +10,7 @@ class Servers:
         # Connect to SQLite database
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
-        addr = self.servers[server]
+        addr = self.servers[str(server)]
         # Query player by username
         c.execute("SELECT * FROM players WHERE username = ?", (username,))
         row = c.fetchone()
@@ -52,7 +52,8 @@ class Servers:
             if decoded[0] == "r":
                 s.sendto(msg.encode(), addr)
             elif decoded[0] == "p":
-                pass
+                json_data = decoded[1:]
+                self.send_player_data(json_data[2], json_data[2:])
             elif decoded[0] == "u":
                 json_data = decoded[1:]
                 self.save_player_data(json_data)

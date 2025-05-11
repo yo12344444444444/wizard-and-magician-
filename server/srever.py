@@ -1,5 +1,6 @@
 import json
 import socket
+serverNumber = 1
 
 from flask import Flask, request, jsonify
 from jose import jwt  # Replace PyJWT with jose.jwt
@@ -589,8 +590,12 @@ def movement(user_id):
     elif direction == 'd' and x + move_amount <= screen_width * screens_x:
         x += move_amount
 
-    print(f"player location: x: {x}, y: {y}, speed: {speed}")
-
+    #print(f"player location: x: {x}, y: {y}, speed: {speed}")
+    new_server = check_server_transition(x, y, screen_width, screen_height)
+    if new_server!=serverNumber:
+        cursor.execute("SELECT username FROM players WHERE player_id = ?", (user_id,))
+        username = cursor.fetchone()['username']
+        lb.send_player_data(username, new_server)
     # עדכון מיקום השחקן
     cursor.execute("UPDATE players SET position_x = ?, position_y = ? WHERE player_id = ?", (x, y, user_id))
     conn.commit()
@@ -1665,7 +1670,18 @@ def respawn(user_id):
         'new_position': {'x': new_x, 'y': new_y},
         'health': new_health
     }), 200
+def check_server_transition(x,y,screen_width=1280,screen_height=720):
+    screen_x = x // screen_width
+    screen_y = y // screen_height
 
+    if screen_x < 20 and screen_y < 20:
+        return 1
+    elif screen_x >= 20 and screen_y < 20:
+        return 2
+    elif screen_x < 20 and screen_y >= 20:
+        return 3
+    else:
+        return 4
 class lbconector:
     def __init__(self):
         self.lBaddr = ()
@@ -1686,7 +1702,7 @@ class lbconector:
                 response = f"1|{flask_port}".encode()  # Safer format
                 server_socket.sendto(response, addr)
                 portLb = int(data.decode().lower()[1:])
-                lBaddr = (addr[0], portLb)
+                self.lBaddr = addr
             elif decoded[0] == "u":
                 print("hi")
                 self.save_player_data(decoded[1:])
@@ -1725,7 +1741,7 @@ class lbconector:
         conn.commit()
         conn.close()
 
-    def send_player_data(self,username, db_path='/app/database/DATABASE_GAME.db'):
+    def send_player_data(self,username, sn, db_path='/app/database/DATABASE_GAME.db'):
         # Connect to SQLite database
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
@@ -1741,19 +1757,19 @@ class lbconector:
             player_data = {
                 "player_id": row[0],
                 "username": row[1],
-                "password_hash": row[2],
-                "position_x": row[3],
-                "position_y": row[4],
-                "health": row[5],
-                "coins": row[6],
-                "status": row[7],
-                "speed": row[8],
-                "last_attack_time": row[9]
+                "password_hash": row[3],
+                "position_x": row[4],
+                "position_y": row[5],
+                "health": row[6],
+                "coins": row[7],
+                "status": row[8],
+                "speed": row[9],
+                "last_attack_time": row[10]
             }
 
             # Send back over UDP
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            message = b"u" + json.dumps(player_data, default=str).encode()
+            message = b"p"+sn.encode() + json.dumps(player_data, default=str).encode()
             sock.sendto(message, self.lBaddr)
             sock.close()
         else:
