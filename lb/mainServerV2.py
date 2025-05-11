@@ -10,7 +10,7 @@ from jose import jwt
 
 from genericFunc import Servers
 
-DATABASE = '/app/database/servers_info.db'
+DATABASE = '/app/database/DATABASE_GAME2.db'
 
 
 def ggeter(port):

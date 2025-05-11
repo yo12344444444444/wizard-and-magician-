@@ -15,7 +15,7 @@ services:
       build:
         context: .
       volumes:
-        - /lb/servers_info.db:/app/database
+        - ./DATABASE_GAME2.db:/app/database/DATABASE_GAME2.db
       depends_on:
         - build_db
       command: ["python", "lb/mainServerV2.py"]
