@@ -40,6 +40,7 @@ WHITE = (255, 255, 255)
 GREEN = (0, 128, 0)
 BACK = (182,212,137)
 MONEY_TEXT = (129,69,37)
+LEFT = 1
 
 # Flags:
 INVENTORY_OPEN_ITEMS = 0 #BOOLEAN OF NUMBERS- odd=full_inventory, even=not full inventory
