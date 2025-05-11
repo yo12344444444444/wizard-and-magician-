@@ -60,6 +60,11 @@ auto_stage = 0   # 0=למעלה, 1=ימינה, 2=למטה, 3=שמאלה
 auto_last_move_time = 0
 AUTO_DELAY = 0.05  # השהייה בין צעדים (שניות)
 
+TEXT = ""
+TEXT_ACTIVE = False
+messegas = [" ", " ", " ", " ", " ", "  ", " ", " "]
+users = [" ", " ", " ", " ", " ", "  ", " ", " "]
+
 # Pygame screen setup
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption('Bot Visualization')
@@ -180,14 +185,9 @@ def handle_chat_message(message):
         del users[0]
         users.append(message['client_name'])
 
-client = ChatClient('localhost',5005,handle_chat_message)
-client.connect("user")
-client.start()
 
-TEXT = ""
-TEXT_ACTIVE = False
-messegas = [" ", " ", " ", " ", " ", "  ", " ", " "]
-users = [" ", " ", " ", " ", " ", "  ", " ", " "]
+
+
 
 ##########################################################################################################
 # open windows:
@@ -200,6 +200,9 @@ def open_chat(screen):
     global TEXT_ACTIVE
     global chat_client
 
+    client = ChatClient('localhost', 5005, handle_chat_message)
+    client.connect("user")
+    client.start()
     # Initialize chat client if not already done
     # if not hasattr(open_chat, 'receive_thread'):
 
@@ -1402,6 +1405,9 @@ def send_item_drop_to_server(items, token):
 def main(token):
     global TOKEN
     TOKEN = token
+    client = ChatClient('localhost', 5005, handle_chat_message)
+    client.connect("user")
+    client.start()
     ghost_images = load_images()
     player_image = load_player_image()
     object_images = load_object_images()

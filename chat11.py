@@ -60,16 +60,15 @@ def handle_chat_message(message):
 
 pygame.init()
 
-client = ChatClient('localhost',5005,handle_chat_message)
-client.connect("user")
-client.start()
 
 TEXT = ""
 TEXT_ACTIVE = False
 messegas = [" ", " ", " ", " ", " ", "  ", " ", " "]
 users = [" ", " ", " ", " ", " ", "  ", " ", " "]
 
-
+client = ChatClient('localhost', 5005, handle_chat_message)
+client.connect("user")
+client.start()
 
 CHAT_OPEN = 0 #BOOLEAN OF NUMBERS- odd=open, even=close
 
