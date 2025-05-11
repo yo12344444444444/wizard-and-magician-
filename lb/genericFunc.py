@@ -6,7 +6,7 @@ import json
 
 
 class Servers:
-    def send_player_data(self, server, username, db_path='../DATABASE_GAME2.db'):
+    def send_player_data(self, server, username, db_path='/app/database/DATABASE_GAME2.db'):
         # Connect to SQLite database
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
@@ -57,7 +57,7 @@ class Servers:
                 json_data = decoded[1:]
                 self.save_player_data(json_data)
 
-    def save_player_data(self, player_data, db_path='../DATABASE_GAME2.db'):
+    def save_player_data(self, player_data, db_path='/app/database/DATABASE_GAME2.db'):
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
         player_data = json.loads(player_data)
@@ -91,7 +91,7 @@ class Servers:
         conn.commit()
         conn.close()
 
-    def init_player_table(self, db_path='../DATABASE_GAME2.db'):
+    def init_player_table(self, db_path='/app/database/DATABASE_GAME2.db'):
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
         c.execute('''
@@ -115,7 +115,7 @@ class Servers:
         self.servers = {}
         self.port = port
         # Connect to the database
-        self.conn = sqlite3.connect('../DATABASE_GAME2.db', check_same_thread=False)
+        self.conn = sqlite3.connect('/app/database/DATABASE_GAME2.db', check_same_thread=False)
         self.c = self.conn.cursor()
         self.init_player_table()
         # Create tables
@@ -145,7 +145,7 @@ class Servers:
 
         self.conn.commit()
 
-    def sendDb(self, server, username, db_path='../DATABASE_GAME2.db'):
+    def sendDb(self, server, username, db_path='/app/database/DATABASE_GAME2.db'):
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
         addr = self.servers[str(server)]

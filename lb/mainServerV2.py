@@ -10,7 +10,6 @@ from functools import wraps
 from flasgger import Swagger
 import threading
 
-from genericFunc import Servers
 
 DATABASE = '/app/database/DATABASE_GAME2.db'
 
@@ -257,7 +256,7 @@ def ggeter(port):
 
     app.run(host='0.0.0.0', port=port, debug=False)
 
-def get_least_loaded_server(db_path='../DATABASE_GAME2.db'):
+def get_least_loaded_server(db_path='/app/database/DATABASE_GAME2.db'):
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
 
