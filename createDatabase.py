@@ -83,8 +83,8 @@ def hash_password(password):
     hashed_password = bcrypt.hashpw(password.encode(), salt)
     return hashed_password
 # הגדרות מסך
-screen_width = 900
-screen_height = 700
+screen_width = 1280
+screen_height = 720
 screens_x = 8
 screens_y = 5
 objects_per_screen = 12
@@ -133,13 +133,6 @@ map_objects_json = {
 }
 object_keys = list(map_objects_json["On map objects"].keys())
 
-conn = sqlite3.connect('DATABASE_GAME.db')
-cursor = conn.cursor()
-
-screen_width = 1280
-screen_height = 720
-screens_x = 8
-screens_y = 5  # 8*5 = 40 screens
 # Base object positions within one screen (relative to screen origin)
 base_objects = [
     ("grass", 63, 150),
@@ -163,7 +156,7 @@ base_objects = [
     ("grass", 867, 624),
     ("purple_flower", 1142, 750),  # shifted down to avoid overlapping tree
 
-    ("tree", 243, 782),
+    ("tree", 243, 742),
     ("yellow_flower", 593, 782),
     ("grass", 867, 782),
     ("purple_flower", 1142, 908),  # shifted down to avoid any overlap
