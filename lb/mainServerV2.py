@@ -1,5 +1,6 @@
 import socket
 
+import lb.genericFunc
 from genericFunc import Servers
 from flask import Flask, request, jsonify
 import sqlite3
@@ -8,7 +9,11 @@ import datetime
 from functools import wraps
 from flasgger import Swagger
 import threading
+from findy import findy
 import os
+
+DATABASE = '/app/database/servers_info.db'
+
 
 def ggeter(port):
     app = Flask(__name__)
@@ -27,10 +32,6 @@ def ggeter(port):
         'security': [{'BearerAuth': []}]
     }
     swagger = Swagger(app)
-
-# Connect to (or create) the database
-
-    DATABASE = '/app/database/servers_info.db'
 
     # ✅ Create the database and players table if they don't exist
     def init_db():
@@ -62,31 +63,6 @@ def ggeter(port):
         conn.commit()
         conn.close()
 
-    def add_test_user():
-        conn = sqlite3.connect(DATABASE)
-        c = conn.cursor()
-
-        # Drop the players table if it already exists
-        c.execute("DROP TABLE IF EXISTS players")
-
-        # Recreate the players table with the correct schema
-        c.execute('''
-            CREATE TABLE players (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                password TEXT NOT NULL,
-                server INTEGER NOT NULL
-            )
-        ''')
-
-        # Insert the test user
-        try:
-            c.execute("INSERT INTO players (username, password, server) VALUES (?, ?, ?)", ("2212", "2212", 2))
-            conn.commit()
-        except sqlite3.IntegrityError:
-            print("errer")
-        conn.close()
-
     def get_db_connection():
         conn = sqlite3.connect(DATABASE)
         conn.row_factory = sqlite3.Row
@@ -104,6 +80,7 @@ def ggeter(port):
             except jwt.JWTError as e:
                 return jsonify({'error': 'Token is invalid or expired!'}), 403
             return f(user_id=user_id, *args, **kwargs)
+
         return decorated
 
     @app.route('/')
@@ -132,6 +109,7 @@ def ggeter(port):
     @app.route('/login', methods=['POST'])
     def login():
         data = request.get_json()
+        print(data)
         username = data.get('username')
         password = data.get('password')
         if not username or not password:
@@ -152,7 +130,7 @@ def ggeter(port):
         else:
             return jsonify({'error': 'Invalid credentials'}), 401
 
-    @app.route('/player', methods=['GET'])
+    @app.route('/get_player', methods=['GET'])
     @token_required
     def get_player(user_id):
         server_id = request.args.get('server')  # Optionally, retrieve server from query params
@@ -165,26 +143,59 @@ def ggeter(port):
         user = cur.fetchone()
         conn.close()
         if user:
-            print(user['server'])
+            print("server", user['server'])
+            s.sendDb()
             return jsonify({'id': user['id'], 'username': user['username'], 'server': user['server']})
         else:
             return jsonify({'error': 'User not found'}), 404
 
     app.run(host='0.0.0.0', port=port, debug=False)
 
-def PortDefinder():
-    port = 5000
-    result=0
+
+def PortDefinder(port):
+    port = port
+    result = 0
     while result == 0:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             result = sock.connect_ex(('localhost', port))
         if result == 0:
-                port+=1
+            port += 1
     return port
-port = PortDefinder()
-s = Servers()
+
+
+def add_test_user():
+    conn = sqlite3.connect(DATABASE)
+    c = conn.cursor()
+
+    # Drop the players table if it already exists
+    c.execute("DROP TABLE IF EXISTS players")
+
+    # Recreate the players table with the correct schema
+    c.execute('''
+            CREATE TABLE players (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                server INTEGER NOT NULL
+            )
+        ''')
+
+    # Insert the test user
+    try:
+        c.execute("INSERT INTO players (username, password, server) VALUES (?, ?, ?)", ("2212", "2212", 1))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        print("errer")
+    conn.close()
+
+
+add_test_user()
+port = PortDefinder(5000)
+p = PortDefinder(port + 2)
+s = Servers(p)
+print(p, port)
 t1 = threading.Thread(target=ggeter, args=(port,))
-t2 = threading.Thread(target=s.get_player, args=(port,))
+t1.start()
+t2 = threading.Thread(target=s.get_player, args=(p, port,))
 
 t2.start()
-t1.start()

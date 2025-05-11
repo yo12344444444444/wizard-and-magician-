@@ -1,9 +1,11 @@
+import socket
+
 import pygame
 import requests
 import sys
 import os
 
-from lb import findy
+from findy import findy
 
 # כתובת השרת
 
@@ -128,12 +130,25 @@ def show_player_on_screen(player_data, speed=5, frame_duration=10):
 
     pygame.quit()
     sys.exit()
-
+def PortDefinder(port):
+    port = port
+    result = 0
+    while result == 0:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            result = sock.connect_ex(('localhost', port))
+        if result == 0:
+            port += 1
+    return port
 
 if __name__ == "__main__":
-    data = findy.main()
+    port = PortDefinder(4000)
+    finder = findy()
+    data = finder.main(port)
+    print(data)
     addr = data['lb']
+    print(addr)
     SERVER_URL = "http://" + addr[0] + ":" + str(addr[1])
+    print(SERVER_URL)
     username = input("Enter username: ")
     password = input("Enter password: ")
 
