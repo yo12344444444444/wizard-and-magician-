@@ -575,14 +575,15 @@ def movement(user_id):
     if direction not in ['w', 'a', 's', 'd']:
         return jsonify({'error': 'Invalid direction'}), 400
 
-    #  עדכון המיקום של השחקן לפי המהירות וגם בדיקה שלא יצא מגבולות המסך
-    if direction == 'w' and y + move_amount <= screen_height * 40:
+    screens_x = 8
+    screens_y = 5
+    if direction == 'w' and y - move_amount >= 0:
         y -= move_amount
-    elif direction == 's' and y - move_amount >= 0:
+    elif direction == 's' and y + move_amount <= screen_height * screens_y:
         y += move_amount
     elif direction == 'a' and x - move_amount >= 0:
         x -= move_amount
-    elif direction == 'd' and x + move_amount <= screen_width * 40:
+    elif direction == 'd' and x + move_amount <= screen_width * screens_x:
         x += move_amount
 
     print(f"player location: x: {x}, y: {y}, speed: {speed}")
