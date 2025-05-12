@@ -49,7 +49,6 @@ CHAT_OPEN = 0  # BOOLEAN OF NUMBERS- odd=open, even=close
 CLICKED = False
 
 # Your API URL
-API_URL = 'http://127.0.0.1:5000'
 TOKEN = ""
 
 WORLD_WIDTH = SCREEN_WIDTH * 40
@@ -1307,7 +1306,8 @@ class clientTest():
         else:
             print(f"[WARNING] No image found for bot direction: {direction}")
 
-    def send_attack_request(self,token, x, y, weapon_type, server_url='http://127.0.0.1:5000/attack'):
+    def send_attack_request(self,token, x, y, weapon_type):
+        server_url = self.API_URL
         headers = {
             'Authorization': f'Bearer {token}'
         }
