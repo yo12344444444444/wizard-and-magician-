@@ -318,31 +318,31 @@ class clientTest():
                         print("not enough money or inventory is full")
 
 
-                elif 920 < x < 1005 and 375 < y < 410 and money >= 300:
-                    CLICKED = True
-                    if self.buy_item("3", 300):
-                        self.add_item("3", 1)
-                        print("you bought a gold sword!")
-                    else:
-                        print("not enough money or inventory is full")
+                    if 920 < x < 1005 and 375 < y < 410 and money >= 300:
+                        CLICKED = True
+                        if self.buy_item("3", 300):
+                            self.add_item("3", 1)
+                            print("you bought a gold sword!")
+                        else:
+                            print("not enough money or inventory is full")
 
 
-            elif 815 < x < 900 and 525 < y < 555 and money >= 200:
-                CLICKED = True
-                if self.buy_item("4", 200):
-                    self.add_item("4", 1)
-                    print("you bought a wood wand!")
-                else:
-                    print("not enough money or inventory is full")
+                    elif 815 < x < 900 and 525 < y < 555 and money >= 200:
+                        CLICKED = True
+                        if self.buy_item("4", 200):
+                            self.add_item("4", 1)
+                            print("you bought a wood wand!")
+                        else:
+                            print("not enough money or inventory is full")
 
 
-            elif 920 < x < 1005 and 525 < y < 555 and money >= 500:
-                CLICKED = True
-                if self.buy_item("5", 500):
-                    self.add_item("5", 1)
-                    print("you bought a gold wand!")
-                else:
-                    print("not enough money or inventory is full")
+                    elif 920 < x < 1005 and 525 < y < 555 and money >= 500:
+                        CLICKED = True
+                        if self.buy_item("5", 500):
+                            self.add_item("5", 1)
+                            print("you bought a gold wand!")
+                        else:
+                            print("not enough money or inventory is full")
 
         self.print_full_inventory(screen)
         self.print_mini_buttons(screen)
