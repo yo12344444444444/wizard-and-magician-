@@ -112,8 +112,7 @@ class clientTest():
 
         return inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon
 
-    def put_icons_on_screen(self,screen, inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon,
-                            event):
+    def put_icons_on_screen(self,screen, inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon,client,event):
         """
         prints on the screen the icons, the mini map frame
         """
@@ -129,14 +128,14 @@ class clientTest():
             CHAT_OPEN += 1
 
         if CHAT_OPEN % 2 == 1:
-            open_chat(screen)
+            self.open_chat( screen,client)
 
         if inventory_icon.draw(screen):
             INVENTORY_OPEN_ITEMS += 1
             INVENTORY_OPEN_SHOP = 0
 
         money_icon.draw(screen)
-        money = get_coins()
+        money = self.get_coins()
         font = pygame.font.Font(None, 35)
         amount = font.render(str(money), True, MONEY_TEXT)
         screen.blit(amount, (1168, 667))
@@ -155,31 +154,36 @@ class clientTest():
                 INVENTORY_OPEN_ITEMS += 1
 
         if INVENTORY_OPEN_ITEMS % 2 == 1:
-            open_full_inventory_items(screen, event)
+            self.open_full_inventory_items(screen, event)
 
         elif INVENTORY_OPEN_SHOP % 2 == 1:
-            open_full_inventory_shop(screen, event)
+            self.open_full_inventory_shop(screen, event)
 
         elif INVENTORY_OPEN_ITEMS % 2 == 0 and INVENTORY_OPEN_SHOP % 2 == 0:
-            open_not_full_inventory(screen, event)
+            self.open_not_full_inventory(screen, event)
 
         if event.type == pygame.MOUSEBUTTONUP:
             CLICKED = False
 
         mini_map_icon.draw(screen)
         current_holding.draw(screen)
-        print_current_holding(screen, event)
+        self.print_current_holding(screen, event)
         return True
 
     ##########################################################################################################
     # chat:
+    def connect_to_chat_server(self):
+        client = ChatClient('localhost', 5005, self.handle_chat_message)
+        client.connect("user")
+        client.start()
+        return client
 
     def handle_chat_message(self,message):
         """Callback function to handle incoming chat messages"""
         print("Handling the Chat Message")
         global received_messages
-        if not hasattr(handle_chat_message, 'received_messages'):
-            handle_chat_message.received_messages = []
+        if not hasattr(self.handle_chat_message, 'received_messages'):
+            self.handle_chat_message.received_messages = []
         print("befor cheaking if chat")
         print(message['type'])
         print(message['content'])
@@ -193,7 +197,7 @@ class clientTest():
     ##########################################################################################################
     # open windows:
 
-    def open_chat(self,screen):
+    def open_chat(self,screen,client):
         """
         opens the chat window
         """
@@ -201,9 +205,6 @@ class clientTest():
         global TEXT_ACTIVE
         global chat_client
 
-        client = ChatClient('localhost', 5005, handle_chat_message)
-        client.connect("user")
-        client.start()
         # Initialize chat client if not already done
         # if not hasattr(open_chat, 'receive_thread'):
 
@@ -236,9 +237,9 @@ class clientTest():
 
         # Display received messages
         font = pygame.font.Font(None, 20)
-        if hasattr(handle_chat_message, 'received_messages'):
+        if hasattr(self.handle_chat_message, 'received_messages'):
             y_offset = 50
-            for msg in handle_chat_message.received_messages:
+            for msg in self.handle_chat_message.received_messages:
                 text_surface = font.render(msg, True, WHITE)
                 text_position = (840, y_offset)
                 screen.blit(text_surface, text_position)
@@ -285,18 +286,18 @@ class clientTest():
         hp_bar_image.set_colorkey(WHITE)
         hp_bar_icon = buttons.Button(640, 170, hp_bar_image)
         hp_bar_icon.draw(screen)
-        draw_full_inventory_hp_bar(screen)
+        self.draw_full_inventory_hp_bar(screen)
 
-        print_full_inventory(screen, event)
-        print_mini_buttons(screen, event)
-        print_delete_buttons(screen, event)
+        self.print_full_inventory(screen, event)
+        self.print_mini_buttons(screen, event)
+        self.print_delete_buttons(screen, event)
 
     def open_full_inventory_shop(self,screen, event):
         """
         draw full inventory open - shop
         """
         global CLICKED
-        money = get_coins()
+        money = self.get_coins()
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'graphic'))
         open_full_inventory_image = pygame.image.load(os.path.join(path, FULL_INVENTORY_SHOP)).convert()
         open_full_inventory_image.set_colorkey(WHITE)
@@ -307,15 +308,15 @@ class clientTest():
         hp_bar_image.set_colorkey(WHITE)
         hp_bar_icon = buttons.Button(640, 170, hp_bar_image)
         hp_bar_icon.draw(screen)
-        draw_full_inventory_hp_bar(screen)
+        self.draw_full_inventory_hp_bar(screen)
 
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not CLICKED:
             x, y = pygame.mouse.get_pos()
 
             if 815 < x < 900 and 375 < y < 410 and money >= 200:
                 CLICKED = True
-                if buy_item("2", 200):
-                    add_item("2", 1)
+                if self.buy_item("2", 200):
+                    self.add_item("2", 1)
                     print("you bought an iron sword!")
                 else:
                     print("not enough money or inventory is full")
@@ -323,8 +324,8 @@ class clientTest():
 
             elif 920 < x < 1005 and 375 < y < 410 and money >= 300:
                 CLICKED = True
-                if buy_item("3", 300):
-                    add_item("3", 1)
+                if self.buy_item("3", 300):
+                    self.add_item("3", 1)
                     print("you bought a gold sword!")
                 else:
                     print("not enough money or inventory is full")
@@ -332,8 +333,8 @@ class clientTest():
 
             elif 815 < x < 900 and 525 < y < 555 and money >= 200:
                 CLICKED = True
-                if buy_item("4", 200):
-                    add_item("4", 1)
+                if self.buy_item("4", 200):
+                    self.add_item("4", 1)
                     print("you bought a wood wand!")
                 else:
                     print("not enough money or inventory is full")
@@ -341,15 +342,15 @@ class clientTest():
 
             elif 920 < x < 1005 and 525 < y < 555 and money >= 500:
                 CLICKED = True
-                if buy_item("5", 500):
-                    add_item("5", 1)
+                if self.buy_item("5", 500):
+                    self.add_item("5", 1)
                     print("you bought a gold wand!")
                 else:
                     print("not enough money or inventory is full")
 
-        print_full_inventory(screen, event)
-        print_mini_buttons(screen, event)
-        print_delete_buttons(screen, event)
+        self.print_full_inventory(screen, event)
+        self.print_mini_buttons(screen, event)
+        self.print_delete_buttons(screen, event)
 
     def open_not_full_inventory(self,screen, event):
         """
@@ -367,8 +368,8 @@ class clientTest():
         hp_bar_image.set_colorkey(WHITE)
         hp_bar_icon = buttons.Button(350, 520, hp_bar_image)
         hp_bar_icon.draw(screen)
-        draw_not_full_inventory_hp_bar(screen)
-        print_not_full_inventory(screen, event)
+        self.draw_not_full_inventory_hp_bar(screen)
+        self.print_not_full_inventory(screen, event)
 
     ##########################################################################################################
     # print items and buttons:
@@ -398,7 +399,7 @@ class clientTest():
             image.set_colorkey(WHITE)
             cell = buttons.Button(x, y, image)
             if cell.draw(screen):
-                current_holding_change(i)
+                self.current_holding_change(i)
             # draw the amount:
             if data_items["items"][item]["stackable"]:
                 amount = font.render(str(quantity), True, WHITE)
@@ -468,9 +469,9 @@ class clientTest():
         if cell.draw(screen) and not CLICKED:
             CLICKED = True
             if item not in ["0", "1", "2", "3", "4", "5", "12", "13", "14"]:
-                send_use_object(item)
+                self.send_use_object(item)
             if item in ["6", "7", "8", "10", "11"]:
-                delete_item_from_json(item, data_cells["cells"]["19"]["cell"])
+                self.delete_item_from_json(item, data_cells["cells"]["19"]["cell"])
 
         if data_items["items"][item]["stackable"]:
             amount = font.render(str(quantity), True, WHITE)
@@ -508,10 +509,10 @@ class clientTest():
                     button = buttons.Button(x, y + 85, button_image)
                 if button.draw(screen) and not CLICKED:
                     CLICKED = True
-                    mini_button_change(i)
-                    bool, cell1, cell2 = both_mini_button_pressed()
+                    self.mini_button_change(i)
+                    bool, cell1, cell2 = self.both_mini_button_pressed()
                     if bool:
-                        switch_items_in_inventory(cell1, cell2)
+                        self.switch_items_in_inventory(cell1, cell2)
 
     def print_delete_buttons(self,screen, event):
         """
@@ -537,8 +538,8 @@ class clientTest():
             if button.draw(screen) and not CLICKED:
                 CLICKED = True
                 if item != "0":
-                    delete_item_from_json(item, i)
-                    delete_item_inventory(item, i)
+                    self.delete_item_from_json(item, i)
+                    self.delete_item_inventory(item, i)
 
     ##########################################################################################################
     # switch and change things in inventory:
@@ -610,15 +611,15 @@ class clientTest():
 
         # delete the info of both in the sever:
         if item1 != "0":
-            delete_item_inventory(item1, cell_num1, quantity1)
+            self.delete_item_inventory(item1, cell_num1, quantity1)
         if item2 != "0":
-            delete_item_inventory(item2, cell_num2, quantity2)
+            self.delete_item_inventory(item2, cell_num2, quantity2)
 
         # switch in the server:
         if item2 != "0":
-            add_item_inventory(item2, cell_num1, True, quantity2)
+            self.add_item_inventory(item2, cell_num1, True, quantity2)
         if item1 != "0":
-            add_item_inventory(item1, cell_num2, True, quantity1)
+            self.add_item_inventory(item1, cell_num2, True, quantity1)
 
         for cell in data_cells["cells"].values():
             cell["mini_button_pressed?"] = False
@@ -635,18 +636,18 @@ class clientTest():
         """
         print the white area of the hp bar when the inventory is not full
         """
-        hp = get_health()
+        hp = self.get_health()
         # משהו שמבקש את הHP של השחקן מהשרת
         lack = 100 - hp
         width = int((379 * lack) / 100)
         height = 22
         pygame.draw.rect(screen, WHITE, (736 - width, 528, width, height))
 
-    def draw_full_inventory_hp_bar(screen):
+    def draw_full_inventory_hp_bar(self,screen):
         """
         print the white area of the hp bar when the inventory is full
         """
-        hp = get_health()
+        hp = self.get_health()
         lack = 100 - hp
         width = int((379 * lack) / 100)
         height = 22
@@ -722,12 +723,12 @@ class clientTest():
             data_cells = json.load(file_cells)
 
         if data_items["items"][str(item)]["stackable"]:
-            bool, cell = item_exist_in_inventory(item)
+            bool, cell = self.item_exist_in_inventory(item)
             if bool:
                 quantity = data_cells["cells"][str(cell)]["quantity"]
                 data_cells["cells"][str(cell)]["quantity"] = int(int(quantity) + int(amount))
 
-        if check_inventory_fullness():
+        if self.check_inventory_fullness():
             print("full :(")
             return False
 
@@ -736,7 +737,7 @@ class clientTest():
                 print("found place", i, str(item), int(amount))
                 data_cells["cells"][str(i)]["item"] = str(item)
                 data_cells["cells"][str(i)]["quantity"] = int(amount)
-                add_item_inventory(item, i, True)
+                self.add_item_inventory(item, i, True)
                 break
 
         with open("inventory.json", "w") as file_cells:
@@ -770,7 +771,7 @@ class clientTest():
         with open("inventory.json", "r") as file_cells:
             data_cells = json.load(file_cells)
 
-        data = get_inventory_from_server()
+        data = self.get_inventory_from_server()
         if data is None:
             print("got no data")
         else:
@@ -778,7 +779,7 @@ class clientTest():
                 item = next((item for item in data if item['slot_index'] == i), None)
                 if item:
                     name = item['name']
-                    id = name_to_id(name)
+                    id = self.name_to_id(name)
                     quantity = item['quantity']
                 else:
                     id = "0"
@@ -832,7 +833,7 @@ class clientTest():
     # get things from the server:
 
     def get_inventory_from_server(self):
-        url = 'http://localhost:5000/get_inventory'
+        url = f"{self.API_URL}/get_inventory"
         headers = {
             'Authorization': f'Bearer {TOKEN}'
         }
@@ -858,7 +859,7 @@ class clientTest():
             "Authorization": f"Bearer {TOKEN}"
         }
 
-        response = requests.get(f"{API_URL}/get_player", headers=headers)
+        response = requests.get(f"{self.API_URL}/get_player", headers=headers)
 
         if response.status_code == 200:
             return response.json()
@@ -875,14 +876,14 @@ class clientTest():
         """
         get the health from the server and return it
         """
-        data = get_player_state()
+        data = self.get_player_state()
         return data["health"]
 
     def get_coins(self):
         """
         get the health from the server and return it
         """
-        data = get_player_state()
+        data = self.get_player_state()
         return data["coins"]
 
     def check_obj(self):
@@ -890,13 +891,13 @@ class clientTest():
         check if there are any objects the player can take on the map
         :return:
         """
-        game_state = get_game_state(TOKEN, SCREEN_WIDTH, SCREEN_HEIGHT)
+        game_state = self.get_game_state(TOKEN, SCREEN_WIDTH, SCREEN_HEIGHT)
         if game_state and 'objects' in game_state:
             objects = game_state['objects']
             for obj in objects:
                 print(f"אובייקט: {obj['name']} במיקום ({obj['x']}, {obj['y']}) עם קובץ {obj['file']}")
-                if name_to_id(obj['name']) is not None:
-                    add_item(name_to_id(obj['name']), 1)
+                if self.name_to_id(obj['name']) is not None:
+                    self.add_item(self.name_to_id(obj['name']), 1)
                     print(obj['name'])
 
     ##########################################################################################################
@@ -909,11 +910,11 @@ class clientTest():
         if the inventory is full return False
         if it sent it successfully return True
         """
-        slot_index = look_for_empty_slot()
+        slot_index = self.look_for_empty_slot()
         if slot_index == 0:
             return False
         else:
-            url = 'http://localhost:5000/buy_object'  # שנה בהתאם לכתובת השרת שלך
+            url = f"{self.API_URL}/buy_object"  # שנה בהתאם לכתובת השרת שלך
             headers = {
                 'Authorization': f'Bearer {TOKEN}',
                 'Content-Type': 'application/json'
@@ -937,12 +938,12 @@ class clientTest():
         :param amount: כמות להוסיף (ברירת מחדל: 1)
         :return: תשובת השרת (dict) או None במקרה של כשל
         """
-        object_name = id_to_name(object_id)
+        object_name = self.id_to_name(object_id)
         if object_name is None:
             print(f"❌ Invalid object_id: {object_id}")
             return None
 
-        url = f"{API_URL}/add-to-inventory"
+        url = f"{self.API_URL}/add-to-inventory"
         headers = {
             'Authorization': f'Bearer {TOKEN}',
             'Content-Type': 'application/json'
@@ -984,7 +985,7 @@ class clientTest():
         :param item:
         :return:
         """
-        url = f"{API_URL}/use_object"
+        url = f"{self.API_URL}/use_object"
         headers = {
             'Authorization': f'Bearer {TOKEN}',
             'Content-Type': 'application/json'
@@ -1015,13 +1016,13 @@ class clientTest():
         :param amount: כמות להסרה (ברירת מחדל: 1)
         :param server_url: כתובת השרת
         """
-        url = f"{server_url}/remove_from_inventory"
+        url = f"{self.API_URL}/remove_from_inventory"
         headers = {
             "Authorization": f"Bearer {TOKEN}",
             "Content-Type": "application/json"
         }
         payload = {
-            "item_name": id_to_name(item_name),  # אם item_name כבר שם, הסירי את הקריאה הזו
+            "item_name": self.id_to_name(item_name),  # אם item_name כבר שם, הסירי את הקריאה הזו
             "slot_index": slot_index,
             "amount": amount
         }
@@ -1364,6 +1365,10 @@ class clientTest():
                     print(f"Error dropping {item['file']} on map:", e)
 
     def main(self,token):
+        global TOKEN
+        TOKEN = token
+        client= self.connect_to_chat_server()
+
         ghost_images = self.load_images()
         player_image = self.load_player_image()
         object_images = self.load_object_images()
@@ -1382,6 +1387,9 @@ class clientTest():
         running = True
         player_data = self.get_player_data(token)
 
+        inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon = self.create_icons()
+        self.enter_inventory_data_to_json()
+
         while running:
             start = time.time()
             dropped_items = []
@@ -1395,27 +1403,29 @@ class clientTest():
                         print(f"[INFO] Auto walk mode: {'ON' if auto_walk else 'OFF'}")
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     mouse_x, mouse_y = pygame.mouse.get_pos()
-                    click_world_x = mouse_x + player_data['position_x'] - SCREEN_WIDTH // 2
-                    click_world_y = mouse_y + player_data['position_y'] - SCREEN_HEIGHT // 2
+                    bad, weapon = self.check_click_not_on_ui(mouse_x, mouse_y)
+                    if not bad:
 
-                    weapon = "Stone_Sword"  # שים כאן את הנשק הפעיל של השחקן
-                    result = self.send_attack_request(token, click_world_x, click_world_y, weapon)
-                    if result and "drops" in result:
-                        items = result["drops"]
-                        if len(items) >= 1:
-                            dropped_items.append({
-                                "file": items[0],
-                                "x": click_world_x,
-                                "y": click_world_y
-                            })
-                        if len(items) >= 2:
-                            dropped_items.append({
-                                "file": items[1],
-                                "x": click_world_x + 100,
-                                "y": click_world_y
-                            })
-                        #print("dropped_items", dropped_items)
-                print("attacked")
+                        click_world_x = mouse_x + player_data['position_x'] - SCREEN_WIDTH // 2
+                        click_world_y = mouse_y + player_data['position_y'] - SCREEN_HEIGHT // 2
+
+                        result = self.send_attack_request(token, click_world_x, click_world_y, weapon)
+                        if result and "drops" in result:
+                            items = result["drops"]
+                            if len(items) >= 1:
+                                dropped_items.append({
+                                    "file": items[0],
+                                    "x": click_world_x,
+                                    "y": click_world_y
+                                })
+                            if len(items) >= 2:
+                                dropped_items.append({
+                                    "file": items[1],
+                                    "x": click_world_x + 100,
+                                    "y": click_world_y
+                                })
+                            #print("dropped_items", dropped_items)
+                    print("attacked")
 
             if auto_walk:
                 game_state = self.handle_auto_movement(token, player_data)
@@ -1445,7 +1455,7 @@ class clientTest():
                     print(f"[ERROR] Connection error while respawning: {e}")
 
             # ציור
-            screen.fill(GREEN)
+            screen.fill(BACK)
 
             if player_data:
                 player_x = player_data.get('position_x', SCREEN_WIDTH // 2)
@@ -1459,7 +1469,7 @@ class clientTest():
                 print("dropped_items",dropped_items)
                 # שליחת פרטי החפץ לשרת
                 self.send_item_drop_to_server(dropped_items, token)
-
+                self.check_obj()
     #            for item in dropped_items:
     #                if item['file'].lower() == 'money':
     #                    continue
@@ -1478,6 +1488,8 @@ class clientTest():
                     for bot in game_state['bots']:
                         self.draw_bot(screen, bot, player_x, player_y, ghost_images)
                 self.draw_player(screen, player_image)
+            if not self.put_icons_on_screen(screen, inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding,money_icon,client, event):
+                running = False
 
             status_text = font.render("Bot Visualization - Press ESC to exit", True, WHITE)
             screen.blit(status_text, (10, 10))
