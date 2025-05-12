@@ -1691,25 +1691,26 @@ class lbconector:
                 print("hi")
                 self.save_player_data(decoded[1:])
 
-    def save_player_data(self,player_data, db_path='../DATABASE_GAME.db'):
+    def save_player_data(self, player_data, db_path='../DATABASE_GAME.db'):
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
         player_data = json.loads(player_data)
-        # Upsert by player_id
+
+        # Upsert player data
         c.execute("""
-                INSERT INTO players (player_id, username, password_hash, position_x, position_y, health, coins, status, speed, last_attack_time)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(player_id) DO UPDATE SET
-                    username = excluded.username,
-                    password_hash = excluded.password_hash,
-                    position_x = excluded.position_x,
-                    position_y = excluded.position_y,
-                    health = excluded.health,
-                    coins = excluded.coins,
-                    status = excluded.status,
-                    speed = excluded.speed,
-                    last_attack_time = excluded.last_attack_time
-            """, (
+            INSERT INTO players (player_id, username, password_hash, position_x, position_y, health, coins, status, speed, last_attack_time)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(player_id) DO UPDATE SET
+                username = excluded.username,
+                password_hash = excluded.password_hash,
+                position_x = excluded.position_x,
+                position_y = excluded.position_y,
+                health = excluded.health,
+                coins = excluded.coins,
+                status = excluded.status,
+                speed = excluded.speed,
+                last_attack_time = excluded.last_attack_time
+        """, (
             player_data["player_id"],
             player_data["username"],
             player_data["password_hash"],
@@ -1720,8 +1721,16 @@ class lbconector:
             player_data["status"],
             player_data["speed"],
             player_data["last_attack_time"]
-
         ))
+
+        # Replace inventory
+        c.execute("DELETE FROM inventory WHERE player_id = ?", (player_data["player_id"],))
+        for item in player_data.get("inventory", []):
+            c.execute("""
+                INSERT INTO inventory (player_id, name, slot_index, quantity)
+                VALUES (?, ?, ?, ?)
+            """, (player_data["player_id"], item["name"], item.get("slot_index", 0), item["quantity"]))
+
         conn.commit()
         conn.close()
 
@@ -1750,7 +1759,9 @@ class lbconector:
                 "speed": row[8],
                 "last_attack_time": row[9]
             }
-
+            c.execute("SELECT name, quantity FROM inventory WHERE player_id = ?", (row[0],))
+            inventory = [{"name": item[0], "quantity": item[1]} for item in c.fetchall()]
+            player_data["inventory"] = inventory
             # Send back over UDP
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             message = b"u" + json.dumps(player_data, default=str).encode()
