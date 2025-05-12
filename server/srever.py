@@ -1707,7 +1707,7 @@ class lbconector:
                 print("hi")
                 self.save_player_data(decoded[1:])
 
-    def save_player_data(self,player_data, db_path='app/database/DATABASE_GAME.db'):
+    def save_player_data(self,player_data, db_path='/app/database/DATABASE_GAME.db'):
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
         player_data = json.loads(player_data)
