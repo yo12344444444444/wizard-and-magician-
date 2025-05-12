@@ -171,8 +171,8 @@ class Servers:
             }
 
             # Get inventory for this player
-            c.execute("SELECT name, quantity FROM inventory WHERE player_id = ?", (row[0],))
-            inventory = [{"name": item[0], "quantity": item[1]} for item in c.fetchall()]
+            c.execute("SELECT name, quantity, slot_index FROM inventory WHERE player_id = ?", (row[0],))
+            inventory = [{"name": item[0], "quantity": item[1], "slot_index": item[2]} for item in c.fetchall()]
             player_data["inventory"] = inventory
 
             # Send to target server

@@ -110,6 +110,7 @@ def ggeter(port):
             ('Stone_Sword', 2)
         ]
         for name, slot_index in starter_items:
+            print(slot_index)
             cursor.execute("""
                 INSERT INTO inventory (player_id, name, slot_index, quantity)
                 VALUES (?, ?, ?, ?)

@@ -1729,7 +1729,7 @@ class lbconector:
             c.execute("""
                 INSERT INTO inventory (player_id, name, slot_index, quantity)
                 VALUES (?, ?, ?, ?)
-            """, (player_data["player_id"], item["name"], item.get("slot_index", 0), item["quantity"]))
+            """, (player_data["player_id"], item["name"], item["slot_index"], item["quantity"]))
 
         conn.commit()
         conn.close()
