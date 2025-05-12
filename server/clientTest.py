@@ -112,7 +112,7 @@ class clientTest():
 
         return inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon
 
-    def put_icons_on_screen(self,screen, inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon,client,event):
+    def put_icons_on_screen(self,screen, inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon):
         """
         prints on the screen the icons, the mini map frame
         """
@@ -128,7 +128,7 @@ class clientTest():
             CHAT_OPEN += 1
 
         if CHAT_OPEN % 2 == 1:
-            self.open_chat( screen,client)
+            self.open_chat(screen)
 
         if inventory_icon.draw(screen):
             INVENTORY_OPEN_ITEMS += 1
@@ -139,44 +139,39 @@ class clientTest():
         font = pygame.font.Font(None, 35)
         amount = font.render(str(money), True, MONEY_TEXT)
         screen.blit(amount, (1168, 667))
+        for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not CLICKED:
+                x, y = pygame.mouse.get_pos()
 
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not CLICKED:
-            x, y = pygame.mouse.get_pos()
+                if 125 < y < 215 and 480 < x < 570:
+                    CLICKED = True
+                    INVENTORY_OPEN_SHOP += 1
+                    INVENTORY_OPEN_ITEMS += 1
 
-            if 125 < y < 215 and 480 < x < 570:
-                CLICKED = True
-                INVENTORY_OPEN_SHOP += 1
-                INVENTORY_OPEN_ITEMS += 1
-
-            if 125 < y < 215 and 375 < x < 460:
-                CLICKED = True
-                INVENTORY_OPEN_SHOP += 1
-                INVENTORY_OPEN_ITEMS += 1
+                if 125 < y < 215 and 375 < x < 460:
+                    CLICKED = True
+                    INVENTORY_OPEN_SHOP += 1
+                    INVENTORY_OPEN_ITEMS += 1
 
         if INVENTORY_OPEN_ITEMS % 2 == 1:
-            self.open_full_inventory_items(screen, event)
+            self.open_full_inventory_items(screen)
 
         elif INVENTORY_OPEN_SHOP % 2 == 1:
-            self.open_full_inventory_shop(screen, event)
+            self.open_full_inventory_shop(screen)
 
         elif INVENTORY_OPEN_ITEMS % 2 == 0 and INVENTORY_OPEN_SHOP % 2 == 0:
-            self.open_not_full_inventory(screen, event)
-
-        if event.type == pygame.MOUSEBUTTONUP:
-            CLICKED = False
+            self.open_not_full_inventory(screen)
+        for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONUP:
+                CLICKED = False
 
         mini_map_icon.draw(screen)
         current_holding.draw(screen)
-        self.print_current_holding(screen, event)
+        self.print_current_holding(screen)
         return True
 
     ##########################################################################################################
     # chat:
-    def connect_to_chat_server(self):
-        client = ChatClient('localhost', 5005, self.handle_chat_message)
-        client.connect("user")
-        client.start()
-        return client
 
     def handle_chat_message(self,message):
         """Callback function to handle incoming chat messages"""
@@ -197,14 +192,16 @@ class clientTest():
     ##########################################################################################################
     # open windows:
 
-    def open_chat(self,screen,client):
+    def open_chat(self,screen):
         """
         opens the chat window
         """
         global TEXT
         global TEXT_ACTIVE
         global chat_client
-
+        client = ChatClient('localhost', 5005, self.handle_chat_message)
+        client.connect("user")
+        client.start()
         # Initialize chat client if not already done
         # if not hasattr(open_chat, 'receive_thread'):
 
@@ -271,7 +268,7 @@ class clientTest():
         text_position = (840, 235)
         screen.blit(text_surface, text_position)
 
-    def open_full_inventory_items(self,screen, event):
+    def open_full_inventory_items(self,screen):
         """
         draw full inventory open - items
         """
@@ -288,11 +285,11 @@ class clientTest():
         hp_bar_icon.draw(screen)
         self.draw_full_inventory_hp_bar(screen)
 
-        self.print_full_inventory(screen, event)
-        self.print_mini_buttons(screen, event)
-        self.print_delete_buttons(screen, event)
+        self.print_full_inventory(screen)
+        self.print_mini_buttons(screen)
+        self.print_delete_buttons(screen)
 
-    def open_full_inventory_shop(self,screen, event):
+    def open_full_inventory_shop(self,screen):
         """
         draw full inventory open - shop
         """
@@ -309,17 +306,17 @@ class clientTest():
         hp_bar_icon = buttons.Button(640, 170, hp_bar_image)
         hp_bar_icon.draw(screen)
         self.draw_full_inventory_hp_bar(screen)
+        for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not CLICKED:
+                x, y = pygame.mouse.get_pos()
 
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not CLICKED:
-            x, y = pygame.mouse.get_pos()
-
-            if 815 < x < 900 and 375 < y < 410 and money >= 200:
-                CLICKED = True
-                if self.buy_item("2", 200):
-                    self.add_item("2", 1)
-                    print("you bought an iron sword!")
-                else:
-                    print("not enough money or inventory is full")
+                if 815 < x < 900 and 375 < y < 410 and money >= 200:
+                    CLICKED = True
+                    if self.buy_item("2", 200):
+                        self.add_item("2", 1)
+                        print("you bought an iron sword!")
+                    else:
+                        print("not enough money or inventory is full")
 
 
             elif 920 < x < 1005 and 375 < y < 410 and money >= 300:
@@ -348,11 +345,11 @@ class clientTest():
                 else:
                     print("not enough money or inventory is full")
 
-        self.print_full_inventory(screen, event)
-        self.print_mini_buttons(screen, event)
-        self.print_delete_buttons(screen, event)
+        self.print_full_inventory(screen)
+        self.print_mini_buttons(screen)
+        self.print_delete_buttons(screen)
 
-    def open_not_full_inventory(self,screen, event):
+    def open_not_full_inventory(self,screen):
         """
         draw not full inventory
         """
@@ -369,12 +366,12 @@ class clientTest():
         hp_bar_icon = buttons.Button(350, 520, hp_bar_image)
         hp_bar_icon.draw(screen)
         self.draw_not_full_inventory_hp_bar(screen)
-        self.print_not_full_inventory(screen, event)
+        self.print_not_full_inventory(screen)
 
     ##########################################################################################################
     # print items and buttons:
 
-    def print_not_full_inventory(self,screen, event):
+    def print_not_full_inventory(self,screen):
         """
         prints in the small inventory the items, the anoumt
         """
@@ -405,14 +402,15 @@ class clientTest():
                 amount = font.render(str(quantity), True, WHITE)
                 screen.blit(amount, (x + 77, y + 3))
 
-    def print_full_inventory(self,screen, event):
+    def print_full_inventory(self,screen):
         """
         prints in the full inventory the items
         :return:
         """
         global CLICKED
-        if event.type == pygame.MOUSEBUTTONUP:
-            CLICKED = False
+        for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONUP:
+                CLICKED = False
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'inventory'))
         font = pygame.font.Font(None, 25)
         with open("inventory.json", "r") as file_cells:
@@ -440,13 +438,14 @@ class clientTest():
                 amount = font.render(str(quantity), True, WHITE)
                 screen.blit(amount, (x + 77, y + 3))
 
-    def print_current_holding(self,screen, event):
+    def print_current_holding(self,screen):
         """
         drawing the current holding
         """
         global CLICKED
-        if event.type == pygame.MOUSEBUTTONUP:
-            CLICKED = False
+        for event in pygame.event.get():
+            if event.type == pygame.MOUSEBUTTONUP:
+                CLICKED = False
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'inventory'))
         font = pygame.font.Font(None, 25)
         with open("inventory.json", "r") as file_cells:
@@ -477,7 +476,7 @@ class clientTest():
             amount = font.render(str(quantity), True, WHITE)
             screen.blit(amount, (x + 77, y + 3))
 
-    def print_mini_buttons(self,screen, event):
+    def print_mini_buttons(self,screen):
         """
         draws the mini button when you open the full inventory
         """
@@ -514,7 +513,7 @@ class clientTest():
                     if bool:
                         self.switch_items_in_inventory(cell1, cell2)
 
-    def print_delete_buttons(self,screen, event):
+    def print_delete_buttons(self,screen):
         """
             draws the mini button when you open the full inventory
             """
@@ -1367,7 +1366,6 @@ class clientTest():
     def main(self,token):
         global TOKEN
         TOKEN = token
-        client= self.connect_to_chat_server()
 
         ghost_images = self.load_images()
         player_image = self.load_player_image()
@@ -1394,6 +1392,7 @@ class clientTest():
             start = time.time()
             dropped_items = []
             for event in pygame.event.get():
+
                 if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                     running = False
                 elif event.type == pygame.KEYDOWN:
@@ -1488,9 +1487,8 @@ class clientTest():
                     for bot in game_state['bots']:
                         self.draw_bot(screen, bot, player_x, player_y, ghost_images)
                 self.draw_player(screen, player_image)
-            if not self.put_icons_on_screen(screen, inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding,money_icon,client, event):
+            if not self.put_icons_on_screen(screen, inventory_icon, mini_map_icon, exit_icon, chat_icon,current_holding, money_icon):
                 running = False
-
             status_text = font.render("Bot Visualization - Press ESC to exit", True, WHITE)
             screen.blit(status_text, (10, 10))
             pygame.display.flip()
