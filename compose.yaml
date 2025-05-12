@@ -1,5 +1,3 @@
-version: '3.7'
-
 networks:
   my_custom_network:
     driver: bridge
