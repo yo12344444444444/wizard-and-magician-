@@ -72,44 +72,45 @@ pygame.display.set_caption('Bot Visualization')
 font = pygame.font.SysFont('Arial', 16)
 
 
+def create_icons():
+    # inventory icon:
+    path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'graphic'))
+    inventory_image = pygame.image.load(os.path.join(path, INVENTORY_ICON)).convert()
+    inventory_image.set_colorkey(WHITE)
+    inventory_icon = buttons.Button(370, 30, inventory_image)
+
+    # mini map frame:
+    mini_map_image = pygame.image.load(os.path.join(path, MINI_MAP_ICON)).convert()
+    mini_map_image.set_colorkey(WHITE)
+    mini_map_icon = buttons.Button(30, 10, mini_map_image)
+
+    # exit icon:
+    exit_image = pygame.image.load(os.path.join(path, EXIT_ICON)).convert()
+    exit_image.set_colorkey(WHITE)
+    exit_icon = buttons.Button(270, 30, exit_image)
+
+    # chat icon:
+    chat_image = pygame.image.load(os.path.join(path, CHAT_ICON)).convert()
+    chat_image.set_colorkey(WHITE)
+    chat_icon = buttons.Button(470, 30, chat_image)
+
+    # holding icon:
+    current_holding_image = pygame.image.load(os.path.join(path, CURRENT_HOLDING)).convert()
+    current_holding_image.set_colorkey(WHITE)
+    current_holding = buttons.Button(150, 570, current_holding_image)
+
+    # money icon:
+    money_image = pygame.image.load(os.path.join(path, MONEY_ICON)).convert()
+    money_image.set_colorkey(WHITE)
+    money_icon = buttons.Button(1110, 654, money_image)
+
+    return inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon
+
+
 class clientTest():
     def __init__(self, apiUrl, data):
         self.API_URL = apiUrl
         self.data = data
-
-    def create_icons(self):
-        # inventory icon:
-        path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'graphic'))
-        inventory_image = pygame.image.load(os.path.join(path, INVENTORY_ICON)).convert()
-        inventory_image.set_colorkey(WHITE)
-        inventory_icon = buttons.Button(370, 30, inventory_image)
-
-        # mini map frame:
-        mini_map_image = pygame.image.load(os.path.join(path, MINI_MAP_ICON)).convert()
-        mini_map_image.set_colorkey(WHITE)
-        mini_map_icon = buttons.Button(30, 10, mini_map_image)
-
-        # exit icon:
-        exit_image = pygame.image.load(os.path.join(path, EXIT_ICON)).convert()
-        exit_image.set_colorkey(WHITE)
-        exit_icon = buttons.Button(270, 30, exit_image)
-
-        # chat icon:
-        chat_image = pygame.image.load(os.path.join(path, CHAT_ICON)).convert()
-        chat_image.set_colorkey(WHITE)
-        chat_icon = buttons.Button(470, 30, chat_image)
-
-        # holding icon:
-        current_holding_image = pygame.image.load(os.path.join(path, CURRENT_HOLDING)).convert()
-        current_holding_image.set_colorkey(WHITE)
-        current_holding = buttons.Button(150, 570, current_holding_image)
-
-        # money icon:
-        money_image = pygame.image.load(os.path.join(path, MONEY_ICON)).convert()
-        money_image.set_colorkey(WHITE)
-        money_icon = buttons.Button(1110, 654, money_image)
-
-        return inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon
 
     def put_icons_on_screen(self,screen, inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon):
         """
@@ -1005,7 +1006,7 @@ class clientTest():
             print(f"Error connecting to server: {e}")
             return None
 
-    def delete_item_inventory(self,item_name, slot_index, amount=1, server_url="http://localhost:5000"):
+    def delete_item_inventory(self,item_name, slot_index, amount=1, ):
         """
         שולחת בקשה לשרת להסרת פריט מהאינבנטורי לפי שם, מיקום וסכום.
 
@@ -1117,7 +1118,6 @@ class clientTest():
                     continue
 
             if direction:
-                print(f"[AUTO] Moving {direction}")
                 headers = {'Authorization': f'Bearer {token}'}
                 data = {
                     'direction': direction,
@@ -1265,8 +1265,7 @@ class clientTest():
             if response.status_code == 200:
                 game_state_data = response.json()
                 if 'bots' in game_state_data:
-                    print(f"[DEBUG] Received {len(game_state_data['bots'])} bots from server.")
-                print(f"get_game_state client: {time.time() - start}")
+                    pass
                 return game_state_data
             else:
                 print(f"Error fetching game state: {response.status_code} - {response.text}")
@@ -1276,7 +1275,6 @@ class clientTest():
 
     # Draw a bot relative to the player
     def draw_bot(self,screen, bot, player_x, player_y, ghost_images):
-        print(f"[DEBUG] Drawing bot: {bot}")
         bot_x = bot.get('x', 0)
         bot_y = bot.get('y', 0)
         direction = bot.get('direction', 'front').lower()
@@ -1286,26 +1284,20 @@ class clientTest():
 
         if direction in ('up', 'back'):
             ghost_img = ghost_images.get('back')
-            print(f"[DEBUG] Bot direction: {direction}, using image: back")
         elif direction in ('down', 'front'):
             ghost_img = ghost_images.get('front')
-            print(f"[DEBUG] Bot direction: {direction}, using image: front")
         elif direction == 'left':
             ghost_img = ghost_images.get('left')
-            print(f"[DEBUG] Bot direction: {direction}, using image: left")
         elif direction == 'right':
             ghost_img = ghost_images.get('right')
-            print(f"[DEBUG] Bot direction: {direction}, using image: right")
         else:
             ghost_img = ghost_images.get('front')
-            print(f"[DEBUG] Unknown bot direction: {direction}, using image: front")
 
         if ghost_img:
             img_rect = ghost_img.get_rect(center=(bot_location_x, bot_location_y))
             screen.blit(ghost_img, img_rect)
         else:
-            print(f"[WARNING] No image found for bot direction: {direction}")
-
+            pass
     def send_attack_request(self,token, x, y, weapon_type):
         server_url = self.API_URL
         headers = {
@@ -1385,7 +1377,7 @@ class clientTest():
         running = True
         player_data = self.get_player_data(token)
 
-        inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon = self.create_icons()
+        inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon = create_icons()
         self.enter_inventory_data_to_json()
 
         while running:
@@ -1459,7 +1451,6 @@ class clientTest():
             if player_data:
                 player_x = player_data.get('position_x', SCREEN_WIDTH // 2)
                 player_y = player_data.get('position_y', SCREEN_HEIGHT // 2)
-                print(f"[DEBUG] Player position: {player_x}, {player_y}")
 
                 if game_state and 'objects' in game_state:
                     for obj in game_state['objects']:
