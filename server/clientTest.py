@@ -199,7 +199,7 @@ class clientTest():
         global TEXT
         global TEXT_ACTIVE
         global chat_client
-        client = ChatClient('localhost', 5005, self.handle_chat_message)
+        client = ChatClient('localhost', 5000, self.handle_chat_message)
         client.connect("user")
         client.start()
         # Initialize chat client if not already done
@@ -319,13 +319,13 @@ class clientTest():
                         print("not enough money or inventory is full")
 
 
-            elif 920 < x < 1005 and 375 < y < 410 and money >= 300:
-                CLICKED = True
-                if self.buy_item("3", 300):
-                    self.add_item("3", 1)
-                    print("you bought a gold sword!")
-                else:
-                    print("not enough money or inventory is full")
+                elif 920 < x < 1005 and 375 < y < 410 and money >= 300:
+                    CLICKED = True
+                    if self.buy_item("3", 300):
+                        self.add_item("3", 1)
+                        print("you bought a gold sword!")
+                    else:
+                        print("not enough money or inventory is full")
 
 
             elif 815 < x < 900 and 525 < y < 555 and money >= 200:
