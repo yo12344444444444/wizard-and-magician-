@@ -263,7 +263,7 @@ def get_least_loaded_server(db_path='/app/database/DATABASE_GAME2.db'):
     # Get all server entries
     cur.execute("SELECT server FROM players")
     servers = [row[0] for row in cur.fetchall() if row[0] is not None]
-
+    servers += [1,2,3]
     conn.close()
 
     if not servers:
