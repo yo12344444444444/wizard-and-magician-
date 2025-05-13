@@ -75,7 +75,6 @@ def bot_action(action,bot):
             x -= 7  # left
 #        cursor.execute("UPDATE bots SET position_x = ?, position_y = ? WHERE bot_id = ?", (x, y, bot['bot_id']))
 #        conn.commit()
-        print(f"bot_action 1-4 {time.time() - start}")
         conn.close()
         return x, y, bot['bot_id']
     elif action == 5:

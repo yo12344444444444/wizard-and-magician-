@@ -21,10 +21,10 @@ CREATE TABLE players (
     password_hash TEXT NOT NULL,
     position_x INTEGER NOT NULL DEFAULT 0,
     position_y INTEGER NOT NULL DEFAULT 0,
-    health INTEGER NOT NULL DEFAULT 100,
-    coins INTEGER NOT NULL DEFAULT 200,
-    status TEXT NOT NULL DEFAULT 'active',
-    speed INTEGER NOT NULL DEFAULT 3,
+    health INTEGER ,
+    coins INTEGER,
+    status TEXT   'active',
+    speed INTEGER  DEFAULT 3,
     last_attack_time DATETIME
 )
 """)

@@ -1,6 +1,5 @@
 import json
 import socket
-serverNumber = 1
 
 from flask import Flask, request, jsonify
 from jose import jwt  # Replace PyJWT with jose.jwt
@@ -8,26 +7,26 @@ import os
 from functools import wraps
 from flasgger import Swagger
 import threading
+
+import findy
 from functionsServer import *
 
 def move_bots():
-    start = time.time()
     bots = get_all_bots()
     players=get_all_players()
     tuples = []
-    for bot in bots:
-        last_direction=bot['last_direction']
-        closest_player_id,player_x,player_y = get_closest_player(bot['position_x'],bot['position_y'],players)
-        if closest_player_id is None:
-            continue
-        dx,dy = calculate_dx_dy(bot['position_x'],bot['position_y'],player_x,player_y)
-        chosen = choose_direction(last_direction, dx, dy)
-        tuple=bot_action(chosen, bot)
-        if tuple:
-            tuples.append(tuple)
-    saveTuples(tuples)
-    print(f"end move_bot {time.time()-start}")
-    threading.Timer(0.2, move_bots).start()
+    while True:
+        for bot in bots:
+            last_direction=bot['last_direction']
+            closest_player_id,player_x,player_y = get_closest_player(bot['position_x'],bot['position_y'],players)
+            if closest_player_id is None:
+                continue
+            dx,dy = calculate_dx_dy(bot['position_x'],bot['position_y'],player_x,player_y)
+            chosen = choose_direction(last_direction, dx, dy)
+            tuple=bot_action(chosen, bot)
+            if tuple:
+                tuples.append(tuple)
+        saveTuples(tuples)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -66,7 +65,11 @@ def token_required(f):
 @app.route('/')
 def home():
     return "Welcome to the Game API!"
-
+@app.route('/end', methods=['POST'])
+def index():
+    data = request.get_json()
+    lb.send_player_data(data["username"])
+    return jsonify({'message': 'Game API is running'})
 @app.route('/login', methods=['POST'])
 def login():
     """
@@ -312,8 +315,8 @@ def signup():
 
     # Create new user
     cursor.execute("""
-        INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status)
-        VALUES (?, ?, 0, 100, 100, 100, 'active')
+        INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status, speed, last_attack)
+        VALUES (?, ?, 0, 100, 100, 100, 'active', 3 ,1)
     """, (username, password))
     player_id = cursor.lastrowid
 
@@ -422,7 +425,6 @@ def game_state(user_id):
         player_status['respawn_position'] = attack_result['respawn_position']
 
     game_state_data['player_status'] = player_status
-    print(f"game_state end:{time.time() - start}")
     return jsonify(game_state_data), 200
 
 def get_game_state(user_id, screen_width, screen_height):
@@ -491,7 +493,7 @@ def get_game_state(user_id, screen_width, screen_height):
             file_name = o['file']
             base_name, ext = os.path.splitext(file_name)
             objects.append({
-                'name': o['name'],
+                'name': f"{o['name']}",
                 'x': o['position_x'],
                 'y': o['position_y'],
                 'size': 40,
@@ -590,12 +592,6 @@ def movement(user_id):
     elif direction == 'd' and x + move_amount <= screen_width * screens_x:
         x += move_amount
 
-    #print(f"player location: x: {x}, y: {y}, speed: {speed}")
-    new_server = check_server_transition(x, y, screen_width, screen_height)
-    if new_server!=serverNumber:
-        cursor.execute("SELECT username FROM players WHERE player_id = ?", (user_id,))
-        username = cursor.fetchone()['username']
-        lb.send_player_data(username, new_server)
     # עדכון מיקום השחקן
     cursor.execute("UPDATE players SET position_x = ?, position_y = ? WHERE player_id = ?", (x, y, user_id))
     conn.commit()
@@ -609,14 +605,12 @@ def movement(user_id):
 
     # הוספת אובייקט אם נמצא
     if obj:
-        print("found")
         game_data['object_found'] = {
             'name': obj['name'],
             'file': obj['file']
         }
 
     import json
-    print(json.dumps(game_data, indent=2))
     return jsonify(game_data), 200
 
 
@@ -654,11 +648,8 @@ import math
 
 def is_in_attack_range(attacker_pos, target_pos, range_px):
     dx = attacker_pos['x'] - target_pos['x']
-    print(dx)
     dy = attacker_pos['y'] - target_pos['y']
-    print(dy)
     distance = math.sqrt(dx**2 + dy**2)
-    print(distance)
     return distance <= range_px
 
 @app.route('/attack', methods=['POST'])
@@ -699,7 +690,7 @@ def attack(user_id):
               type: string
               example: Stone_Sword
     responses:
-      200:
+      200:`
         description: Game state returned successfully
       400:
         description: Invalid weapon type
@@ -751,7 +742,6 @@ def attack(user_id):
 
     attacker_pos = {'x': attacker['position_x'], 'y': attacker['position_y']}
 
-    print("datetime.datetime.utcnow()",datetime.datetime.utcnow())
     # עדכון זמן התקיפה האחרון של התוקף
     cursor.execute("UPDATE players SET last_attack_time = ? WHERE player_id = ?",
                    (datetime.datetime.utcnow(), user_id))
@@ -764,8 +754,6 @@ def attack(user_id):
             return jsonify({'error': 'Player not found'}), 404
 
         target_pos = {'x': target['position_x'], 'y': target['position_y']}
-        print(is_in_attack_range(attacker_pos, target_pos, weapon_range))
-        print("weapon_range",weapon_range)
         if not is_in_attack_range(attacker_pos, target_pos, weapon_range):
             conn.close()
             return jsonify({'message': 'Target out of range'}), 200
@@ -869,7 +857,6 @@ def was_player_hit(player_id):
     bots = cursor.fetchall()
 
     current_time = int(time.time())
-    print(current_time)
     was_attacked = False
     player_died = False
     respawn_position = None
@@ -950,8 +937,6 @@ def was_player_hit(player_id):
 
     if player_died:
         response['respawn_position'] = respawn_position
-
-    print(response)
     return response
 
 
@@ -1252,22 +1237,17 @@ def drop_item_on_map(user_id):
     """
     Drop item on the map or add money directly
     """
-    print("drop ,server 1")
     data = request.get_json()
     name = data.get("name")
     x = data.get("x")
     y = data.get("y")
     amount = data.get("amount")
     file = f"{name}.png"
-    print("drop ,server 2")
-
     if not all([name, isinstance(x, (int, float)), isinstance(y, (int, float)), isinstance(amount, int)]):
         return jsonify({"error": "Invalid data"}), 400
 
-    print("drop ,server 3")
     conn = get_db_connection()
     cursor = conn.cursor()
-    print("drop ,server 4")
 
     if name.lower() == "money":
         # Update player currency
@@ -1670,18 +1650,7 @@ def respawn(user_id):
         'new_position': {'x': new_x, 'y': new_y},
         'health': new_health
     }), 200
-def check_server_transition(x,y,screen_width=1280,screen_height=720):
-    screen_x = x // screen_width
-    screen_y = y // screen_height
 
-    if screen_x < 20 and screen_y < 20:
-        return 1
-    elif screen_x >= 20 and screen_y < 20:
-        return 2
-    elif screen_x < 20 and screen_y >= 20:
-        return 3
-    else:
-        return 4
 class lbconector:
     def __init__(self):
         self.lBaddr = ()
@@ -1702,56 +1671,54 @@ class lbconector:
                 response = f"1|{flask_port}".encode()  # Safer format
                 server_socket.sendto(response, addr)
                 portLb = int(data.decode().lower()[1:])
-                self.lBaddr = addr
             elif decoded[0] == "u":
                 print("hi")
                 self.save_player_data(decoded[1:])
 
-    def save_player_data(self,player_data, db_path='/app/database/DATABASE_GAME.db'):
+    def save_player_data(self, player_data, db_path='../DATABASE_GAME.db'):
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
         player_data = json.loads(player_data)
-        c.execute("SELECT username FROM players WHERE username = ?", (player_data['username'],))
-        result = c.fetchone()
-        c.execute("SELECT 1 FROM players WHERE username = ?", (player_data['username'],))
-        if c.fetchone():
-            # username already taken → clean up and signal error
-            conn.close()
-            return -1
-        # Upsert by player_id
-        print("player_data", player_data["player_id"])
+        print(player_data)
+        # Upsert player data
         c.execute("""
-                INSERT INTO players (
-                    player_id, username, password_hash, position_x, position_y,
-                    health, coins, status, speed, last_attack_time
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(player_id) DO UPDATE SET
-                    username = excluded.username,
-                    password_hash = excluded.password_hash,
-                    position_x = excluded.position_x,
-                    position_y = excluded.position_y,
-                    health = excluded.health,
-                    coins = excluded.coins,
-                    status = excluded.status,
-                    speed = excluded.speed,
-                    last_attack_time = excluded.last_attack_time
-            """, (
-                player_data["player_id"],
-                player_data["username"],
-                player_data["password_hash"],
-                player_data["position_x"],
-                player_data["position_y"],
-                player_data["health"],
-                player_data["coins"],
-                player_data["status"],
-                player_data["speed"],
-                player_data["last_attack_time"]
-            ))
+            INSERT INTO players (player_id, username, password_hash, position_x, position_y, health, coins, status, speed, last_attack_time)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(player_id) DO UPDATE SET
+                username = excluded.username,
+                password_hash = excluded.password_hash,
+                position_x = excluded.position_x,
+                position_y = excluded.position_y,
+                health = excluded.health,
+                coins = excluded.coins,
+                status = excluded.status,
+                speed = excluded.speed,
+                last_attack_time = excluded.last_attack_time
+        """, (
+            player_data["player_id"],
+            player_data["username"],
+            player_data["password_hash"],
+            player_data["position_x"],
+            player_data["position_y"],
+            player_data["health"],
+            player_data["coins"],
+            player_data["status"],
+            player_data["speed"],
+            player_data["last_attack_time"]
+        ))
+
+        # Replace inventory
+        c.execute("DELETE FROM inventory WHERE player_id = ?", (player_data["player_id"],))
+        for item in player_data.get("inventory", []):
+            c.execute("""
+                INSERT INTO inventory (player_id, name, slot_index, quantity)
+                VALUES (?, ?, ?, ?)
+            """, (player_data["player_id"], item["name"], item["slot_index"], item["quantity"]))
 
         conn.commit()
         conn.close()
 
-    def send_player_data(self,username, sn, db_path='/app/database/DATABASE_GAME.db'):
+    def send_player_data(self,username, db_path='../DATABASE_GAME.db'):
         # Connect to SQLite database
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
@@ -1767,20 +1734,23 @@ class lbconector:
             player_data = {
                 "player_id": row[0],
                 "username": row[1],
-                "password_hash": row[3],
-                "position_x": row[4],
-                "position_y": row[5],
-                "health": row[6],
-                "coins": row[7],
-                "status": row[8],
-                "speed": row[9],
-                "last_attack_time": row[10]
+                "password_hash": row[2],
+                "position_x": row[3],
+                "position_y": row[4],
+                "health": row[5],
+                "coins": row[6],
+                "status": row[7],
+                "speed": row[8],
+                "last_attack_time": row[9]
             }
-
+            c.execute("SELECT name, quantity, slot_index FROM inventory WHERE player_id = ?", (row[0],))
+            inventory = [{"name": item[0], "quantity": item[1], "slot_index": item[2]} for item in c.fetchall()]
+            player_data["inventory"] = inventory
             # Send back over UDP
+            data =findy.main()
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            message = b"p"+sn.encode() + json.dumps(player_data, default=str).encode()
-            sock.sendto(message, self.lBaddr)
+            message = b"u" + json.dumps(player_data, default=str).encode()
+            sock.sendto(message, data['lb'])
             sock.close()
         else:
             pass
@@ -1799,12 +1769,13 @@ class lbconector:
 
 if __name__ == '__main__':
     lb = lbconector()
-    flask_port = lb.PortDefinder(5160)
+    flask_port = lb.PortDefinder(5150)
     udp_port = lb.PortDefinder(flask_port + 1)
 
     print(f"Flask Port: {flask_port}, UDP Port: {udp_port}")
-
     t1 = threading.Thread(target=lb.ipSender, args=(udp_port, flask_port))
     t2 = threading.Thread(target=lb.run, args=(flask_port,))
+    t3 = threading.Thread(target=move_bots, args=())
     t2.start()
     t1.start()
+    t3.start()

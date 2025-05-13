@@ -98,6 +98,7 @@ class Servers:
         c.execute('''
             CREATE TABLE IF NOT EXISTS players (
                 player_id INTEGER PRIMARY KEY,
+                server INTEGER,
                 username TEXT NOT NULL,
                 password_hash TEXT NOT NULL,
                 position_x INTEGER,
@@ -150,18 +151,17 @@ class Servers:
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
         addr = self.servers[str(server)]
-        addr = (addr[0], int(addr[1])+1)
+        addr = (addr[0], int(addr[1]) + 1)
+
         # Query player by username
         c.execute("SELECT * FROM players WHERE username = ?", (username,))
         row = c.fetchone()
-        print("addr", addr)
-        conn.close()
 
         if row:
             # Convert row to dict
             player_data = {
                 "player_id": row[0],
-                "username": row[1],
+                "username": row[2],
                 "password_hash": row[3],
                 "position_x": row[4],
                 "position_y": row[5],
@@ -172,13 +172,19 @@ class Servers:
                 "last_attack_time": row[10]
             }
 
-            # Send back over UDP
+            # Get inventory for this player
+            c.execute("SELECT name, quantity, slot_index FROM inventory WHERE player_id = ?", (row[0],))
+            inventory = [{"name": item[0], "quantity": item[1], "slot_index": item[2]} for item in c.fetchall()]
+            player_data["inventory"] = inventory
+
+            # Send to target server
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             message = "u"+json.dumps(player_data, default=str)
             sock.sendto(message.encode(), addr)
             sock.close()
-        else:
-            pass
+
+        conn.close()
+
 
     def close_connection(self):
         self.conn.close()

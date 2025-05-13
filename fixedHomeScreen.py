@@ -1,11 +1,9 @@
 import socket
-
+import server.clientTest
 import pygame
-import requests
-
-from lb.findy import findy
 from server import clientTest
-
+import requests
+from lb.findy import findy
 DEFAULT_BUFFER_SIZE = 35
 
 HOME_SCREEN = 'screens\Home_Screen.png'
@@ -21,9 +19,9 @@ LOGIN = 'screens\Login_Screen.png'
 LEFT = 1
 SCROLL = 2
 RIGHT = 3
-WHITE = (255, 255, 255)
-RED = (139, 0, 0)
-PURPLE = (73, 69, 123)
+WHITE = (255,255,255)
+RED = (139,0,0)
+PURPLE = (73,69,123)
 
 
 def home_screen(screen, screen_width, screen_height):
@@ -49,7 +47,7 @@ def home_screen(screen, screen_width, screen_height):
 
                 # to log in screen
                 elif 525 < x < 740 and 350 < y < 430:
-                    token = loging_screen(screen, screen_width, screen_height)
+                    token= loging_screen(screen, screen_width, screen_height)
                     if token:
                         return token
 
@@ -67,6 +65,7 @@ def home_screen(screen, screen_width, screen_height):
         pygame.display.update()
 
 
+
 def instructions1_screen(screen, screen_width, screen_height):
     """
         running the first screen of the instructions
@@ -82,6 +81,7 @@ def instructions1_screen(screen, screen_width, screen_height):
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == LEFT:
                 x = pygame.mouse.get_pos()[0]
                 y = pygame.mouse.get_pos()[1]
+
 
                 # to instruction 2 screen
                 if 49 < x < 109 and 600 < y < 685:
@@ -111,6 +111,7 @@ def instructions2_screen(screen, screen_width, screen_height):
                 x = pygame.mouse.get_pos()[0]
                 y = pygame.mouse.get_pos()[1]
 
+
                 # to instruction 3 screen
                 if 49 < x < 109 and 600 < y < 685:
                     instructions3_screen(screen, screen_width, screen_height)
@@ -139,6 +140,7 @@ def instructions3_screen(screen, screen_width, screen_height):
                 x = pygame.mouse.get_pos()[0]
                 y = pygame.mouse.get_pos()[1]
 
+
                 # to instruction 4 screen
                 if 49 < x < 109 and 600 < y < 685:
                     instructions4_screen(screen, screen_width, screen_height)
@@ -166,6 +168,7 @@ def instructions4_screen(screen, screen_width, screen_height):
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == LEFT:
                 x = pygame.mouse.get_pos()[0]
                 y = pygame.mouse.get_pos()[1]
+
 
                 # to instruction 5 screen
                 if 49 < x < 109 and 600 < y < 685:
@@ -202,7 +205,6 @@ def instructions5_screen(screen, screen_width, screen_height):
         screen.blit(image, (0, 0))
         pygame.display.update()
 
-
 def loging_screen(screen, screen_width, screen_height):
     """
             running the loging screen
@@ -229,6 +231,7 @@ def loging_screen(screen, screen_width, screen_height):
                 x = pygame.mouse.get_pos()[0]
                 y = pygame.mouse.get_pos()[1]
 
+
                 # return back (to home screen)
                 if 1204 < x < 1262 and 640 < y < 700:
                     running = False
@@ -247,7 +250,7 @@ def loging_screen(screen, screen_width, screen_height):
                 elif 217 < x < 465 and 500 < y < 575:
                     username_input_active = False
                     password_input_active = False
-                    token = enter_user(username_text, password_text)
+                    token = enter_user(username_text,password_text)
                     if not token:
                         error_text = "This User doesn't exist, check the Username or the Password"
                     else:
@@ -265,6 +268,7 @@ def loging_screen(screen, screen_width, screen_height):
                     password_text = password_text[:-1]
                 elif len(password_text) < 10:
                     password_text += event.unicode
+
 
         screen.blit(image, (0, 0))
 
@@ -311,6 +315,7 @@ def signing_screen(screen, screen_width, screen_height):
             elif event.type == pygame.MOUSEBUTTONDOWN and event.button == LEFT:
                 x = pygame.mouse.get_pos()[0]
                 y = pygame.mouse.get_pos()[1]
+
 
                 # return back (to home screen)
                 if 1204 < x < 1262 and 640 < y < 700:
@@ -389,13 +394,12 @@ def signing_screen(screen, screen_width, screen_height):
 
         pygame.display.flip()
 
-
-def create_user(username, password):
-    token = signup(username, password)
+def create_user(username,password):
+    token=signup(username, password)
 
     return token is not None
 
-    #    global packed_data
+#    global packed_data
     """
     sends to the mainserver packet with the username and password like this:
     create // username // password
@@ -404,26 +408,24 @@ def create_user(username, password):
     0 bit: 1 = exist and didn't do anything
            0 = doesn't exist and created a new user
     """
-
-
-#   packet = "create//" + username + "//" + password
+ #   packet = "create//" + username + "//" + password
 #    packet = packet.encode()
 #    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 #    server_socket.sendto(packet, (IP, PORT))
 #    packed_data, client_addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
 #    server_socket.close()
-# packed_data = 1
+    # packed_data = 1
 #    if packed_data[0] == 1:
 #        return False # the username already exists
 #    return True
 
-def enter_user(username, password):
-    token = login(username, password)
+def enter_user(username,password):
+    token=login(username, password)
     if not token:
         print("Login failed, exiting...")
         return None
     return token
-    #    global packed_data
+#    global packed_data
     """
     sends to the mainserver packet with the username and password like this:
     enter // username // password
@@ -432,23 +434,23 @@ def enter_user(username, password):
     0 bit: 1 = this user exist
            0 = this user doesn't exist
     """
-    # packet = "enter//" + username + "//" + password
-    # print(packet)
-    # packet = packet.encode()
-    # print(packet)
-    # server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    # server_socket.sendto(packet, (IP, PORT))
-    # packed_data, client_addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
-    # server_socket.close()
-
-
-#   packed_data = 1
+    #packet = "enter//" + username + "//" + password
+    #print(packet)
+    #packet = packet.encode()
+    #print(packet)
+    #server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    #server_socket.sendto(packet, (IP, PORT))
+    #packed_data, client_addr = server_socket.recvfrom(DEFAULT_BUFFER_SIZE)
+    #server_socket.close()
+ #   packed_data = 1
 #    print(packed_data)
 #    if packed_data[0] == 0:
 #        return False # the user doesn't exist
 #    return True
 # Login and get token
 def login(username, password):
+    global usernam
+    usernam = username
     try:
         response = requests.post(f'{API_URL}/login', json={'username': username, 'password': password})
         if response.status_code == 200:
@@ -461,27 +463,20 @@ def login(username, password):
     except requests.exceptions.RequestException as e:
         print(f"Connection error: {e}")
         return None
-
-
 def signup(username, password):
     url = f"{API_URL}/signup"
     response = requests.post(url, json={"username": username, "password": password})
     if response.status_code == 201:
         return response.json().get("token")  # או True אם אין טוקן
     return None
-
-
 def get_player_data(API_URL, token):
     headers = {'Authorization': f'Bearer {token}'}
     response = requests.get(f'{API_URL}/get_player', headers=headers)
-    print(response.json().get('server'))
     print(data)
-    addr = data[str(response.json().get('server'))]
+    addr = data[str(response.json()['server'])]
     API_URL = "http://" + addr[0] + ":" + str(addr[1])
     print(API_URL)
     return API_URL
-
-
 def main(API_URL):
     pygame.init()
     screen_width = 1280
@@ -494,14 +489,12 @@ def main(API_URL):
     print(API_URL)
     if token:
         print("Token received, starting the game...")
-        c = clientTest.clientTest(apiUrl=API_URL, data=data)
+        c = clientTest.clientTest(apiUrl=API_URL, data=data, userenmae=usernam)
         c.main(token)  # כאן תפעיל את הקליינט שלך עם הטוקן
     else:
         print("No token received, exiting.")
 
     pygame.quit()
-
-
 def PortDefinder(port):
     port = port
     result = 0
@@ -511,14 +504,12 @@ def PortDefinder(port):
         if result == 0:
             port += 1
     return port
-
-
 if __name__ == "__main__":
     port = PortDefinder(4000)
     finder = findy()
     data = finder.main(port)
     addr = data['lb']
-    API_URL = "http://" + addr[0] + ":" + str(addr[1])
+    API_URL= "http://" + addr[0] + ":" + str(addr[1])
 
     print(API_URL)
     main(API_URL)
