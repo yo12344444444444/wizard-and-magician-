@@ -8,7 +8,7 @@ import string
 #messegas = [" ", " ", " ", " ", " "]
 
 class ChatClient:
-    def __init__(self, host='localhost', port=5000, callback=None):
+    def __init__(self, host='localhost', port=5200, callback=None):
         self.server_address = (host, port)
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.socket.bind(('',0))
