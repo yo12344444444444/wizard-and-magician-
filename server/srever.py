@@ -10,23 +10,21 @@ import threading
 from functionsServer import *
 
 def move_bots():
-    start = time.time()
     bots = get_all_bots()
     players=get_all_players()
     tuples = []
-    for bot in bots:
-        last_direction=bot['last_direction']
-        closest_player_id,player_x,player_y = get_closest_player(bot['position_x'],bot['position_y'],players)
-        if closest_player_id is None:
-            continue
-        dx,dy = calculate_dx_dy(bot['position_x'],bot['position_y'],player_x,player_y)
-        chosen = choose_direction(last_direction, dx, dy)
-        tuple=bot_action(chosen, bot)
-        if tuple:
-            tuples.append(tuple)
-    saveTuples(tuples)
-    print(f"end move_bot {time.time()-start}")
-    threading.Timer(0.2, move_bots).start()
+    while True:
+        for bot in bots:
+            last_direction=bot['last_direction']
+            closest_player_id,player_x,player_y = get_closest_player(bot['position_x'],bot['position_y'],players)
+            if closest_player_id is None:
+                continue
+            dx,dy = calculate_dx_dy(bot['position_x'],bot['position_y'],player_x,player_y)
+            chosen = choose_direction(last_direction, dx, dy)
+            tuple=bot_action(chosen, bot)
+            if tuple:
+                tuples.append(tuple)
+        saveTuples(tuples)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -421,7 +419,6 @@ def game_state(user_id):
         player_status['respawn_position'] = attack_result['respawn_position']
 
     game_state_data['player_status'] = player_status
-    print(f"game_state end:{time.time() - start}")
     return jsonify(game_state_data), 200
 
 def get_game_state(user_id, screen_width, screen_height):
@@ -589,8 +586,6 @@ def movement(user_id):
     elif direction == 'd' and x + move_amount <= screen_width * screens_x:
         x += move_amount
 
-    print(f"player location: x: {x}, y: {y}, speed: {speed}")
-
     # עדכון מיקום השחקן
     cursor.execute("UPDATE players SET position_x = ?, position_y = ? WHERE player_id = ?", (x, y, user_id))
     conn.commit()
@@ -604,14 +599,12 @@ def movement(user_id):
 
     # הוספת אובייקט אם נמצא
     if obj:
-        print("found")
         game_data['object_found'] = {
             'name': obj['name'],
             'file': obj['file']
         }
 
     import json
-    print(json.dumps(game_data, indent=2))
     return jsonify(game_data), 200
 
 
@@ -649,11 +642,8 @@ import math
 
 def is_in_attack_range(attacker_pos, target_pos, range_px):
     dx = attacker_pos['x'] - target_pos['x']
-    print(dx)
     dy = attacker_pos['y'] - target_pos['y']
-    print(dy)
     distance = math.sqrt(dx**2 + dy**2)
-    print(distance)
     return distance <= range_px
 
 @app.route('/attack', methods=['POST'])
@@ -746,7 +736,6 @@ def attack(user_id):
 
     attacker_pos = {'x': attacker['position_x'], 'y': attacker['position_y']}
 
-    print("datetime.datetime.utcnow()",datetime.datetime.utcnow())
     # עדכון זמן התקיפה האחרון של התוקף
     cursor.execute("UPDATE players SET last_attack_time = ? WHERE player_id = ?",
                    (datetime.datetime.utcnow(), user_id))
@@ -759,8 +748,6 @@ def attack(user_id):
             return jsonify({'error': 'Player not found'}), 404
 
         target_pos = {'x': target['position_x'], 'y': target['position_y']}
-        print(is_in_attack_range(attacker_pos, target_pos, weapon_range))
-        print("weapon_range",weapon_range)
         if not is_in_attack_range(attacker_pos, target_pos, weapon_range):
             conn.close()
             return jsonify({'message': 'Target out of range'}), 200
@@ -864,7 +851,6 @@ def was_player_hit(player_id):
     bots = cursor.fetchall()
 
     current_time = int(time.time())
-    print(current_time)
     was_attacked = False
     player_died = False
     respawn_position = None
@@ -945,8 +931,6 @@ def was_player_hit(player_id):
 
     if player_died:
         response['respawn_position'] = respawn_position
-
-    print(response)
     return response
 
 
@@ -1247,22 +1231,17 @@ def drop_item_on_map(user_id):
     """
     Drop item on the map or add money directly
     """
-    print("drop ,server 1")
     data = request.get_json()
     name = data.get("name")
     x = data.get("x")
     y = data.get("y")
     amount = data.get("amount")
     file = f"{name}.png"
-    print("drop ,server 2")
-
     if not all([name, isinstance(x, (int, float)), isinstance(y, (int, float)), isinstance(amount, int)]):
         return jsonify({"error": "Invalid data"}), 400
 
-    print("drop ,server 3")
     conn = get_db_connection()
     cursor = conn.cursor()
-    print("drop ,server 4")
 
     if name.lower() == "money":
         # Update player currency
@@ -1788,8 +1767,9 @@ if __name__ == '__main__':
     udp_port = lb.PortDefinder(flask_port + 1)
 
     print(f"Flask Port: {flask_port}, UDP Port: {udp_port}")
-
     t1 = threading.Thread(target=lb.ipSender, args=(udp_port, flask_port))
     t2 = threading.Thread(target=lb.run, args=(flask_port,))
+    t3 = threading.Thread(target=move_bots, args=())
     t2.start()
     t1.start()
+    t3.start()
