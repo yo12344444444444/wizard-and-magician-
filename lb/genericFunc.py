@@ -88,6 +88,11 @@ class Servers:
             player_data["last_attack_time"]
 
         ))
+        for item in player_data.get("inventory", []):
+            c.execute("""
+                INSERT INTO inventory (player_id, name, slot_index, quantity)
+                VALUES (?, ?, ?, ?)
+            """, (player_data["player_id"], item["name"], item["slot_index"], item["quantity"]))
         conn.commit()
         conn.close()
 
@@ -169,7 +174,9 @@ class Servers:
                 "speed": row[8],
                 "last_attack_time": row[9]
             }
-
+            c.execute("SELECT name, quantity, slot_index FROM inventory WHERE player_id = ?", (row[0],))
+            inventory = [{"name": item[0], "quantity": item[1], "slot_index": item[2]} for item in c.fetchall()]
+            player_data["inventory"] = inventory
             # Send back over UDP
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             message = json.dumps(player_data, default=str).encode()

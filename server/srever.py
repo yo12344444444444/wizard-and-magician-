@@ -8,6 +8,7 @@ from functools import wraps
 from flasgger import Swagger
 import threading
 from functionsServer import *
+from lb.findy import findy
 
 ServerNumber = 1
 
@@ -1692,6 +1693,8 @@ def respawn(user_id):
 class lbconector:
     def __init__(self):
         self.lBaddr = ()
+    def setLb(self, lb):
+        self.lBaddr = lb
     def ipSender(self,udp_port, flask_port):
         global ip, portLb
         BUFFER_SIZE = 1024
@@ -1744,6 +1747,13 @@ class lbconector:
             player_data["last_attack_time"]
 
         ))
+        c.execute("DELETE FROM inventory WHERE player_id = ?", (player_data["player_id"],))
+        for item in player_data.get("inventory", []):
+            c.execute("""
+                INSERT INTO inventory (player_id, name, slot_index, quantity)
+                VALUES (?, ?, ?, ?)
+            """, (player_data["player_id"], item["name"], item["slot_index"], item["quantity"]))
+
         conn.commit()
         conn.close()
 
@@ -1794,12 +1804,15 @@ class lbconector:
 
 
 if __name__ == '__main__':
+    f = findy()
     lb = lbconector()
     flask_port = lb.PortDefinder(5100)
     udp_port = lb.PortDefinder(flask_port + 1)
-
+    data = {'lb': None}
+    while data['lb'] is None:
+        data = f.main(udp_port)
+    lb.setLb(data)
     print(f"Flask Port: {flask_port}, UDP Port: {udp_port}")
-
     t1 = threading.Thread(target=lb.ipSender, args=(udp_port, flask_port))
     t2 = threading.Thread(target=lb.run, args=(flask_port,))
     t2.start()
