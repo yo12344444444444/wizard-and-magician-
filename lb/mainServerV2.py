@@ -98,8 +98,8 @@ def ggeter(port):
             return jsonify({'error': 'User already exists'}), 400
         # Create new user
         cursor.execute("""
-            INSERT INTO players (username,server, password_hash, position_x, position_y, health, coins, status)
-            VALUES (?,?, ?, 0, 100, 100, 100, 'active')
+            INSERT INTO players (username,server, password_hash, position_x, position_y, health, coins, status, speed, last_attack_time)
+        VALUES (?,?, ?, 0, 100, 100, 100, 'active', 3 ,1)
         """,
         (username,get_least_loaded_server(), password))
         player_id = cursor.lastrowid
@@ -262,9 +262,12 @@ def get_least_loaded_server(db_path='../DATABASE_GAME2.db'):
     cur = conn.cursor()
 
     # Get all server entries
-    cur.execute("SELECT server FROM players")
+    try:
+        cur.execute("SELECT server FROM players")
+    except:
+        return 1
     servers = [row[0] for row in cur.fetchall() if row[0] is not None]
-
+    servers += {'1':0,'3':0,'4':0,'2':0,}
     conn.close()
 
     if not servers:
@@ -291,6 +294,7 @@ def PortDefinder(port):
 
 
 def add_test_user():
+    return -1
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()
 

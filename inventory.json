@@ -15,22 +15,22 @@
             "mini_button_pressed?": false
         },
         "3": {
-            "item": "0",
-            "quantity": 0,
+            "item": "7",
+            "quantity": 1,
             "topleft_x": 584,
             "topleft_y": 586,
             "mini_button_pressed?": false
         },
         "4": {
-            "item": "0",
-            "quantity": 0,
+            "item": "11",
+            "quantity": 2,
             "topleft_x": 696,
             "topleft_y": 586,
             "mini_button_pressed?": false
         },
         "5": {
-            "item": "0",
-            "quantity": 0,
+            "item": "11",
+            "quantity": 1,
             "topleft_x": 803,
             "topleft_y": 586,
             "mini_button_pressed?": false
