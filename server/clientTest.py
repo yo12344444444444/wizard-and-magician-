@@ -1381,7 +1381,7 @@ class clientTest():
 
         inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon = create_icons()
         self.enter_inventory_data_to_json()
-
+        # hi
         while running:
             start = time.time()
             dropped_items = []
