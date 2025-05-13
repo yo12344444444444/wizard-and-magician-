@@ -449,6 +449,8 @@ def enter_user(username,password):
 #    return True
 # Login and get token
 def login(username, password):
+    global usernam
+    usernam = username
     try:
         response = requests.post(f'{API_URL}/login', json={'username': username, 'password': password})
         if response.status_code == 200:
@@ -487,7 +489,7 @@ def main(API_URL):
     print(API_URL)
     if token:
         print("Token received, starting the game...")
-        c = clientTest.clientTest(apiUrl=API_URL, data=data)
+        c = clientTest.clientTest(apiUrl=API_URL, data=data, userenmae=usernam)
         c.main(token)  # כאן תפעיל את הקליינט שלך עם הטוקן
     else:
         print("No token received, exiting.")

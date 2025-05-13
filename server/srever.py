@@ -65,7 +65,11 @@ def token_required(f):
 @app.route('/')
 def home():
     return "Welcome to the Game API!"
-
+@app.route('/end', methods=['POST'])
+def index():
+    data = request.get_json()
+    s.sendDb('lb', data["username"])
+    return jsonify({'message': 'Game API is running'})
 @app.route('/login', methods=['POST'])
 def login():
     """
@@ -686,7 +690,7 @@ def attack(user_id):
               type: string
               example: Stone_Sword
     responses:
-      200:
+      200:`
         description: Game state returned successfully
       400:
         description: Invalid weapon type

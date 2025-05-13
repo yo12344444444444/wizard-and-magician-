@@ -108,9 +108,10 @@ def create_icons():
 
 
 class clientTest():
-    def __init__(self, apiUrl, data):
+    def __init__(self, apiUrl, data, userenmae):
         self.API_URL = apiUrl
         self.data = data
+        self.userenmae = userenmae
 
     def put_icons_on_screen(self,screen, inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon,events):
         """
@@ -1383,12 +1384,12 @@ class clientTest():
         self.enter_inventory_data_to_json()
         # hi
         while running:
-            start = time.time()
             dropped_items = []
             events = pygame.event.get()
             for event in events:
-
                 if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+                    data = {"username":self.userenmae}
+                    response = requests.post(f"{self.API_URL}/end", json=data)
                     running = False
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_t:

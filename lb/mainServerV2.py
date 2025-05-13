@@ -56,6 +56,7 @@ def ggeter(port):
     def index():
         return jsonify({'message': 'Game API is running'})
 
+
     @app.route('/signup', methods=['POST'])
     def signup():
         """
