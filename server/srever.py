@@ -13,23 +13,23 @@ import findy
 from functionsServer import *
 
 def move_bots():
+    start = time.time()
     bots = get_all_bots()
     players=get_all_players()
     tuples = []
-    while True:
-        for bot in bots:
-            last_direction=bot['last_direction']
-            closest_player_id,player_x,player_y = get_closest_player(bot['position_x'],bot['position_y'],players)
-            if closest_player_id is None:
-                continue
-            dx,dy = calculate_dx_dy(bot['position_x'],bot['position_y'],player_x,player_y)
-            chosen = choose_direction(last_direction, dx, dy)
-            tuple=bot_action(chosen, bot)
-            if tuple:
-                tuples.append(tuple)
-        saveTuples(tuples)
-
-app = Flask(__name__)
+    for bot in bots:
+        last_direction=bot['last_direction']
+        closest_player_id,player_x,player_y = get_closest_player(bot['position_x'],bot['position_y'],players)
+        if closest_player_id is None:
+            continue
+        dx,dy = calculate_dx_dy(bot['position_x'],bot['position_y'],player_x,player_y)
+        chosen = choose_direction(last_direction, dx, dy)
+        tuple=bot_action(chosen, bot)
+        if tuple:
+            tuples.append(tuple)
+    saveTuples(tuples)
+    print(f"end move_bot {time.time()-start}")
+    threading.Timer(0.2, move_bots).start()
 app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['SWAGGER'] = {
     'title': 'Game API',
