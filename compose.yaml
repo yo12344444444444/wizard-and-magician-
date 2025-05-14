@@ -34,7 +34,7 @@ services:
     restart: always
 
   server_flask:
-    container_name: server-flask
+    container_name: server-1
     image: nettahalamish/cyber-project-grade-11:latest
     build:
       context: ./
@@ -71,7 +71,7 @@ services:
     depends_on:
     - load_balancer
     - server_flask
-    ports:
+    expose:
       # Only here do we bind the full range to the host
       - "5150-5250:5150-5250/udp"
       - "5150-5250:5150-5250/tcp"
@@ -89,7 +89,7 @@ services:
     depends_on:
       - load_balancer
       - server_flask
-    ports:
+    expose:
       # Only here do we bind the full range to the host
       - "5150-5250:5150-5250/udp"
       - "5150-5250:5150-5250/tcp"
@@ -107,7 +107,7 @@ services:
     depends_on:
       - load_balancer
       - server_flask
-    ports:
+    expose:
       # Only here do we bind the full range to the host
       - "5150-5250:5150-5250/udp"
       - "5150-5250:5150-5250/tcp"

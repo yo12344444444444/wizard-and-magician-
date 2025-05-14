@@ -23,7 +23,7 @@ app.config['SWAGGER'] = {
 }
 swagger = Swagger(app)
 
-DATABASE = '/app/database/DATABASE_GAME.db'
+DATABASE = '/app/database/DATABASE_GAME2.db'
 
 # ✅ Create the database and players table if they don't exist
 def init_db():

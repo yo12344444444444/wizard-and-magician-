@@ -1,3 +1,4 @@
+
 import json
 import socket
 
@@ -8,7 +9,7 @@ from functools import wraps
 from flasgger import Swagger
 import threading
 
-import findy
+import lb.findy
 from functionsServer import *
 
 def move_bots():
@@ -1675,7 +1676,7 @@ class lbconector:
                 print("hi")
                 self.save_player_data(decoded[1:])
 
-    def save_player_data(self, player_data, db_path='../DATABASE_GAME.db'):
+    def save_player_data(self, player_data, db_path='/app/database/DATABASE_GAME.db'):
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
         player_data = json.loads(player_data)
@@ -1718,7 +1719,7 @@ class lbconector:
         conn.commit()
         conn.close()
 
-    def send_player_data(self,username, db_path='../DATABASE_GAME.db'):
+    def send_player_data(self,username, db_path='/app/database/DATABASE_GAME.db'):
         # Connect to SQLite database
         conn = sqlite3.connect(db_path)
         c = conn.cursor()

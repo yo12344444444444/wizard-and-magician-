@@ -10,7 +10,7 @@ class Servers:
         # Connect to SQLite database
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
-        addr = self.servers[str(server)]
+        addr = self.servers[server]
         # Query player by username
         c.execute("SELECT * FROM players WHERE username = ?", (username,))
         row = c.fetchone()
@@ -52,8 +52,7 @@ class Servers:
             if decoded[0] == "r":
                 s.sendto(msg.encode(), addr)
             elif decoded[0] == "p":
-                json_data = decoded[1:]
-                self.send_player_data(json_data[2], json_data[2:])
+                pass
             elif decoded[0] == "u":
                 json_data = decoded[1:]
                 self.save_player_data(json_data)
@@ -137,7 +136,7 @@ class Servers:
         # Load servers from findy
         while True:
             self.servers = finder.main(self.port)
-            if len(self.servers) >= 3:
+            if len(self.servers) == 1:
                 break
         # Insert into DB
         for server, (ip, port) in self.servers.items():
