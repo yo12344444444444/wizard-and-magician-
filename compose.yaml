@@ -39,8 +39,11 @@ services:
     build:
       context: ./
     networks: [my_custom_network]
-    volumes: [ "./DATABASE_GAME.db:/app/database/DATABASE_GAME.db" ]
-    depends_on: [build_db, load_balancer]
+    volumes:
+    - "./DATABASE_GAME.db:/app/database/DATABASE_GAME.db"
+    depends_on:
+    - build_db
+    - load_balancer
     ports:
       # Only here do we bind the full range to the host
       - "5150-5250:5150-5250/udp"
@@ -53,7 +56,8 @@ services:
     image: nettahalamish/cyber-project-grade-11:latest
     build: { context: . }
     networks: [my_custom_network]
-    depends_on: [server_flask]
+    depends_on:
+    - server_flask
     expose:
       - "5000-5100/udp"
       - "5000-5100/tcp"
@@ -67,7 +71,8 @@ services:
       context: ./
     networks:
     - my_custom_network
-    volumes: [ "./DATABASE_GAME.db:/app/database/DATABASE_GAME.db" ]
+    volumes:
+    - "./DATABASE_GAME.db:/app/database/DATABASE_GAME.db"
     depends_on:
     - load_balancer
     - server_flask
@@ -85,7 +90,8 @@ services:
       context: ./
     networks:
     - my_custom_network
-    volumes: [ "./DATABASE_GAME.db:/app/database/DATABASE_GAME.db" ]
+    volumes:
+    - "./DATABASE_GAME.db:/app/database/DATABASE_GAME.db"
     depends_on:
       - load_balancer
       - server_flask
@@ -103,7 +109,8 @@ services:
       context: ./
     networks:
       - my_custom_network
-    volumes: [ "./DATABASE_GAME.db:/app/database/DATABASE_GAME.db" ]
+    volumes:
+    - "./DATABASE_GAME.db:/app/database/DATABASE_GAME.db"
     depends_on:
       - load_balancer
       - server_flask

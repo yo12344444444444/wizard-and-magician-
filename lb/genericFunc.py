@@ -136,7 +136,7 @@ class Servers:
         # Load servers from findy
         while True:
             self.servers = finder.main(self.port)
-            if len(self.servers) == 1:
+            if len(self.servers) >= 3:
                 break
         # Insert into DB
         for server, (ip, port) in self.servers.items():

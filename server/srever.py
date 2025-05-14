@@ -9,7 +9,7 @@ from functools import wraps
 from flasgger import Swagger
 import threading
 
-import lb.findy
+import findy
 from functionsServer import *
 
 def move_bots():
