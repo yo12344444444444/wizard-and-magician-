@@ -11,20 +11,59 @@ from functionsServer import *
 
 def move_bots():
     bots = get_all_bots()
-    players=get_all_players()
-    tuples = []
+    players = get_all_players()
+    # בניית cache בזיכרון לעדכונים מהירים
+    bot_cache = {
+        bot['bot_id']: {
+            'bot': bot,
+            'last_direction': bot['last_direction'],
+            'x': bot['position_x'],
+            'y': bot['position_y']
+        }
+        for bot in bots
+    }
+
     while True:
-        for bot in bots:
-            last_direction=bot['last_direction']
-            closest_player_id,player_x,player_y = get_closest_player(bot['position_x'],bot['position_y'],players)
+        tuples = []
+        for bot_id, data in bot_cache.items():
+            if bot_id>5:
+                continue
+            bot = data['bot']
+            last_direction = data['last_direction']
+            x = data['x']
+            y = data['y']
+
+            closest_player_id, player_x, player_y = get_closest_player(x, y, players)
             if closest_player_id is None:
                 continue
-            dx,dy = calculate_dx_dy(bot['position_x'],bot['position_y'],player_x,player_y)
+            print("player x: ",player_x, "palyer_y: ",player_y)
+            dx, dy = calculate_dx_dy(x, y, player_x, player_y)
+            print("the dx is: ",dx,"the dy is: ",dy)
             chosen = choose_direction(last_direction, dx, dy)
-            tuple=bot_action(chosen, bot)
-            if tuple:
-                tuples.append(tuple)
-        saveTuples(tuples)
+            result = bot_action(chosen, bot)
+            if result:
+                # אם הבוט זז – מעדכנים הכל כולל ההדפסה
+                if len(result) == 4:
+                    new_x, new_y, bot_id, new_direction = result
+                    data['x'] = new_x
+                    data['y'] = new_y
+                    data['last_direction'] = new_direction
+                    # עדכון גם באובייקט הבוט עצמו
+                    data['bot']['position_x'] = new_x
+                    data['bot']['position_y'] = new_y
+                    data['bot']['last_direction'] = new_direction
+                    tuples.append(result)
+                elif len(result) == 2:
+                    bot_id, new_direction = result
+                    data['last_direction'] = new_direction
+                    data['bot']['last_direction'] = new_direction
+
+                # הדפסה אחרי עדכון — כאן נראה את הערכים החדשים
+                print(data['bot'])
+
+        save_tuples(tuples)
+        print("____________________________________________________")
+        time.sleep(1)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
