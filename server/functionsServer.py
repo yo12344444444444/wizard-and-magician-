@@ -96,8 +96,6 @@ def bot_action(action, bot):
             "UPDATE bots SET position_x = ?, position_y = ? WHERE bot_id = ?",
             (x, y, bot['bot_id'])
         )
-        did_something = True
-
     elif action == 5:
         cursor.execute("SELECT * FROM players WHERE status = 'active'")
         players = cursor.fetchall()

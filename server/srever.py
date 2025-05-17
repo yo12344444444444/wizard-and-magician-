@@ -65,7 +65,7 @@ def move_bots():
 
         save_tuples(tuples)
         print("____________________________________________________")
-        time.sleep(1)
+        time.sleep(1.5)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
