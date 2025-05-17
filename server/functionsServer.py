@@ -7,6 +7,7 @@ import threading
 
 DATABASE = ('../DATABASE_GAME.db')
 db_lock = threading.Lock()     # ננעל כל גישה למסד
+BOT_STEP = 10
 
 def get_db_connection():
     with db_lock:
@@ -16,7 +17,9 @@ def get_db_connection():
 
 def choose_direction(last_direction, dx, dy):
     directions = [1, 2, 3, 4, 5]  # 1=up, 2=right, 3=down, 4=left, 5=attack
-    weights = {d: 10 for d in directions}
+    weights = {d: 0 for d in directions}
+    # 20% תקיפה
+    weights[5] = 10
     # 20% לכיוון האחרון
     if last_direction in directions and last_direction!=5:
         weights[last_direction] += 20
@@ -26,7 +29,11 @@ def choose_direction(last_direction, dx, dy):
     if total > 0:
         dx_part = abs(dx) / total
         dy_part = abs(dy) / total
-
+        if total>500:
+            weights[1] += total/10
+            weights[2] += total/10
+            weights[3] += total/10
+            weights[4] += total/10
         # חלוקת 60% בין צירי X ו-Y
         if dx > 0:
             weights[4] += int(60 * dx_part)  # שמאלה
@@ -47,7 +54,7 @@ def choose_direction(last_direction, dx, dy):
     roll = random.randint(1, 100)
     cumulative = 0
     for direction in directions:
-        cumulative += weights[direction]
+        cumulative += normalized_weights[direction]
         if roll <= cumulative:
             return direction
     return max(normalized_weights, key=normalized_weights.get)
@@ -84,13 +91,13 @@ def bot_action(action, bot):
 
     if action in [1, 2, 3, 4]:
         if action == 1: #up
-            y -= 7
+            y -= BOT_STEP
         elif action == 2: #right
-            x += 7
+            x += BOT_STEP
         elif action == 3: #down
-            y += 7
+            y += BOT_STEP
         elif action == 4: #left
-            x -= 7
+            x -= BOT_STEP
         cursor.execute(
             "UPDATE bots SET position_x = ?, position_y = ? WHERE bot_id = ?",
             (x, y, bot['bot_id'])

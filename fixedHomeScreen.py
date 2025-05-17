@@ -470,6 +470,8 @@ def signup(username, password):
 def get_player_data(API_URL, token):
     headers = {'Authorization': f'Bearer {token}'}
     response = requests.get(f'{API_URL}/get_player', headers=headers)
+    print(response.json())
+    print(data)
     addr = data[str(response.json().get('server'))]
     API_URL = "http://" + addr[0] + ":" + str(addr[1])
     print(API_URL)

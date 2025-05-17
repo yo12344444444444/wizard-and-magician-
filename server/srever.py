@@ -10,32 +10,27 @@ import threading
 
 import findy
 from functionsServer import *
+from server.BotCache import BotCache
+
+bot_cache = BotCache()
 
 def move_bots():
     bots = get_all_bots()
     print("bots ", bots)
     # בניית cache בזיכרון לעדכונים מהירים
-    bot_cache = {
-        bot['bot_id']: {
-            'bot': bot,
-            'last_direction': bot['last_direction'],
-            'x': bot['position_x'],
-            'y': bot['position_y']
-        }
-        for bot in bots
-    }
+    for bot in bots:
+        bot_cache.set_bot(bot['bot_id'],bot)
 
     while True:
         players=get_all_players()
         tuples = []
-        for bot_id, data in bot_cache.items():
-            time.sleep(0.01)
+        for bot_id, bot in bot_cache.get_all_bots().items():
+            time.sleep(0.002)
             #if bot_id>5:
                 #continue
-            bot = data['bot']
-            last_direction = data['last_direction']
-            x = data['x']
-            y = data['y']
+            last_direction = bot['last_direction']
+            x = bot['position_x']
+            y = bot['position_y']
 
             closest_player_id, player_x, player_y = get_closest_player(x, y, players)
             print("closest_player_id ",closest_player_id)
@@ -50,21 +45,15 @@ def move_bots():
                 # אם הבוט זז – מעדכנים הכל כולל ההדפסה
                 if len(result) == 4:
                     new_x, new_y, bot_id, new_direction = result
-                    data['x'] = new_x
-                    data['y'] = new_y
-                    data['last_direction'] = new_direction
-                    # עדכון גם באובייקט הבוט עצמו
-                    data['bot']['position_x'] = new_x
-                    data['bot']['position_y'] = new_y
-                    data['bot']['last_direction'] = new_direction
+                    bot['position_x'] = new_x
+                    bot['position_y'] = new_y
+                    bot['last_direction'] = new_direction
                     tuples.append(result)
                 elif len(result) == 2:
                     bot_id, new_direction = result
-                    data['last_direction'] = new_direction
-                    data['bot']['last_direction'] = new_direction
-
+                    bot['last_direction'] = new_direction
                 # הדפסה אחרי עדכון — כאן נראה את הערכים החדשים
-                print(data['bot'])
+                print(bot)
 
         save_tuples(tuples)
         print("____________________________________________________")
@@ -850,6 +839,11 @@ def attack(user_id):
             drops = generate_drops()
             conn.commit()
             conn.close()
+            cache_bot=bot_cache.get_bot(target_user_id)
+            cache_bot['health']=100
+            cache_bot['position_x']=respawn_x
+            cache_bot['position_y']=respawn_y
+            bot_cache.update_bot(target_user_id,cache_bot)
             return jsonify({
                 'message': 'Bot died and respawned',
                 'target': 'bot',
@@ -1806,8 +1800,7 @@ class lbconector:
             port += 1
 
     def run(self,port):
-        app.run(host='0.0.0.0', port=port, debug=False)
-
+        app.run(host='0.0.0.0', port=port, debug=False,threaded=True)
 
 if __name__ == '__main__':
     lb = lbconector()
