@@ -108,11 +108,12 @@ def create_icons():
 
 
 class clientTest():
-    def __init__(self, apiUrl, data):
+    def __init__(self, apiUrl, data, userenmae):
         self.API_URL = apiUrl
         self.data = data
+        self.userenmae = userenmae
 
-    def put_icons_on_screen(self,screen, inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon):
+    def put_icons_on_screen(self,screen, inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon,events):
         """
         prints on the screen the icons, the mini map frame
         """
@@ -128,7 +129,7 @@ class clientTest():
             CHAT_OPEN += 1
 
         if CHAT_OPEN % 2 == 1:
-            self.open_chat(screen)
+            self.open_chat(screen,events)
 
         if inventory_icon.draw(screen):
             INVENTORY_OPEN_ITEMS += 1
@@ -139,7 +140,7 @@ class clientTest():
         font = pygame.font.Font(None, 35)
         amount = font.render(str(money), True, MONEY_TEXT)
         screen.blit(amount, (1168, 667))
-        for event in pygame.event.get():
+        for event in events:
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not CLICKED:
                 x, y = pygame.mouse.get_pos()
 
@@ -154,20 +155,20 @@ class clientTest():
                     INVENTORY_OPEN_ITEMS += 1
 
         if INVENTORY_OPEN_ITEMS % 2 == 1:
-            self.open_full_inventory_items(screen)
+            self.open_full_inventory_items(screen,events)
 
         elif INVENTORY_OPEN_SHOP % 2 == 1:
-            self.open_full_inventory_shop(screen)
+            self.open_full_inventory_shop(screen,events)
 
         elif INVENTORY_OPEN_ITEMS % 2 == 0 and INVENTORY_OPEN_SHOP % 2 == 0:
             self.open_not_full_inventory(screen)
-        for event in pygame.event.get():
+        for event in events:
             if event.type == pygame.MOUSEBUTTONUP:
                 CLICKED = False
 
         mini_map_icon.draw(screen)
         current_holding.draw(screen)
-        self.print_current_holding(screen)
+        self.print_current_holding(screen,events)
         return True
 
     ##########################################################################################################
@@ -192,7 +193,7 @@ class clientTest():
     ##########################################################################################################
     # open windows:
 
-    def open_chat(self,screen):
+    def open_chat(self,screen,events):
         """
         opens the chat window
         """
@@ -243,7 +244,7 @@ class clientTest():
                 y_offset += 20
 
         font = pygame.font.Font(None, 20)
-        for event in pygame.event.get():
+        for event in events:
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == LEFT:
                 x = pygame.mouse.get_pos()[0]
                 y = pygame.mouse.get_pos()[1]
@@ -268,7 +269,7 @@ class clientTest():
         text_position = (840, 235)
         screen.blit(text_surface, text_position)
 
-    def open_full_inventory_items(self,screen):
+    def open_full_inventory_items(self,screen,events):
         """
         draw full inventory open - items
         """
@@ -285,11 +286,12 @@ class clientTest():
         hp_bar_icon.draw(screen)
         self.draw_full_inventory_hp_bar(screen)
 
-        self.print_full_inventory(screen)
+        self.print_full_inventory(screen,events)
         self.print_mini_buttons(screen)
         self.print_delete_buttons(screen)
 
-    def open_full_inventory_shop(self,screen):
+
+    def open_full_inventory_shop(self,screen,events):
         """
         draw full inventory open - shop
         """
@@ -306,7 +308,7 @@ class clientTest():
         hp_bar_icon = buttons.Button(640, 170, hp_bar_image)
         hp_bar_icon.draw(screen)
         self.draw_full_inventory_hp_bar(screen)
-        for event in pygame.event.get():
+        for event in events:
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not CLICKED:
                 x, y = pygame.mouse.get_pos()
 
@@ -345,7 +347,7 @@ class clientTest():
                         else:
                             print("not enough money or inventory is full")
 
-        self.print_full_inventory(screen)
+        self.print_full_inventory(screen,events)
         self.print_mini_buttons(screen)
         self.print_delete_buttons(screen)
 
@@ -402,13 +404,13 @@ class clientTest():
                 amount = font.render(str(quantity), True, WHITE)
                 screen.blit(amount, (x + 77, y + 3))
 
-    def print_full_inventory(self,screen):
+    def print_full_inventory(self,screen,events):
         """
         prints in the full inventory the items
         :return:
         """
         global CLICKED
-        for event in pygame.event.get():
+        for event in events:
             if event.type == pygame.MOUSEBUTTONUP:
                 CLICKED = False
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'inventory'))
@@ -438,12 +440,12 @@ class clientTest():
                 amount = font.render(str(quantity), True, WHITE)
                 screen.blit(amount, (x + 77, y + 3))
 
-    def print_current_holding(self,screen):
+    def print_current_holding(self,screen,events):
         """
         drawing the current holding
         """
         global CLICKED
-        for event in pygame.event.get():
+        for event in events:
             if event.type == pygame.MOUSEBUTTONUP:
                 CLICKED = False
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'inventory'))
@@ -471,6 +473,7 @@ class clientTest():
                 self.send_use_object(item)
             if item in ["6", "7", "8", "10", "11"]:
                 self.delete_item_from_json(item, data_cells["cells"]["19"]["cell"])
+                self.send_use_object(item)
 
         if data_items["items"][item]["stackable"]:
             amount = font.render(str(quantity), True, WHITE)
@@ -894,10 +897,10 @@ class clientTest():
         if game_state and 'objects' in game_state:
             objects = game_state['objects']
             for obj in objects:
-                print(f"אובייקט: {obj['name']} במיקום ({obj['x']}, {obj['y']}) עם קובץ {obj['file']}")
+                 # print(f"אובייקט: {obj['name']} במיקום ({obj['x']}, {obj['y']}) עם קובץ {obj['file']}")
                 if self.name_to_id(obj['name']) is not None:
                     self.add_item(self.name_to_id(obj['name']), 1)
-                    print(obj['name'])
+                    # print(obj['name'])
 
     ##########################################################################################################
     # send things to the server:
@@ -990,7 +993,7 @@ class clientTest():
             'Content-Type': 'application/json'
         }
         data = {
-            'object_type': item
+            'object_type': self.id_to_name(item)
         }
 
         try:
@@ -1310,7 +1313,7 @@ class clientTest():
         }
 
         try:
-            response = requests.post(server_url, headers=headers, json=data)
+            response = requests.post(self.API_URL+"/attack", headers=headers, json=data)
             if response.status_code == 200:
                 result = response.json()
                 print("Attack result:", result['message'])
@@ -1329,7 +1332,7 @@ class clientTest():
 
 
     def send_item_drop_to_server(self,items, token):
-        print("send start")
+        # print("send start")
         headers = {"Authorization": f"Bearer {token}"}
         seen = set()  # לשמירת פריטים שנשלחו
 
@@ -1379,19 +1382,20 @@ class clientTest():
 
         inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon = create_icons()
         self.enter_inventory_data_to_json()
-
+        # hi
         while running:
-            start = time.time()
             dropped_items = []
-            for event in pygame.event.get():
-
+            events = pygame.event.get()
+            for event in events:
                 if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
+                    data = {"username":self.userenmae}
+                    response = requests.post(f"{self.API_URL}/end", json=data)
                     running = False
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_t:
                         global auto_walk
                         auto_walk = not auto_walk
-                        print(f"[INFO] Auto walk mode: {'ON' if auto_walk else 'OFF'}")
+                        # print(f"[INFO] Auto walk mode: {'ON' if auto_walk else 'OFF'}")
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     mouse_x, mouse_y = pygame.mouse.get_pos()
                     bad, weapon = self.check_click_not_on_ui(mouse_x, mouse_y)
@@ -1456,7 +1460,7 @@ class clientTest():
                     for obj in game_state['objects']:
                         self.draw_object(screen, obj, player_x, player_y, object_images)
 
-                print("dropped_items",dropped_items)
+                # print("dropped_items",dropped_items)
                 # שליחת פרטי החפץ לשרת
                 self.send_item_drop_to_server(dropped_items, token)
                 self.check_obj()
@@ -1478,7 +1482,7 @@ class clientTest():
                     for bot in game_state['bots']:
                         self.draw_bot(screen, bot, player_x, player_y, ghost_images)
                 self.draw_player(screen, player_image)
-            if not self.put_icons_on_screen(screen, inventory_icon, mini_map_icon, exit_icon, chat_icon,current_holding, money_icon):
+            if not self.put_icons_on_screen(screen, inventory_icon, mini_map_icon, exit_icon, chat_icon,current_holding, money_icon,events):
                 running = False
             status_text = font.render("Bot Visualization - Press ESC to exit", True, WHITE)
             screen.blit(status_text, (10, 10))

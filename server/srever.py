@@ -7,6 +7,8 @@ import os
 from functools import wraps
 from flasgger import Swagger
 import threading
+
+import findy
 from functionsServer import *
 
 def move_bots():
@@ -102,7 +104,11 @@ def token_required(f):
 @app.route('/')
 def home():
     return "Welcome to the Game API!"
-
+@app.route('/end', methods=['POST'])
+def index():
+    data = request.get_json()
+    lb.send_player_data(data["username"])
+    return jsonify({'message': 'Game API is running'})
 @app.route('/login', methods=['POST'])
 def login():
     """
@@ -348,8 +354,8 @@ def signup():
 
     # Create new user
     cursor.execute("""
-        INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status)
-        VALUES (?, ?, 0, 100, 100, 100, 'active')
+        INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status, speed, last_attack)
+        VALUES (?, ?, 0, 100, 100, 100, 'active', 3 ,1)
     """, (username, password))
     player_id = cursor.lastrowid
 
@@ -723,7 +729,7 @@ def attack(user_id):
               type: string
               example: Stone_Sword
     responses:
-      200:
+      200:`
         description: Game state returned successfully
       400:
         description: Invalid weapon type
@@ -1704,7 +1710,6 @@ class lbconector:
                 response = f"1|{flask_port}".encode()  # Safer format
                 server_socket.sendto(response, addr)
                 portLb = int(data.decode().lower()[1:])
-                lBaddr = (addr[0], portLb)
             elif decoded[0] == "u":
                 print("hi")
                 self.save_player_data(decoded[1:])
@@ -1713,7 +1718,7 @@ class lbconector:
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
         player_data = json.loads(player_data)
-
+        print(player_data)
         # Upsert player data
         c.execute("""
             INSERT INTO players (player_id, username, password_hash, position_x, position_y, health, coins, status, speed, last_attack_time)
@@ -1777,13 +1782,14 @@ class lbconector:
                 "speed": row[8],
                 "last_attack_time": row[9]
             }
-            c.execute("SELECT name, quantity FROM inventory WHERE player_id = ?", (row[0],))
-            inventory = [{"name": item[0], "quantity": item[1]} for item in c.fetchall()]
+            c.execute("SELECT name, quantity, slot_index FROM inventory WHERE player_id = ?", (row[0],))
+            inventory = [{"name": item[0], "quantity": item[1], "slot_index": item[2]} for item in c.fetchall()]
             player_data["inventory"] = inventory
             # Send back over UDP
+            data =findy.main()
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             message = b"u" + json.dumps(player_data, default=str).encode()
-            sock.sendto(message, self.lBaddr)
+            sock.sendto(message, data['lb'])
             sock.close()
         else:
             pass

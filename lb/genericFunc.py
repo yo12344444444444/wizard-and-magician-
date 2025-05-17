@@ -97,6 +97,7 @@ class Servers:
         c.execute('''
             CREATE TABLE IF NOT EXISTS players (
                 player_id INTEGER PRIMARY KEY,
+                server INTEGER,
                 username TEXT NOT NULL,
                 password_hash TEXT NOT NULL,
                 position_x INTEGER,
@@ -159,7 +160,7 @@ class Servers:
             # Convert row to dict
             player_data = {
                 "player_id": row[0],
-                "username": row[1],
+                "username": row[2],
                 "password_hash": row[3],
                 "position_x": row[4],
                 "position_y": row[5],

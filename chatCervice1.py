@@ -53,7 +53,7 @@ def handle_chat(client_address, data, server_socket):
     }
 """
 
-def start_chat_server(host='0.0.0.0', port=5000):
+def start_chat_server(host='0.0.0.0', port=5200):
     # Create a UDP socket
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
