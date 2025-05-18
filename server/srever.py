@@ -230,6 +230,7 @@ def logout(user_id):
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("UPDATE players SET status = 'inactive' WHERE player_id = ?", (user_id,))
+
     conn.commit()
     conn.close()
 
@@ -491,7 +492,7 @@ def get_game_state(user_id, screen_width, screen_height):
                 "player_move/Walking_Right_1.png",
                 "player_move/Walking_Right_2.png"
             ],
-            'idle_frame': "player/Standing_front.png"
+            'file': "Standing_front.png"
         }
         for p in cursor.fetchall()
         if min_x <= p['position_x'] <= max_x and min_y <= p['position_y'] <= max_y
@@ -961,8 +962,8 @@ def was_player_hit(player_id):
 
                     cursor.execute("UPDATE players SET last_attack_time = ? WHERE player_id = ?", (current_time, other_id))
                     conn.commit()
-            except:
-                print("##################################################other_id",other_id)
+            except Exception as e:
+                print("##################################################other_id",other_id, e)
     conn.close()
 
     response = {
@@ -1790,6 +1791,7 @@ class lbconector:
             sock.close()
         else:
             pass
+        c.close()
 
     def PortDefinder(self,start_port):
         port = start_port

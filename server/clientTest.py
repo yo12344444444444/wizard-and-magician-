@@ -6,6 +6,7 @@ import os
 import buttons
 import json
 from ChatClient import ChatClient
+from FloatingText import FloatingText
 
 # Initialize Pygame
 pygame.init()
@@ -41,6 +42,7 @@ GREEN = (0, 128, 0)
 BACK = (182, 212, 137)
 MONEY_TEXT = (129, 69, 37)
 LEFT = 1
+floating_texts = []
 
 # Flags:
 INVENTORY_OPEN_ITEMS = 0  # BOOLEAN OF NUMBERS- odd=full_inventory, even=not full inventory
@@ -50,6 +52,7 @@ CLICKED = False
 
 # Your API URL
 TOKEN = ""
+USERNAME = ""
 
 WORLD_WIDTH = SCREEN_WIDTH * 40
 WORLD_HEIGHT = SCREEN_HEIGHT * 40
@@ -113,7 +116,7 @@ class clientTest():
         self.data = data
         #self.username = username
 
-    def put_icons_on_screen(self,screen, inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon,events):
+    def put_icons_on_screen(self,screen, inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon,events,client):
         """
         prints on the screen the icons, the mini map frame
         """
@@ -129,7 +132,7 @@ class clientTest():
             CHAT_OPEN += 1
 
         if CHAT_OPEN % 2 == 1:
-            self.open_chat(screen,events)
+            self.open_chat(screen,events,client)
 
         if inventory_icon.draw(screen):
             INVENTORY_OPEN_ITEMS += 1
@@ -179,7 +182,9 @@ class clientTest():
         print("Handling the Chat Message")
         global received_messages
         if not hasattr(self.handle_chat_message, 'received_messages'):
-            self.handle_chat_message.received_messages = []
+            print("inside if loop in handel chat message")
+            self.received_messages = []
+            print("in if loop after line")
         print("befor cheaking if chat")
         print(message['type'])
         print(message['content'])
@@ -192,17 +197,19 @@ class clientTest():
 
     ##########################################################################################################
     # open windows:
+    def connect_chat(self):
+        client = ChatClient('localhost', 5200, self.handle_chat_message)
+        client.connect(str(USERNAME))
+        client.start()
+        return client
 
-    def open_chat(self,screen,events):
+    def open_chat(self,screen,events,client):
         """
         opens the chat window
         """
         global TEXT
         global TEXT_ACTIVE
         global chat_client
-        client = ChatClient('localhost', 5000, self.handle_chat_message)
-        client.connect("user")
-        client.start()
         # Initialize chat client if not already done
         # if not hasattr(open_chat, 'receive_thread'):
 
@@ -321,31 +328,34 @@ class clientTest():
                         print("not enough money or inventory is full")
 
 
-                    if 920 < x < 1005 and 375 < y < 410 and money >= 300:
-                        CLICKED = True
-                        if self.buy_item("3", 300):
-                            self.add_item("3", 1)
-                            print("you bought a gold sword!")
-                        else:
-                            print("not enough money or inventory is full")
+                if 920 < x < 1005 and 375 < y < 410 and money >= 300:
+                    CLICKED = True
+                    print("gold sword!")
+                    if self.buy_item("3", 300):
+                        self.add_item("3", 1)
+                        print("you bought a gold sword!")
+                    else:
+                        print("not enough money or inventory is full")
 
 
-                    elif 815 < x < 900 and 525 < y < 555 and money >= 200:
-                        CLICKED = True
-                        if self.buy_item("4", 200):
-                            self.add_item("4", 1)
-                            print("you bought a wood wand!")
-                        else:
-                            print("not enough money or inventory is full")
+                elif 815 < x < 900 and 525 < y < 555 and money >= 200:
+                    CLICKED = True
+                    print("wood wand!")
+                    if self.buy_item("4", 200):
+                        self.add_item("4", 1)
+                        print("you bought a wood wand!")
+                    else:
+                        print("not enough money or inventory is full")
 
 
-                    elif 920 < x < 1005 and 525 < y < 555 and money >= 500:
-                        CLICKED = True
-                        if self.buy_item("5", 500):
-                            self.add_item("5", 1)
-                            print("you bought a gold wand!")
-                        else:
-                            print("not enough money or inventory is full")
+                elif 920 < x < 1005 and 525 < y < 555 and money >= 500:
+                    CLICKED = True
+                    print("gold wand!")
+                    if self.buy_item("5", 500):
+                        self.add_item("5", 1)
+                        print("you bought a gold wand!")
+                    else:
+                        print("not enough money or inventory is full")
 
         self.print_full_inventory(screen,events)
         self.print_mini_buttons(screen)
@@ -805,7 +815,7 @@ class clientTest():
         """
         id_map = {
             "1": "Stone_Sword",
-            "2": "Iron_Wand",
+            "2": "Iron_Sword",
             "3": "Gold_Sword",
             "4": "Wood_Wand",
             "5": "Gold_Wand",
@@ -823,7 +833,7 @@ class clientTest():
         """
         name_map = {
             "Stone_Sword": "1",
-            "Iron_Wand": "2",
+            "Iron_Sword": "2",
             "Gold_Sword": "3",
             "Wood_Wand": "4",
             "Gold_Wand": "5",
@@ -926,7 +936,7 @@ class clientTest():
                 'Content-Type': 'application/json'
             }
             data = {
-                'object_name': str(item_id),
+                'object_name': self.id_to_name(item_id),
                 'amount': money,
                 'slot_index': slot_index
             }
@@ -1180,18 +1190,27 @@ class clientTest():
             print(f"Error loading player image: {e}")
             return None
 
+    def remove_black_and_white(self, surface):
+        surface = surface.convert_alpha()
+        width, height = surface.get_size()
+        for x in range(width):
+            for y in range(height):
+                r, g, b, a = surface.get_at((x, y))
+                if (r, g, b) in [(0, 0, 0), (255, 255, 255)]:
+                    surface.set_at((x, y), (r, g, b, 0))  # Fully transparent
+        return surface
 
     # Draw an object relative to the player's position
-    def draw_object(self,screen, obj, player_x, player_y, object_images):
+    def draw_object(self, screen, obj, player_x, player_y, object_images):
         obj_x = obj.get('x', 0)
         obj_y = obj.get('y', 0)
         file_name = obj.get('file')
-
         object_location_x = (obj_x - player_x) + (SCREEN_WIDTH // 2)
         object_location_y = (obj_y - player_y) + (SCREEN_HEIGHT // 2)
 
         if file_name and file_name.lower().endswith('.png') and file_name.lower() in object_images:
             obj_img = object_images[file_name.lower()]
+            obj_img = self.remove_black_and_white(obj_img)
             obj_rect = obj_img.get_rect(center=(object_location_x, object_location_y))
             screen.blit(obj_img, obj_rect)
 
@@ -1364,8 +1383,9 @@ class clientTest():
 
     def main(self,token):
         global TOKEN
+        global USERNAME
         TOKEN = token
-
+        client = self.connect_chat()
         ghost_images = self.load_images()
         player_image = self.load_player_image()
         object_images = self.load_object_images()
@@ -1383,7 +1403,8 @@ class clientTest():
         clock = pygame.time.Clock()
         running = True
         player_data = self.get_player_data(token)
-
+        USERNAME = player_data['username']
+        print(USERNAME)
         inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon = create_icons()
         self.enter_inventory_data_to_json()
         # hi
@@ -1392,7 +1413,7 @@ class clientTest():
             events = pygame.event.get()
             for event in events:
                 if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
-                    data = {"username":self.userenmae}
+                    data = {"username":self.userename}
                     response = requests.post(f"{self.API_URL}/end", json=data)
                     running = False
                 elif event.type == pygame.KEYDOWN:
@@ -1408,7 +1429,18 @@ class clientTest():
                         click_world_x = mouse_x + player_data['position_x'] - SCREEN_WIDTH // 2
                         click_world_y = mouse_y + player_data['position_y'] - SCREEN_HEIGHT // 2
 
-                        result = self.send_attack_request(token, click_world_x, click_world_y, weapon)
+                        result = self.send_attack_request(token, click_world_x, click_world_y, self.id_to_name(weapon))
+                        if result and 'Bot damaged' == result['message'] or 'Player damaged' == result['message']:
+                            # להוסיף טקסט מרחף (למשל -5 HP)
+                            weapon_damage = {
+                                'Stone_Sword': 10,
+                                'Iron_Sword': 15,
+                                'Gold_Sword': 20,
+                                'Wood_Wand': 10,
+                                'Gold_Wand': 20
+                            }
+                            dmg = weapon_damage.get(self.id_to_name(weapon))
+                            floating_texts.append(FloatingText("-"+str(dmg), mouse_x, mouse_y - 30))
                         if result and "drops" in result:
                             items = result["drops"]
                             if len(items) >= 1:
@@ -1463,7 +1495,8 @@ class clientTest():
                 if game_state and 'objects' in game_state:
                     for obj in game_state['objects']:
                         self.draw_object(screen, obj, player_x, player_y, object_images)
-
+                    for obj in game_state['players']:
+                        self.draw_object(screen, obj, player_x, player_y, object_images)
                 # print("dropped_items",dropped_items)
                 # שליחת פרטי החפץ לשרת
                 self.send_item_drop_to_server(dropped_items, token)
@@ -1486,7 +1519,11 @@ class clientTest():
                     for bot in game_state['bots']:
                         self.draw_bot(screen, bot, player_x, player_y, ghost_images)
                 self.draw_player(screen, player_image)
-            if not self.put_icons_on_screen(screen, inventory_icon, mini_map_icon, exit_icon, chat_icon,current_holding, money_icon,events):
+                for text in floating_texts[:]:
+                    text.draw(screen)
+                    if text.is_expired():
+                        floating_texts.remove(text)
+            if not self.put_icons_on_screen(screen, inventory_icon, mini_map_icon, exit_icon, chat_icon,current_holding, money_icon,events,client):
                 running = False
             status_text = font.render("Bot Visualization - Press ESC to exit", True, WHITE)
             screen.blit(status_text, (10, 10))

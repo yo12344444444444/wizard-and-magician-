@@ -109,6 +109,16 @@ class Servers:
                 last_attack_time TEXT
             )
         ''')
+        c.execute("""
+    CREATE TABLE IF NOT EXISTS inventory (
+        inventory_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        player_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        slot_index INTEGER NOT NULL,
+        quantity INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY (player_id) REFERENCES players(player_id)
+    );
+    """)
         conn.commit()
         conn.close()
 
@@ -119,19 +129,6 @@ class Servers:
         self.conn = sqlite3.connect('../DATABASE_GAME2.db', check_same_thread=False)
         self.c = self.conn.cursor()
         self.init_player_table()
-        # Create tables
-        self.c.execute('''
-        CREATE TABLE IF NOT EXISTS servers (
-            server TEXT PRIMARY KEY,
-            ip TEXT NOT NULL,
-            port INTEGER DEFAULT 0
-        )''')
-        self.c.execute('''
-        CREATE TABLE IF NOT EXISTS people (
-            username TEXT PRIMARY KEY,
-            ip TEXT NOT NULL,
-            port INTEGER DEFAULT 0
-        )''')
         finder = findy()
         # Load servers from findy
         while True:
