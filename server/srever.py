@@ -7,29 +7,57 @@ import os
 from functools import wraps
 from flasgger import Swagger
 import threading
-from functionsServer import *
-from lb.findy import findy
 
-ServerNumber = 1
+import findy
+from functionsServer import *
+from server.BotCache import BotCache
+
+bot_cache = BotCache()
 
 def move_bots():
-    start = time.time()
     bots = get_all_bots()
-    players=get_all_players()
-    tuples = []
+    print("bots ", bots)
+    # בניית cache בזיכרון לעדכונים מהירים
     for bot in bots:
-        last_direction=bot['last_direction']
-        closest_player_id,player_x,player_y = get_closest_player(bot['position_x'],bot['position_y'],players)
-        if closest_player_id is None:
-            continue
-        dx,dy = calculate_dx_dy(bot['position_x'],bot['position_y'],player_x,player_y)
-        chosen = choose_direction(last_direction, dx, dy)
-        tuple=bot_action(chosen, bot)
-        if tuple:
-            tuples.append(tuple)
-    saveTuples(tuples)
-    print(f"end move_bot {time.time()-start}")
-    threading.Timer(0.2, move_bots).start()
+        bot_cache.set_bot(bot['bot_id'],bot)
+
+    while True:
+        players=get_all_players()
+        tuples = []
+        for bot_id, bot in bot_cache.get_all_bots().items():
+            time.sleep(0.002)
+            #if bot_id>5:
+                #continue
+            last_direction = bot['last_direction']
+            x = bot['position_x']
+            y = bot['position_y']
+
+            closest_player_id, player_x, player_y = get_closest_player(x, y, players)
+            print("closest_player_id ",closest_player_id)
+            if closest_player_id is None:
+                continue
+            print("player x: ",player_x, "palyer_y: ",player_y)
+            dx, dy = calculate_dx_dy(x, y, player_x, player_y)
+            print("the dx is: ",dx,"the dy is: ",dy)
+            chosen = choose_direction(last_direction, dx, dy)
+            result = bot_action(chosen, bot)
+            if result:
+                # אם הבוט זז – מעדכנים הכל כולל ההדפסה
+                if len(result) == 4:
+                    new_x, new_y, bot_id, new_direction = result
+                    bot['position_x'] = new_x
+                    bot['position_y'] = new_y
+                    bot['last_direction'] = new_direction
+                    tuples.append(result)
+                elif len(result) == 2:
+                    bot_id, new_direction = result
+                    bot['last_direction'] = new_direction
+                # הדפסה אחרי עדכון — כאן נראה את הערכים החדשים
+                print(bot)
+
+        save_tuples(tuples)
+        print("____________________________________________________")
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -68,7 +96,11 @@ def token_required(f):
 @app.route('/')
 def home():
     return "Welcome to the Game API!"
-
+@app.route('/end', methods=['POST'])
+def index():
+    data = request.get_json()
+    lb.send_player_data(data["username"])
+    return jsonify({'message': 'Game API is running'})
 @app.route('/login', methods=['POST'])
 def login():
     """
@@ -112,7 +144,6 @@ def login():
     password = data.get('password')
 
     conn = get_db_connection()
-    conn.row_factory = sqlite3.Row  # To access rows as dictionaries
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM players WHERE username = ? AND password_hash = ?", (username, password))
     user = cursor.fetchone()
@@ -314,8 +345,8 @@ def signup():
 
     # Create new user
     cursor.execute("""
-        INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status)
-        VALUES (?, ?, 0, 100, 100, 100, 'active')
+        INSERT INTO players (username, password_hash, position_x, position_y, health, coins, status, speed, last_attack)
+        VALUES (?, ?, 0, 100, 100, 100, 'active', 3 ,1)
     """, (username, password))
     player_id = cursor.lastrowid
 
@@ -424,7 +455,6 @@ def game_state(user_id):
         player_status['respawn_position'] = attack_result['respawn_position']
 
     game_state_data['player_status'] = player_status
-    print(f"game_state end:{time.time() - start}")
     return jsonify(game_state_data), 200
 
 def get_game_state(user_id, screen_width, screen_height):
@@ -506,21 +536,6 @@ def get_game_state(user_id, screen_width, screen_height):
         'bots': bots,
         'objects': objects
     }
-def check_server_transition(x,y,screen_width=1280,screen_height=720):
-    screen_x = x // screen_width
-    screen_y = y // screen_height
-
-    if screen_x < 20 and screen_y < 20:
-        return 1
-    elif screen_x >= 20 and screen_y < 20:
-        return 2
-    elif screen_x < 20 and screen_y >= 20:
-        return 3
-    else:
-        return 4
-
-def send_lb(num_server,username):
-    return None
 
 @app.route('/movement', methods=['POST'])
 @token_required
@@ -607,13 +622,6 @@ def movement(user_id):
     elif direction == 'd' and x + move_amount <= screen_width * screens_x:
         x += move_amount
 
-    #print(f"player location: x: {x}, y: {y}, speed: {speed}")
-    new_server = check_server_transition(x, y, screen_width, screen_height)
-    if new_server!=ServerNumber:
-        cursor.execute("SELECT username FROM players WHERE player_id = ?", (user_id,))
-        username = cursor.fetchone()['username']
-        send_lb(new_server,username)
-
     # עדכון מיקום השחקן
     cursor.execute("UPDATE players SET position_x = ?, position_y = ? WHERE player_id = ?", (x, y, user_id))
     conn.commit()
@@ -627,14 +635,12 @@ def movement(user_id):
 
     # הוספת אובייקט אם נמצא
     if obj:
-        print("found")
         game_data['object_found'] = {
             'name': obj['name'],
             'file': obj['file']
         }
 
     import json
-    print(json.dumps(game_data, indent=2))
     return jsonify(game_data), 200
 
 
@@ -672,11 +678,8 @@ import math
 
 def is_in_attack_range(attacker_pos, target_pos, range_px):
     dx = attacker_pos['x'] - target_pos['x']
-    print(dx)
     dy = attacker_pos['y'] - target_pos['y']
-    print(dy)
     distance = math.sqrt(dx**2 + dy**2)
-    print(distance)
     return distance <= range_px
 
 @app.route('/attack', methods=['POST'])
@@ -717,7 +720,7 @@ def attack(user_id):
               type: string
               example: Stone_Sword
     responses:
-      200:
+      200:`
         description: Game state returned successfully
       400:
         description: Invalid weapon type
@@ -747,11 +750,11 @@ def attack(user_id):
     }
 
     weapon_range_map = {
-        'Stone_Sword': 150,
-        'Iron_Sword': 150,
-        'Gold_Sword': 150,
-        'Wood_Wand': 250,
-        'Gold_Wand': 150
+        'Stone_Sword': 350,
+        'Iron_Sword': 350,
+        'Gold_Sword': 350,
+        'Wood_Wand': 550,
+        'Gold_Wand': 350
     }
 
     damage = weapon_damage.get(weapon_type, 5)
@@ -769,7 +772,6 @@ def attack(user_id):
 
     attacker_pos = {'x': attacker['position_x'], 'y': attacker['position_y']}
 
-    print("datetime.datetime.utcnow()",datetime.datetime.utcnow())
     # עדכון זמן התקיפה האחרון של התוקף
     cursor.execute("UPDATE players SET last_attack_time = ? WHERE player_id = ?",
                    (datetime.datetime.utcnow(), user_id))
@@ -782,8 +784,6 @@ def attack(user_id):
             return jsonify({'error': 'Player not found'}), 404
 
         target_pos = {'x': target['position_x'], 'y': target['position_y']}
-        print(is_in_attack_range(attacker_pos, target_pos, weapon_range))
-        print("weapon_range",weapon_range)
         if not is_in_attack_range(attacker_pos, target_pos, weapon_range):
             conn.close()
             return jsonify({'message': 'Target out of range'}), 200
@@ -839,6 +839,11 @@ def attack(user_id):
             drops = generate_drops()
             conn.commit()
             conn.close()
+            cache_bot=bot_cache.get_bot(target_user_id)
+            cache_bot['health']=100
+            cache_bot['position_x']=respawn_x
+            cache_bot['position_y']=respawn_y
+            bot_cache.update_bot(target_user_id,cache_bot)
             return jsonify({
                 'message': 'Bot died and respawned',
                 'target': 'bot',
@@ -861,7 +866,7 @@ def attack(user_id):
     return jsonify({'error': 'Unhandled target type'}), 400
 
 def generate_drops():
-    possible_drops = ["money", "apple", "blueberry", "Dark_Potion", "Life_Potion", "Fire_Potion", "Poison_Potion"]
+    possible_drops = ["money", "apple", "blueberry", "Dark_Potion", "Life_Potion", "Fire_Potion"]
 
     return random.sample(possible_drops, 2)
     # אם לא פגיעה
@@ -887,7 +892,6 @@ def was_player_hit(player_id):
     bots = cursor.fetchall()
 
     current_time = int(time.time())
-    print(current_time)
     was_attacked = False
     player_died = False
     respawn_position = None
@@ -968,8 +972,6 @@ def was_player_hit(player_id):
 
     if player_died:
         response['respawn_position'] = respawn_position
-
-    print(response)
     return response
 
 
@@ -1053,58 +1055,59 @@ def add_to_inventory(user_id):
     data = request.get_json()
     object_name = data.get('object_name')
     has_space = data.get('has_space_in_inventory')
-    player_id = user_id
     slot_index = data.get('slot_index')
-    amount = data.get('amount', 1)  # default to 1
+    amount = data.get('amount', 1)
 
-    if None in (object_name, has_space, player_id, slot_index):
+    if None in (object_name, has_space, slot_index):
         return jsonify({'error': 'Missing data'}), 400
+
+    if not has_space:
+        return jsonify({'success': False, 'message': 'No space in inventory'}), 200
+
+    if object_name in ['tree', 'bush']:
+        return jsonify({'success': False, 'message': 'Object cannot be added to inventory'}), 200
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Try to fetch the object from the map, but allow it to not exist
+    # מחיקה מהמפה אם קיים
     cursor.execute("SELECT * FROM map_objects WHERE name = ?", (object_name,))
     obj = cursor.fetchone()
+    if obj:
+        print(object_name + " deleted")
+        cursor.execute("DELETE FROM map_objects WHERE object_id = ?", (obj['object_id'],))
 
-    if not has_space:
-        conn.close()
-        return jsonify({'success': False, 'message': 'No space in inventory'}), 200
-
-    if object_name in ['tree', 'bush']:
-        conn.close()
-        return jsonify({'success': False, 'message': 'Object cannot be added to inventory'}), 200
-
-    # Check if item already exists in inventory
+    # בדיקה אם הפריט כבר קיים באינבנטורי
     cursor.execute("""
-        SELECT * FROM inventory
-        WHERE player_id = ? AND name = ? AND slot_index = ?
-    """, (player_id, object_name, slot_index))
+            SELECT * FROM inventory
+            WHERE player_id = ? AND name = ?
+        """, (user_id, object_name))
     existing_item = cursor.fetchone()
 
     if existing_item:
-        # Increase quantity
+        # משתמשים ב-slot index הקיים! לא בזה שנשלח מהקליינט
         cursor.execute("""
             UPDATE inventory
             SET quantity = quantity + ?
             WHERE inventory_id = ?
         """, (amount, existing_item['inventory_id']))
+
+        conn.commit()
+        conn.close()
+        print("Updated existing item quantity")
+        return jsonify({'success': True, 'message': 'Item quantity updated'}), 200
     else:
-        # Insert new item
+        # רק אם אין את הפריט בכלל – מוסיפים אותו
         cursor.execute("""
             INSERT INTO inventory (player_id, name, slot_index, quantity)
             VALUES (?, ?, ?, ?)
-        """, (player_id, object_name, slot_index, amount))
-
-    # If object existed on the map, delete it
-    if obj:
-        cursor.execute("DELETE FROM map_objects WHERE object_id = ?", (obj['object_id'],))
+        """, (user_id, object_name, slot_index, amount))
 
     conn.commit()
     conn.close()
+    print("Inserted new item to inventory")
+    return jsonify({'success': True, 'message': 'Item added to inventory'}), 200
 
-    return jsonify({'success': True, 'message': f'{object_name} added to inventory'}), 200
-@app.route('/add_coin', methods=['POST'])
 @token_required
 def add_coin(user_id):
     """
@@ -1271,22 +1274,17 @@ def drop_item_on_map(user_id):
     """
     Drop item on the map or add money directly
     """
-    print("drop ,server 1")
     data = request.get_json()
     name = data.get("name")
     x = data.get("x")
     y = data.get("y")
     amount = data.get("amount")
     file = f"{name}.png"
-    print("drop ,server 2")
-
     if not all([name, isinstance(x, (int, float)), isinstance(y, (int, float)), isinstance(amount, int)]):
         return jsonify({"error": "Invalid data"}), 400
 
-    print("drop ,server 3")
     conn = get_db_connection()
     cursor = conn.cursor()
-    print("drop ,server 4")
 
     if name.lower() == "money":
         # Update player currency
@@ -1658,11 +1656,10 @@ def remove_from_inventory(user_id):
 @app.route('/respawn', methods=['POST'])
 @token_required
 def respawn(user_id):
-    conn = sqlite3.connect('DATABASE_GAME.db')
+    conn = get_db_connection()
     c = conn.cursor()
-
     # Get current health
-    c.execute('SELECT health FROM players WHERE id = ?', (user_id,))
+    c.execute('SELECT health FROM players WHERE player_id = ?', (user_id,))
     row = c.fetchone()
     if not row:
         conn.close()
@@ -1679,7 +1676,7 @@ def respawn(user_id):
     new_health = 100
 
     # Update player
-    c.execute('UPDATE players SET position_x = ?, position_y = ?, health = ? WHERE id = ?',
+    c.execute('UPDATE players SET position_x = ?, position_y = ?, health = ? WHERE player_id = ?',
               (new_x, new_y, new_health, user_id))
     conn.commit()
     conn.close()
@@ -1693,8 +1690,6 @@ def respawn(user_id):
 class lbconector:
     def __init__(self):
         self.lBaddr = ()
-    def setLb(self, lb):
-        self.lBaddr = lb
     def ipSender(self,udp_port, flask_port):
         global ip, portLb
         BUFFER_SIZE = 1024
@@ -1712,29 +1707,30 @@ class lbconector:
                 response = f"1|{flask_port}".encode()  # Safer format
                 server_socket.sendto(response, addr)
                 portLb = int(data.decode().lower()[1:])
-                lBaddr = (addr[0], portLb)
             elif decoded[0] == "u":
+                print("hi")
                 self.save_player_data(decoded[1:])
 
-    def save_player_data(self,player_data, db_path='../DATABASE_GAME.db'):
+    def save_player_data(self, player_data, db_path='../DATABASE_GAME.db'):
         conn = sqlite3.connect(db_path)
         c = conn.cursor()
         player_data = json.loads(player_data)
-        # Upsert by player_id
+        print(player_data)
+        # Upsert player data
         c.execute("""
-                INSERT INTO players (player_id, username, password_hash, position_x, position_y, health, coins, status, speed, last_attack_time)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(player_id) DO UPDATE SET
-                    username = excluded.username,
-                    password_hash = excluded.password_hash,
-                    position_x = excluded.position_x,
-                    position_y = excluded.position_y,
-                    health = excluded.health,
-                    coins = excluded.coins,
-                    status = excluded.status,
-                    speed = excluded.speed,
-                    last_attack_time = excluded.last_attack_time
-            """, (
+            INSERT INTO players (player_id, username, password_hash, position_x, position_y, health, coins, status, speed, last_attack_time)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(player_id) DO UPDATE SET
+                username = excluded.username,
+                password_hash = excluded.password_hash,
+                position_x = excluded.position_x,
+                position_y = excluded.position_y,
+                health = excluded.health,
+                coins = excluded.coins,
+                status = excluded.status,
+                speed = excluded.speed,
+                last_attack_time = excluded.last_attack_time
+        """, (
             player_data["player_id"],
             player_data["username"],
             player_data["password_hash"],
@@ -1745,8 +1741,9 @@ class lbconector:
             player_data["status"],
             player_data["speed"],
             player_data["last_attack_time"]
-
         ))
+
+        # Replace inventory
         c.execute("DELETE FROM inventory WHERE player_id = ?", (player_data["player_id"],))
         for item in player_data.get("inventory", []):
             c.execute("""
@@ -1782,11 +1779,14 @@ class lbconector:
                 "speed": row[8],
                 "last_attack_time": row[9]
             }
-
+            c.execute("SELECT name, quantity, slot_index FROM inventory WHERE player_id = ?", (row[0],))
+            inventory = [{"name": item[0], "quantity": item[1], "slot_index": item[2]} for item in c.fetchall()]
+            player_data["inventory"] = inventory
             # Send back over UDP
+            data =findy.main()
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             message = b"u" + json.dumps(player_data, default=str).encode()
-            sock.sendto(message, self.lBaddr)
+            sock.sendto(message, data['lb'])
             sock.close()
         else:
             pass
@@ -1800,20 +1800,17 @@ class lbconector:
             port += 1
 
     def run(self,port):
-        app.run(host='0.0.0.0', port=port, debug=False)
-
+        app.run(host='0.0.0.0', port=port, debug=False,threaded=True)
 
 if __name__ == '__main__':
-    f = findy()
     lb = lbconector()
-    flask_port = lb.PortDefinder(5100)
+    flask_port = lb.PortDefinder(5150)
     udp_port = lb.PortDefinder(flask_port + 1)
-    data = {'lb': None}
-    while data['lb'] is None:
-        data = f.main(udp_port)
-    lb.setLb(data)
+
     print(f"Flask Port: {flask_port}, UDP Port: {udp_port}")
     t1 = threading.Thread(target=lb.ipSender, args=(udp_port, flask_port))
     t2 = threading.Thread(target=lb.run, args=(flask_port,))
+    t3 = threading.Thread(target=move_bots, args=())
     t2.start()
     t1.start()
+    t3.start()
