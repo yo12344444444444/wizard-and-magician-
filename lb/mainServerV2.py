@@ -56,7 +56,6 @@ def ggeter(port):
     def index():
         return jsonify({'message': 'Game API is running'})
 
-
     @app.route('/signup', methods=['POST'])
     def signup():
         """
@@ -268,7 +267,7 @@ def get_least_loaded_server(db_path='../DATABASE_GAME2.db'):
     except:
         return 1
     servers = [row[0] for row in cur.fetchall() if row[0] is not None]
-    servers += {'1':0,'3':0,'4':0,'2':0,}
+    servers += {'1':0}
     conn.close()
 
     if not servers:

@@ -1176,18 +1176,27 @@ class clientTest():
             print(f"Error loading player image: {e}")
             return None
 
+    def remove_black_and_white(self, surface):
+        surface = surface.convert_alpha()
+        width, height = surface.get_size()
+        for x in range(width):
+            for y in range(height):
+                r, g, b, a = surface.get_at((x, y))
+                if (r, g, b) in [(0, 0, 0), (255, 255, 255)]:
+                    surface.set_at((x, y), (r, g, b, 0))  # Fully transparent
+        return surface
 
     # Draw an object relative to the player's position
-    def draw_object(self,screen, obj, player_x, player_y, object_images):
+    def draw_object(self, screen, obj, player_x, player_y, object_images):
         obj_x = obj.get('x', 0)
         obj_y = obj.get('y', 0)
         file_name = obj.get('file')
-
         object_location_x = (obj_x - player_x) + (SCREEN_WIDTH // 2)
         object_location_y = (obj_y - player_y) + (SCREEN_HEIGHT // 2)
 
         if file_name and file_name.lower().endswith('.png') and file_name.lower() in object_images:
             obj_img = object_images[file_name.lower()]
+            obj_img = self.remove_black_and_white(obj_img)
             obj_rect = obj_img.get_rect(center=(object_location_x, object_location_y))
             screen.blit(obj_img, obj_rect)
 
@@ -1459,7 +1468,8 @@ class clientTest():
                 if game_state and 'objects' in game_state:
                     for obj in game_state['objects']:
                         self.draw_object(screen, obj, player_x, player_y, object_images)
-
+                    for obj in game_state['players']:
+                        self.draw_object(screen, obj, player_x, player_y, object_images)
                 # print("dropped_items",dropped_items)
                 # שליחת פרטי החפץ לשרת
                 self.send_item_drop_to_server(dropped_items, token)
