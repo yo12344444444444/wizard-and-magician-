@@ -109,10 +109,10 @@ def create_icons():
 
 
 class clientTest():
-    def __init__(self, apiUrl, data, userenmae):
+    def __init__(self, apiUrl, data):
         self.API_URL = apiUrl
         self.data = data
-        self.userenmae = userenmae
+        #self.username = username
 
     def put_icons_on_screen(self,screen, inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon,events):
         """
@@ -730,6 +730,10 @@ class clientTest():
             if bool:
                 quantity = data_cells["cells"][str(cell)]["quantity"]
                 data_cells["cells"][str(cell)]["quantity"] = int(int(quantity) + int(amount))
+                self.add_item_inventory(item, cell, True)
+                with open("inventory.json", "w") as file_cells:
+                    json.dump(data_cells, file_cells, indent=4)
+                return True
 
         if self.check_inventory_fullness():
             print("full :(")
@@ -1236,7 +1240,7 @@ class clientTest():
             }
             try:
                 response = requests.post(f'{self.API_URL}/movement', json=data, headers=headers)
-                print("movement:", response.json())
+                #print("movement:", response.json())
                 if response.status_code == 200:
                     return response.json()
                 else:
@@ -1421,7 +1425,7 @@ class clientTest():
                                     "y": click_world_y
                                 })
                             #print("dropped_items", dropped_items)
-                    print("attacked")
+                    #print("attacked")
 
             if auto_walk:
                 game_state = self.handle_auto_movement(token, player_data)
@@ -1488,6 +1492,8 @@ class clientTest():
             status_text = font.render("Bot Visualization - Press ESC to exit", True, WHITE)
             screen.blit(status_text, (10, 10))
             pygame.display.flip()
+            time.sleep(0.02)
+            print(time.time())
     #        clock.tick(FPS)
 
         pygame.quit()
