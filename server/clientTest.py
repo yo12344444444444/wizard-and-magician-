@@ -1512,6 +1512,8 @@ class clientTest():
             status_text = font.render("Bot Visualization - Press ESC to exit", True, WHITE)
             screen.blit(status_text, (10, 10))
             pygame.display.flip()
+            time.sleep(0.02)
+            print(time.time())
     #        clock.tick(FPS)
 
         pygame.quit()
