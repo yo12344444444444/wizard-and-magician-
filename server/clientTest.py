@@ -52,6 +52,7 @@ CLICKED = False
 
 # Your API URL
 TOKEN = ""
+USERNAME = ""
 
 WORLD_WIDTH = SCREEN_WIDTH * 40
 WORLD_HEIGHT = SCREEN_HEIGHT * 40
@@ -198,7 +199,7 @@ class clientTest():
     # open windows:
     def connect_chat(self):
         client = ChatClient('localhost', 5200, self.handle_chat_message)
-        client.connect("user")
+        client.connect(str(USERNAME))
         client.start()
         return client
 
@@ -327,31 +328,34 @@ class clientTest():
                         print("not enough money or inventory is full")
 
 
-                    if 920 < x < 1005 and 375 < y < 410 and money >= 300:
-                        CLICKED = True
-                        if self.buy_item("3", 300):
-                            self.add_item("3", 1)
-                            print("you bought a gold sword!")
-                        else:
-                            print("not enough money or inventory is full")
+                if 920 < x < 1005 and 375 < y < 410 and money >= 300:
+                    CLICKED = True
+                    print("gold sword!")
+                    if self.buy_item("3", 300):
+                        self.add_item("3", 1)
+                        print("you bought a gold sword!")
+                    else:
+                        print("not enough money or inventory is full")
 
 
-                    elif 815 < x < 900 and 525 < y < 555 and money >= 200:
-                        CLICKED = True
-                        if self.buy_item("4", 200):
-                            self.add_item("4", 1)
-                            print("you bought a wood wand!")
-                        else:
-                            print("not enough money or inventory is full")
+                elif 815 < x < 900 and 525 < y < 555 and money >= 200:
+                    CLICKED = True
+                    print("wood wand!")
+                    if self.buy_item("4", 200):
+                        self.add_item("4", 1)
+                        print("you bought a wood wand!")
+                    else:
+                        print("not enough money or inventory is full")
 
 
-                    elif 920 < x < 1005 and 525 < y < 555 and money >= 500:
-                        CLICKED = True
-                        if self.buy_item("5", 500):
-                            self.add_item("5", 1)
-                            print("you bought a gold wand!")
-                        else:
-                            print("not enough money or inventory is full")
+                elif 920 < x < 1005 and 525 < y < 555 and money >= 500:
+                    CLICKED = True
+                    print("gold wand!")
+                    if self.buy_item("5", 500):
+                        self.add_item("5", 1)
+                        print("you bought a gold wand!")
+                    else:
+                        print("not enough money or inventory is full")
 
         self.print_full_inventory(screen,events)
         self.print_mini_buttons(screen)
@@ -932,7 +936,7 @@ class clientTest():
                 'Content-Type': 'application/json'
             }
             data = {
-                'object_name': str(item_id),
+                'object_name': self.id_to_name(item_id),
                 'amount': money,
                 'slot_index': slot_index
             }
@@ -1370,6 +1374,7 @@ class clientTest():
 
     def main(self,token):
         global TOKEN
+        global USERNAME
         TOKEN = token
         client = self.connect_chat()
         ghost_images = self.load_images()
@@ -1389,7 +1394,8 @@ class clientTest():
         clock = pygame.time.Clock()
         running = True
         player_data = self.get_player_data(token)
-
+        USERNAME = player_data['username']
+        print(USERNAME)
         inventory_icon, mini_map_icon, exit_icon, chat_icon, current_holding, money_icon = create_icons()
         self.enter_inventory_data_to_json()
         # hi
@@ -1398,7 +1404,7 @@ class clientTest():
             events = pygame.event.get()
             for event in events:
                 if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
-                    data = {"username":self.userenmae}
+                    data = {"username":self.userename}
                     response = requests.post(f"{self.API_URL}/end", json=data)
                     running = False
                 elif event.type == pygame.KEYDOWN:
@@ -1414,8 +1420,8 @@ class clientTest():
                         click_world_x = mouse_x + player_data['position_x'] - SCREEN_WIDTH // 2
                         click_world_y = mouse_y + player_data['position_y'] - SCREEN_HEIGHT // 2
 
-                        result = self.send_attack_request(token, click_world_x, click_world_y, weapon)
-                        if result and 'Bot damaged' in result or 'Player damaged':
+                        result = self.send_attack_request(token, click_world_x, click_world_y, self.id_to_name(weapon))
+                        if result and 'Bot damaged' == result['message'] or 'Player damaged' == result['message']:
                             # להוסיף טקסט מרחף (למשל -5 HP)
                             weapon_damage = {
                                 'Stone_Sword': 10,
