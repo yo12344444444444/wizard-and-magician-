@@ -10,7 +10,7 @@ import threading
 
 import findy
 from functionsServer import *
-from server.BotCache import BotCache
+from BotCache import BotCache
 
 bot_cache = BotCache()
 

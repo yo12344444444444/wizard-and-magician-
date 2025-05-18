@@ -2,7 +2,7 @@ import sqlite3
 import bcrypt
 import random
 
-conn = sqlite3.connect("/app/database/DATABASE_GAME.db")
+conn = sqlite3.connect("DATABASE_GAME.db")
 cursor = conn.cursor()
 
 # מחיקת טבלאות ישנות אם קיימות
