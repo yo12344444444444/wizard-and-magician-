@@ -24,7 +24,7 @@ CREATE TABLE players (
     health INTEGER ,
     coins INTEGER,
     status TEXT   'active',
-    speed INTEGER  DEFAULT 3,
+    speed INTEGER  DEFAULT 5,
     last_attack_time DATETIME
 )
 """)

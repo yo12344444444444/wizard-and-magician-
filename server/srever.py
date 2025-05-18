@@ -10,23 +10,54 @@ import threading
 
 import findy
 from functionsServer import *
+from server.BotCache import BotCache
+
+bot_cache = BotCache()
 
 def move_bots():
     bots = get_all_bots()
-    players=get_all_players()
-    tuples = []
+    print("bots ", bots)
+    # בניית cache בזיכרון לעדכונים מהירים
+    for bot in bots:
+        bot_cache.set_bot(bot['bot_id'],bot)
+
     while True:
-        for bot in bots:
-            last_direction=bot['last_direction']
-            closest_player_id,player_x,player_y = get_closest_player(bot['position_x'],bot['position_y'],players)
+        players=get_all_players()
+        tuples = []
+        for bot_id, bot in bot_cache.get_all_bots().items():
+            time.sleep(0.002)
+            #if bot_id>5:
+                #continue
+            last_direction = bot['last_direction']
+            x = bot['position_x']
+            y = bot['position_y']
+
+            closest_player_id, player_x, player_y = get_closest_player(x, y, players)
+            print("closest_player_id ",closest_player_id)
             if closest_player_id is None:
                 continue
-            dx,dy = calculate_dx_dy(bot['position_x'],bot['position_y'],player_x,player_y)
+            print("player x: ",player_x, "palyer_y: ",player_y)
+            dx, dy = calculate_dx_dy(x, y, player_x, player_y)
+            print("the dx is: ",dx,"the dy is: ",dy)
             chosen = choose_direction(last_direction, dx, dy)
-            tuple=bot_action(chosen, bot)
-            if tuple:
-                tuples.append(tuple)
-        saveTuples(tuples)
+            result = bot_action(chosen, bot)
+            if result:
+                # אם הבוט זז – מעדכנים הכל כולל ההדפסה
+                if len(result) == 4:
+                    new_x, new_y, bot_id, new_direction = result
+                    bot['position_x'] = new_x
+                    bot['position_y'] = new_y
+                    bot['last_direction'] = new_direction
+                    tuples.append(result)
+                elif len(result) == 2:
+                    bot_id, new_direction = result
+                    bot['last_direction'] = new_direction
+                # הדפסה אחרי עדכון — כאן נראה את הערכים החדשים
+                print(bot)
+
+        save_tuples(tuples)
+        print("____________________________________________________")
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
@@ -113,7 +144,6 @@ def login():
     password = data.get('password')
 
     conn = get_db_connection()
-    conn.row_factory = sqlite3.Row  # To access rows as dictionaries
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM players WHERE username = ? AND password_hash = ?", (username, password))
     user = cursor.fetchone()
@@ -721,11 +751,11 @@ def attack(user_id):
     }
 
     weapon_range_map = {
-        'Stone_Sword': 150,
-        'Iron_Sword': 150,
-        'Gold_Sword': 150,
-        'Wood_Wand': 250,
-        'Gold_Wand': 150
+        'Stone_Sword': 350,
+        'Iron_Sword': 350,
+        'Gold_Sword': 350,
+        'Wood_Wand': 550,
+        'Gold_Wand': 350
     }
 
     damage = weapon_damage.get(weapon_type, 5)
@@ -810,6 +840,11 @@ def attack(user_id):
             drops = generate_drops()
             conn.commit()
             conn.close()
+            cache_bot=bot_cache.get_bot(target_user_id)
+            cache_bot['health']=100
+            cache_bot['position_x']=respawn_x
+            cache_bot['position_y']=respawn_y
+            bot_cache.update_bot(target_user_id,cache_bot)
             return jsonify({
                 'message': 'Bot died and respawned',
                 'target': 'bot',
@@ -832,7 +867,7 @@ def attack(user_id):
     return jsonify({'error': 'Unhandled target type'}), 400
 
 def generate_drops():
-    possible_drops = ["money", "apple", "blueberry", "Dark_Potion", "Life_Potion", "Fire_Potion", "Poison_Potion"]
+    possible_drops = ["money", "apple", "blueberry", "Dark_Potion", "Life_Potion", "Fire_Potion"]
 
     return random.sample(possible_drops, 2)
     # אם לא פגיעה
@@ -1021,58 +1056,59 @@ def add_to_inventory(user_id):
     data = request.get_json()
     object_name = data.get('object_name')
     has_space = data.get('has_space_in_inventory')
-    player_id = user_id
     slot_index = data.get('slot_index')
-    amount = data.get('amount', 1)  # default to 1
+    amount = data.get('amount', 1)
 
-    if None in (object_name, has_space, player_id, slot_index):
+    if None in (object_name, has_space, slot_index):
         return jsonify({'error': 'Missing data'}), 400
+
+    if not has_space:
+        return jsonify({'success': False, 'message': 'No space in inventory'}), 200
+
+    if object_name in ['tree', 'bush']:
+        return jsonify({'success': False, 'message': 'Object cannot be added to inventory'}), 200
 
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Try to fetch the object from the map, but allow it to not exist
+    # מחיקה מהמפה אם קיים
     cursor.execute("SELECT * FROM map_objects WHERE name = ?", (object_name,))
     obj = cursor.fetchone()
+    if obj:
+        print(object_name + " deleted")
+        cursor.execute("DELETE FROM map_objects WHERE object_id = ?", (obj['object_id'],))
 
-    if not has_space:
-        conn.close()
-        return jsonify({'success': False, 'message': 'No space in inventory'}), 200
-
-    if object_name in ['tree', 'bush']:
-        conn.close()
-        return jsonify({'success': False, 'message': 'Object cannot be added to inventory'}), 200
-
-    # Check if item already exists in inventory
+    # בדיקה אם הפריט כבר קיים באינבנטורי
     cursor.execute("""
-        SELECT * FROM inventory
-        WHERE player_id = ? AND name = ? AND slot_index = ?
-    """, (player_id, object_name, slot_index))
+            SELECT * FROM inventory
+            WHERE player_id = ? AND name = ?
+        """, (user_id, object_name))
     existing_item = cursor.fetchone()
 
     if existing_item:
-        # Increase quantity
+        # משתמשים ב-slot index הקיים! לא בזה שנשלח מהקליינט
         cursor.execute("""
             UPDATE inventory
             SET quantity = quantity + ?
             WHERE inventory_id = ?
         """, (amount, existing_item['inventory_id']))
+
+        conn.commit()
+        conn.close()
+        print("Updated existing item quantity")
+        return jsonify({'success': True, 'message': 'Item quantity updated'}), 200
     else:
-        # Insert new item
+        # רק אם אין את הפריט בכלל – מוסיפים אותו
         cursor.execute("""
             INSERT INTO inventory (player_id, name, slot_index, quantity)
             VALUES (?, ?, ?, ?)
-        """, (player_id, object_name, slot_index, amount))
-
-    # If object existed on the map, delete it
-    if obj:
-        cursor.execute("DELETE FROM map_objects WHERE object_id = ?", (obj['object_id'],))
+        """, (user_id, object_name, slot_index, amount))
 
     conn.commit()
     conn.close()
+    print("Inserted new item to inventory")
+    return jsonify({'success': True, 'message': 'Item added to inventory'}), 200
 
-    return jsonify({'success': True, 'message': f'{object_name} added to inventory'}), 200
-@app.route('/add_coin', methods=['POST'])
 @token_required
 def add_coin(user_id):
     """
@@ -1232,6 +1268,7 @@ def add_item(user_id):
     conn.close()
 
     return jsonify({'success': True, 'message': f'{item_name} added to inventory'}), 200
+
 @app.route('/drop_item_on_map', methods=['POST'])
 @token_required
 def drop_item_on_map(user_id):
@@ -1620,11 +1657,10 @@ def remove_from_inventory(user_id):
 @app.route('/respawn', methods=['POST'])
 @token_required
 def respawn(user_id):
-    conn = sqlite3.connect('DATABASE_GAME.db')
+    conn = get_db_connection()
     c = conn.cursor()
-
     # Get current health
-    c.execute('SELECT health FROM players WHERE id = ?', (user_id,))
+    c.execute('SELECT health FROM players WHERE player_id = ?', (user_id,))
     row = c.fetchone()
     if not row:
         conn.close()
@@ -1641,7 +1677,7 @@ def respawn(user_id):
     new_health = 100
 
     # Update player
-    c.execute('UPDATE players SET position_x = ?, position_y = ?, health = ? WHERE id = ?',
+    c.execute('UPDATE players SET position_x = ?, position_y = ?, health = ? WHERE player_id = ?',
               (new_x, new_y, new_health, user_id))
     conn.commit()
     conn.close()
@@ -1766,8 +1802,7 @@ class lbconector:
             port += 1
 
     def run(self,port):
-        app.run(host='0.0.0.0', port=port, debug=False)
-
+        app.run(host='0.0.0.0', port=port, debug=False,threaded=True)
 
 if __name__ == '__main__':
     lb = lbconector()
