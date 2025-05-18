@@ -48,12 +48,14 @@ def home_screen(screen, screen_width, screen_height):
                 # to log in screen
                 elif 525 < x < 740 and 350 < y < 430:
                     token= loging_screen(screen, screen_width, screen_height)
+                    print("homescreen login token: ", token)
                     if token:
                         return token
 
                 # to sign up screen
                 elif 525 < x < 740 and 450 < y < 530:
                     token = signing_screen(screen, screen_width, screen_height)
+                    print("homescreen singup token: ",token)
                     if token:
                         return token
 
@@ -251,6 +253,7 @@ def loging_screen(screen, screen_width, screen_height):
                     username_input_active = False
                     password_input_active = False
                     token = enter_user(username_text,password_text)
+                    print("login token: ",token)
                     if not token:
                         error_text = "This User doesn't exist, check the Username or the Password"
                     else:
@@ -344,13 +347,14 @@ def signing_screen(screen, screen_width, screen_height):
                     username_input_active = False
                     password_input_active = False
                     verification_input_active = False
-                    does_username_exist = create_user(username_text, password_text)
+                    token = create_user(username_text, password_text)
+                    print("token signup:",token)
                     if password_text != verification_text:
                         error_text = "The Password and the Verification aren't equal"
-                    elif not does_username_exist:
+                    elif not token:
                         error_text = "This Username already exists, choose another one"
                     else:
-                        error_text = "Created User Successfully! ^-^"
+                        return token
 
             elif username_input_active and event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_BACKSPACE:
@@ -396,8 +400,10 @@ def signing_screen(screen, screen_width, screen_height):
 
 def create_user(username,password):
     token=signup(username, password)
-
-    return token is not None
+    if not token:
+        print("Login failed, exiting...")
+        return None
+    return token
 
 #    global packed_data
     """
@@ -461,19 +467,33 @@ def login(username, password):
     except requests.exceptions.RequestException as e:
         print(f"Connection error: {e}")
         return None
+
 def signup(username, password):
-    url = f"{API_URL}/signup"
-    response = requests.post(url, json={"username": username, "password": password})
-    if response.status_code == 201:
-        return response.json().get("token")  # או True אם אין טוקן
-    return None
+    try:
+        url = f"{API_URL}/signup"
+        response = requests.post(url, json={"username": username, "password": password})
+        if response.status_code == 200:
+            token = response.json().get("token")
+            print(f"Signup successful! Token: {token}")
+            return token
+        else:
+            print(f"Signup error: {response.status_code} - {response.text}")
+            return None
+    except requests.exceptions.RequestException as e:
+        print(f"Connection error during signup: {e}")
+        return None
+
+
 def get_player_data(API_URL, token):
     headers = {'Authorization': f'Bearer {token}'}
     response = requests.get(f'{API_URL}/get_player', headers=headers)
+    print(response.json())
+    print(data)
     addr = data[str(response.json().get('server'))]
     API_URL = "http://" + addr[0] + ":" + str(addr[1])
     print(API_URL)
     return API_URL
+
 def main(API_URL):
     pygame.init()
     screen_width = 1280
@@ -482,6 +502,7 @@ def main(API_URL):
     pygame.display.set_caption("Game")
 
     token = home_screen(screen, screen_width, screen_height)
+    print("token main: ",token)
     API_URL = get_player_data(API_URL, token)
     print(API_URL)
     if token:
