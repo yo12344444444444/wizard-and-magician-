@@ -11,7 +11,7 @@ services:
     networks:
     - my_custom_network
     volumes:
-    - "./DATABASE_GAME.db:/app/database/DATABASE_GAME.db"
+    - "./DATABASE_GAME.db:/app/database"
     command: ["python", "createDatabase.py"]
     restart: on-failure
 
@@ -23,9 +23,7 @@ services:
     networks:
     - my_custom_network
     volumes:
-    - "./DATABASE_GAME2.db:/app/database/DATABASE_GAME2.db"
-    depends_on:
-    - build_db
+    - "./DATABASE_GAME2.db:/app/database"
     ports:
       # Only here do we bind the full range to the host
       - "5000-5100:5000-5100/udp"
