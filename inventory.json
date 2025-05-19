@@ -15,8 +15,8 @@
             "mini_button_pressed?": false
         },
         "3": {
-            "item": "11",
-            "quantity": 1,
+            "item": "0",
+            "quantity": 0,
             "topleft_x": 584,
             "topleft_y": 586,
             "mini_button_pressed?": false

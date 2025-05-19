@@ -143,12 +143,6 @@ class Servers:
             if len(self.servers) >= 3:
                 break
         # Insert into DB
-        for server, (ip, port) in self.servers.items():
-            self.c.execute('''
-            INSERT OR REPLACE INTO servers (server, ip, port)
-            VALUES (?, ?, ?)''', (server, ip, port))
-
-        self.conn.commit()
 
     def sendDb(self, server, username, db_path='/app/database/DATABASE_GAME2.db'):
         conn = sqlite3.connect(db_path)
