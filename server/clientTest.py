@@ -200,7 +200,7 @@ class clientTest():
     # open windows:
     def connect_chat(self):
         client = ChatClient('localhost', 5200, self.handle_chat_message)
-        client.connect(str(USERNAME))
+        client.connect(str(USERNAME)+":")
         client.start()
         return client
 
@@ -1386,6 +1386,8 @@ class clientTest():
         global TOKEN
         global USERNAME
         TOKEN = token
+        player_data = self.get_player_data(token)
+        USERNAME = player_data['username']
         client = self.connect_chat()
         ghost_images = self.load_images()
         player_image = self.load_player_image()

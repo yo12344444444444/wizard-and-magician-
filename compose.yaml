@@ -38,7 +38,7 @@ services:
       context: ./
     networks: [my_custom_network]
     volumes:
-    - "./DATABASE_GAME.db:/app/database/DATABASE_GAME.db"
+    - "./DATABASE_GAME.db:/app/database/"
     depends_on:
     - build_db
     - load_balancer
@@ -49,72 +49,72 @@ services:
     command: ["python", "server/srever.py"]
     restart: always
 
-  server_chat:
-    container_name: server-chat
-    image: nettahalamish/cyber-project-grade-11:latest
-    build: { context: . }
-    networks: [my_custom_network]
-    depends_on:
-    - server_flask
-    expose:
-      - "5000-5100/udp"
-      - "5000-5100/tcp"
-    command: ["python", "chatCervice1.py"]
-    restart: always
-
-  server_2:
-    container_name: server-2
-    image: nettahalamish/cyber-project-grade-11:latest
-    build:
-      context: ./
-    networks:
-    - my_custom_network
-    volumes:
-    - "./DATABASE_GAME.db:/app/database/DATABASE_GAME.db"
-    depends_on:
-    - load_balancer
-    - server_flask
-    expose:
-      # Only here do we bind the full range to the host
-      - "5150-5250:5150-5250/udp"
-      - "5150-5250:5150-5250/tcp"
-    command: [ "python", "server/srever2.py" ]
-    restart: always
-
-  server_3:
-    container_name: server-3
-    image: nettahalamish/cyber-project-grade-11:latest
-    build:
-      context: ./
-    networks:
-    - my_custom_network
-    volumes:
-    - "./DATABASE_GAME.db:/app/database/DATABASE_GAME.db"
-    depends_on:
-      - load_balancer
-      - server_flask
-    expose:
-      # Only here do we bind the full range to the host
-      - "5150-5250:5150-5250/udp"
-      - "5150-5250:5150-5250/tcp"
-    command: [ "python", "server/srever3.py" ]
-    restart: always
-
-  server_4:
-    container_name: server-4
-    image: nettahalamish/cyber-project-grade-11:latest
-    build:
-      context: ./
-    networks:
-      - my_custom_network
-    volumes:
-    - "./DATABASE_GAME.db:/app/database/DATABASE_GAME.db"
-    depends_on:
-      - load_balancer
-      - server_flask
-    expose:
-      # Only here do we bind the full range to the host
-      - "5150-5250:5150-5250/udp"
-      - "5150-5250:5150-5250/tcp"
-    command: [ "python", "server/srever4.py" ]
-    restart: always
+#  server_chat:
+#    container_name: server-chat
+#    image: nettahalamish/cyber-project-grade-11:latest
+#    build: { context: . }
+#    networks: [my_custom_network]
+#    depends_on:
+#    - server_flask
+#    expose:
+#      - "5000-5100/udp"
+#      - "5000-5100/tcp"
+#    command: ["python", "chatCervice1.py"]
+#    restart: always
+#
+#  server_2:
+#    container_name: server-2
+#    image: nettahalamish/cyber-project-grade-11:latest
+#    build:
+#      context: ./
+#    networks:
+#    - my_custom_network
+#    volumes:
+#    - "./DATABASE_GAME.db:/app/database/"
+#    depends_on:
+#    - load_balancer
+#    - server_flask
+#    expose:
+#      # Only here do we bind the full range to the host
+#      - "5150-5250:5150-5250/udp"
+#      - "5150-5250:5150-5250/tcp"
+#    command: [ "python", "server/srever2.py" ]
+#    restart: always
+#
+#  server_3:
+#    container_name: server-3
+#    image: nettahalamish/cyber-project-grade-11:latest
+#    build:
+#      context: ./
+#    networks:
+#    - my_custom_network
+#    volumes:
+#    - "./DATABASE_GAME.db:/app/database/DATABASE_GAME.db"
+#    depends_on:
+#      - load_balancer
+#      - server_flask
+#    expose:
+#      # Only here do we bind the full range to the host
+#      - "5150-5250:5150-5250/udp"
+#      - "5150-5250:5150-5250/tcp"
+#    command: [ "python", "server/srever3.py" ]
+#    restart: always
+#
+#  server_4:
+#    container_name: server-4
+#    image: nettahalamish/cyber-project-grade-11:latest
+#    build:
+#      context: ./
+#    networks:
+#      - my_custom_network
+#    volumes:
+#    - "./DATABASE_GAME.db:/app/database/DATABASE_GAME.db"
+#    depends_on:
+#      - load_balancer
+#      - server_flask
+#    expose:
+#      # Only here do we bind the full range to the host
+#      - "5150-5250:5150-5250/udp"
+#      - "5150-5250:5150-5250/tcp"
+#    command: [ "python", "server/srever4.py" ]
+#    restart: always
