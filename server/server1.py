@@ -25,7 +25,7 @@ def move_bots():
         players=get_all_players()
         tuples = []
         for bot_id, bot in bot_cache.get_all_bots().items():
-            time.sleep(0.002)
+            time.sleep(0.001)
             #if bot_id>5:
                 #continue
             last_direction = bot['last_direction']
@@ -33,12 +33,12 @@ def move_bots():
             y = bot['position_y']
 
             closest_player_id, player_x, player_y = get_closest_player(x, y, players)
-            print("closest_player_id ",closest_player_id)
+            #print("closest_player_id ",closest_player_id)
             if closest_player_id is None:
                 continue
-            print("player x: ",player_x, "palyer_y: ",player_y)
+            #print("player x: ",player_x, "palyer_y: ",player_y)
             dx, dy = calculate_dx_dy(x, y, player_x, player_y)
-            print("the dx is: ",dx,"the dy is: ",dy)
+            #print("the dx is: ",dx,"the dy is: ",dy)
             chosen = choose_direction(last_direction, dx, dy)
             result = bot_action(chosen, bot)
             if result:
