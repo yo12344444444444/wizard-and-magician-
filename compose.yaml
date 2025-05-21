@@ -5,75 +5,72 @@ networks:
 services:
   build_db:
     container_name: build-db
-    image: nettahalamish/cyber-project-grade-11:latest
     build:
       context: ./
     networks:
-    - my_custom_network
+      - my_custom_network
     volumes:
-    - "./DATABASE_GAME.db:/app/database/"
-    command: ["python", "createDatabase.py"]
+      - "./DATABASE_GAME.db:/app/database/"
+    command: [ "python", "createDatabase.py" ]
     restart: on-failure
 
   load_balancer:
     container_name: load-balancer
-    image: nettahalamish/cyber-project-grade-11:latest
     build:
       context: ./
     networks:
-    - my_custom_network
+      - my_custom_network
     volumes:
-    - "./DATABASE_GAME2.db:/app/database/"
+      - "./DATABASE_GAME2.db:/app/database/"
     ports:
       # Only here do we bind the full range to the host
       - "5000-5100:5000-5100/udp"
       - "5000-5100:5000-5100/tcp"
-    command: ["python", "lb/mainServerV2.py"]
+    command: [ "python", "lb/mainServerV2.py" ]
     restart: always
 
   server_flask:
     container_name: server-1
-    image: nettahalamish/cyber-project-grade-11:latest
     build:
       context: ./
-    networks: [my_custom_network]
+    networks: [ my_custom_network ]
     volumes:
-    - "./DATABASE_GAME.db:/app/database/"
+      - "./DATABASE_GAME.db:/app/database/"
     depends_on:
-    - build_db
-    - load_balancer
+      - build_db
+      - load_balancer
     ports:
       # Only here do we bind the full range to the host
       - "5150-5250:5150-5250/udp"
       - "5150-5250:5150-5250/tcp"
-    command: ["python", "server/srever.py"]
+    command: [ "python", "server/srever.py" ]
     restart: always
 
   server_chat:
     container_name: server-chat
-    image: nettahalamish/cyber-project-grade-11:latest
     build: { context: . }
-    networks: [my_custom_network]
+    networks: [ my_custom_network ]
     depends_on:
-    - server_flask
+      - server_flask
+    ports:
+      - "5200:5200"
     expose:
       - "5000-5100/udp"
       - "5000-5100/tcp"
-    command: ["python", "chatCervice1.py"]
+    command: [ "python", "chatCervice1.py" ]
     restart: always
 
   server_2:
     container_name: server-2
-    image: nettahalamish/cyber-project-grade-11:latest
     build:
       context: ./
     networks:
-    - my_custom_network
+      - my_custom_network
     volumes:
-    - "./DATABASE_GAME.db:/app/database/"
+      - "./DATABASE_GAME.db:/app/database/"
     depends_on:
-    - load_balancer
-    - server_flask
+      - load_balancer
+      - server_flask
     expose:
       # Only here do we bind the full range to the host
       - "5150-5250:5150-5250/udp"
@@ -83,13 +80,12 @@ services:
 
   server_3:
     container_name: server-3
-    image: nettahalamish/cyber-project-grade-11:latest
     build:
       context: ./
     networks:
-    - my_custom_network
+      - my_custom_network
     volumes:
-    - "./DATABASE_GAME.db:/app/database/"
+      - "./DATABASE_GAME.db:/app/database/"
     depends_on:
       - load_balancer
       - server_flask
@@ -102,13 +98,12 @@ services:
 
   server_4:
     container_name: server-4
-    image: nettahalamish/cyber-project-grade-11:latest
     build:
       context: ./
     networks:
       - my_custom_network
     volumes:
-    - "./DATABASE_GAME.db:/app/database/"
+      - "./DATABASE_GAME.db:/app/database/"
     depends_on:
       - load_balancer
       - server_flask
