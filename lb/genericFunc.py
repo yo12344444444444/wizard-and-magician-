@@ -88,6 +88,13 @@ class Servers:
             player_data["last_attack_time"]
 
         ))
+        c.execute("DELETE FROM inventory WHERE player_id = ?", (player_data["player_id"],))
+        for item in player_data.get("inventory", []):
+            c.execute("""
+                INSERT INTO inventory (player_id, name, slot_index, quantity)
+                VALUES (?, ?, ?, ?)
+            """, (player_data["player_id"], item["name"], item["slot_index"], item["quantity"]))
+
         conn.commit()
         conn.close()
 
