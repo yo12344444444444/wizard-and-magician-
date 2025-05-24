@@ -1,7 +1,7 @@
 import socket
 import server.clientTest
 import pygame
-from server import clientTest
+from secure import ClientSecure
 import requests
 from lb.findy import findy
 DEFAULT_BUFFER_SIZE = 35
@@ -507,7 +507,7 @@ def main(API_URL):
     print(API_URL)
     if token:
         print("Token received, starting the game...")
-        c = clientTest.clientTest(apiUrl=API_URL, data=data)
+        c = ClientSecure.clientTest(apiUrl=API_URL, data=data)
         c.main(token)  # כאן תפעיל את הקליינט שלך עם הטוקן
     else:
         print("No token received, exiting.")

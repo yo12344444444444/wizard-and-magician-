@@ -191,7 +191,7 @@ def login():
         })
     else:
         conn.close()
-        return jsfonify({'error': 'Invalid username or password'}), 401
+        return jsonify({'error': 'Invalid username or password'}), 401
 
 @app.route('/logout', methods=['POST'])
 @token_required
