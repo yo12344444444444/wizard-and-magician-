@@ -15,36 +15,36 @@
             "mini_button_pressed?": false
         },
         "3": {
-            "item": "10",
-            "quantity": 1,
+            "item": "0",
+            "quantity": 0,
             "topleft_x": 584,
             "topleft_y": 586,
             "mini_button_pressed?": false
         },
         "4": {
-            "item": "11",
-            "quantity": 1,
+            "item": "0",
+            "quantity": 0,
             "topleft_x": 696,
             "topleft_y": 586,
             "mini_button_pressed?": false
         },
         "5": {
-            "item": "7",
-            "quantity": 2,
+            "item": "0",
+            "quantity": 0,
             "topleft_x": 803,
             "topleft_y": 586,
             "mini_button_pressed?": false
         },
         "6": {
-            "item": "6",
-            "quantity": 2,
+            "item": "0",
+            "quantity": 0,
             "topleft_x": 919,
             "topleft_y": 586,
             "mini_button_pressed?": false
         },
         "7": {
-            "item": "8",
-            "quantity": 1,
+            "item": "0",
+            "quantity": 0,
             "topleft_x": 370,
             "topleft_y": 235,
             "mini_button_pressed?": false
