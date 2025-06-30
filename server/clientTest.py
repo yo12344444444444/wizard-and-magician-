@@ -199,7 +199,7 @@ class clientTest():
     ##########################################################################################################
     # open windows:
     def connect_chat(self):
-        client = ChatClient('localhost', 5200, self.handle_chat_message)
+        client = ChatClient('172.28.96.1', 5200, self.handle_chat_message)
         client.connect(str(USERNAME)+":")
         client.start()
         return client

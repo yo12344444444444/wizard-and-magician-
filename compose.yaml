@@ -5,8 +5,7 @@ networks:
 services:
   build_db:
     container_name: build-db
-    build:
-      context: ./
+    image: nettahalamish/cyber-project-grade-11:latest
     networks:
       - my_custom_network
     volumes:
@@ -16,8 +15,7 @@ services:
 
   load_balancer:
     container_name: load-balancer
-    build:
-      context: ./
+    image: nettahalamish/cyber-project-grade-11:latest
     networks:
       - my_custom_network
     volumes:
@@ -31,8 +29,7 @@ services:
 
   server_flask:
     container_name: server-1
-    build:
-      context: ./
+    image: nettahalamish/cyber-project-grade-11:latest
     networks: [ my_custom_network ]
     volumes:
       - "./DATABASE_GAME.db:/app/database/"
@@ -48,7 +45,7 @@ services:
 
   server_chat:
     container_name: server-chat
-    build: { context: . }
+    image: nettahalamish/cyber-project-grade-11:latest
     networks: [ my_custom_network ]
     depends_on:
       - server_flask
@@ -62,8 +59,7 @@ services:
 
   server_2:
     container_name: server-2
-    build:
-      context: ./
+    image: nettahalamish/cyber-project-grade-11:latest
     networks:
       - my_custom_network
     volumes:
@@ -80,8 +76,7 @@ services:
 
   server_3:
     container_name: server-3
-    build:
-      context: ./
+    image: nettahalamish/cyber-project-grade-11:latest
     networks:
       - my_custom_network
     volumes:
@@ -98,8 +93,7 @@ services:
 
   server_4:
     container_name: server-4
-    build:
-      context: ./
+    image: nettahalamish/cyber-project-grade-11:latest
     networks:
       - my_custom_network
     volumes:
