@@ -10,7 +10,7 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 # Copy project files
-COPY ./ /app/
+COPY . /app/
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
