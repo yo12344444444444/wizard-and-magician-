@@ -50,10 +50,7 @@ services:
     depends_on:
       - server_flask
     ports:
-      - "5200:5200"
-    expose:
-      - "5000-5100/udp"
-      - "5000-5100/tcp"
+      - "4200-4300:4200-4300"
     command: [ "python", "chatCervice1.py" ]
     restart: always
 
