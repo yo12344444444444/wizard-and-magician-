@@ -3,7 +3,15 @@ import datetime
 import json
 
 connected_clients = {}
-
+def PortDefinder(port):
+    port = port
+    result = 0
+    while result == 0:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            result = sock.connect_ex(('localhost', port))
+        if result == 0:
+            port += 1
+    return port
 def handle_connection(client_address, data):
     client_name = data.get('client_name', f"User_{client_address[0]}:{client_address[1]}")
     # Store client info in the dictionary
@@ -52,8 +60,16 @@ def handle_chat(client_address, data, server_socket):
         "from": sender_name
     }
 """
-
-def start_chat_server(host='0.0.0.0', port=5200):
+def PortDefinder(port):
+    port = port
+    result = 0
+    while result == 0:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            result = sock.connect_ex(('localhost', port))
+        if result == 0:
+            port += 1
+    return port
+def start_chat_server(host='0.0.0.0', port =PortDefinder(4200)):
     # Create a UDP socket
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
