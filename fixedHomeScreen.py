@@ -4,6 +4,8 @@ import pygame
 from server import clientTest
 import requests
 from lb.findy import findy
+import sys, os
+
 DEFAULT_BUFFER_SIZE = 35
 
 HOME_SCREEN = 'screens\Home_Screen.png'
@@ -23,13 +25,21 @@ WHITE = (255,255,255)
 RED = (139,0,0)
 PURPLE = (73,69,123)
 
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
 
 def home_screen(screen, screen_width, screen_height):
     """
     running the home screen
     """
     # photo load
-    image = pygame.image.load(HOME_SCREEN)  # שים כאן את המיקום של התמונה שלך
+    image = pygame.image.load(resource_path(HOME_SCREEN))  # שים כאן את המיקום של התמונה שלך
     image = pygame.transform.scale(image, (screen_width, screen_height))  # משנה את הגודל של התמונה לפי גודל המסך
     running = True
 
@@ -72,7 +82,7 @@ def instructions1_screen(screen, screen_width, screen_height):
     """
         running the first screen of the instructions
     """
-    image = pygame.image.load(INSTRUCTION1)  # שים כאן את המיקום של התמונה שלך
+    image = pygame.image.load(resource_path(INSTRUCTION1))  # שים כאן את המיקום של התמונה שלך
     image = pygame.transform.scale(image, (screen_width, screen_height))  # משנה את הגודל של התמונה לפי גודל המסך
     running = True
 
@@ -101,7 +111,7 @@ def instructions2_screen(screen, screen_width, screen_height):
     """
         running the first screen of the instructions
     """
-    image = pygame.image.load(INSTRUCTION2)  # שים כאן את המיקום של התמונה שלך
+    image = pygame.image.load(resource_path(INSTRUCTION2))  # שים כאן את המיקום של התמונה שלך
     image = pygame.transform.scale(image, (screen_width, screen_height))  # משנה את הגודל של התמונה לפי גודל המסך
     running = True
 
@@ -130,7 +140,7 @@ def instructions3_screen(screen, screen_width, screen_height):
     """
         running the first screen of the instructions
     """
-    image = pygame.image.load(INSTRUCTION3)  # שים כאן את המיקום של התמונה שלך
+    image = pygame.image.load(resource_path(INSTRUCTION3))  # שים כאן את המיקום של התמונה שלך
     image = pygame.transform.scale(image, (screen_width, screen_height))  # משנה את הגודל של התמונה לפי גודל המסך
     running = True
 
@@ -159,7 +169,7 @@ def instructions4_screen(screen, screen_width, screen_height):
     """
         running the first screen of the instructions
     """
-    image = pygame.image.load(INSTRUCTION4)  # שים כאן את המיקום של התמונה שלך
+    image = pygame.image.load(resource_path(INSTRUCTION4))  # שים כאן את המיקום של התמונה שלך
     image = pygame.transform.scale(image, (screen_width, screen_height))  # משנה את הגודל של התמונה לפי גודל המסך
     running = True
 
@@ -188,7 +198,7 @@ def instructions5_screen(screen, screen_width, screen_height):
     """
         running the first screen of the instructions
     """
-    image = pygame.image.load(INSTRUCTION5)  # שים כאן את המיקום של התמונה שלך
+    image = pygame.image.load(resource_path(INSTRUCTION5))  # שים כאן את המיקום של התמונה שלך
     image = pygame.transform.scale(image, (screen_width, screen_height))  # משנה את הגודל של התמונה לפי גודל המסך
     running = True
 
@@ -211,7 +221,7 @@ def loging_screen(screen, screen_width, screen_height):
     """
             running the loging screen
         """
-    image = pygame.image.load(LOGIN)
+    image = pygame.image.load(resource_path(LOGIN))
     image = pygame.transform.scale(image, (screen_width, screen_height))
     running = True
 
@@ -295,7 +305,7 @@ def signing_screen(screen, screen_width, screen_height):
     """
             running the signing screen
         """
-    image = pygame.image.load(SIGNING)  # שים כאן את המיקום של התמונה שלך
+    image = pygame.image.load(resource_path(SIGNING))  # שים כאן את המיקום של התמונה שלך
     image = pygame.transform.scale(image, (screen_width, screen_height))  # משנה את הגודל של התמונה לפי גודל המסך
     running = True
 

@@ -383,16 +383,23 @@ class clientTest():
 
     ##########################################################################################################
     # print items and buttons:
+    def resource_path(self, relative_path):
+        """ Get absolute path to resource, works for dev and for PyInstaller """
+        try:
+            base_path = sys._MEIPASS
+        except AttributeError:
+            base_path = os.path.abspath(".")
 
+        return os.path.join(base_path, relative_path)
     def print_not_full_inventory(self,screen):
         """
         prints in the small inventory the items, the anoumt
         """
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'inventory'))
-        font = pygame.font.Font(None, 25)
-        with open("inventory.json", "r") as file_cells:
+        with open(self.resource_path("inventory.json"), "r") as file_cells:
             data_cells = json.load(file_cells)
-        with open("items.json", "r") as file_items:
+        font = pygame.font.Font(None, 25)
+        with open(self.resource_path("items.json"), "r") as file_items:
             data_items = json.load(file_items)
         for i in range(1, 7):
 
@@ -426,9 +433,9 @@ class clientTest():
                 CLICKED = False
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'inventory'))
         font = pygame.font.Font(None, 25)
-        with open("inventory.json", "r") as file_cells:
+        with open(self.resource_path("inventory.json"), "r") as file_cells:
             data_cells = json.load(file_cells)
-        with open("items.json", "r") as file_items:
+        with open(self.resource_path("items.json"), "r") as file_items:
             data_items = json.load(file_items)
         for i in range(1, 19):
 
@@ -461,9 +468,9 @@ class clientTest():
                 CLICKED = False
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'inventory'))
         font = pygame.font.Font(None, 25)
-        with open("inventory.json", "r") as file_cells:
+        with open(self.resource_path("inventory.json"), "r") as file_cells:
             data_cells = json.load(file_cells)
-        with open("items.json", "r") as file_items:
+        with open(self.resource_path("items.json"), "r") as file_items:
             data_items = json.load(file_items)
         # drawing the current holding:
         holding_cell = data_cells["cells"]["19"]  # holding cell
@@ -495,7 +502,7 @@ class clientTest():
         draws the mini button when you open the full inventory
         """
         global CLICKED
-        with open("inventory.json", "r") as file_cells:
+        with open(self.resource_path("inventory.json"), "r") as file_cells:
             data_cells = json.load(file_cells)
 
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'graphic'))
@@ -533,7 +540,7 @@ class clientTest():
             """
         global CLICKED
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'graphic'))
-        with open("inventory.json", "r") as file_cells:
+        with open(self.resource_path("inventory.json"), "r") as file_cells:
             data_cells = json.load(file_cells)
 
         for i in range(1, 19):
@@ -561,24 +568,24 @@ class clientTest():
         """
         changing the item in the current holding
         """
-        with open("inventory.json", "r") as file_cells:
+        with open(self.resource_path("inventory.json"), "r") as file_cells:
             data_cells = json.load(file_cells)
 
         data_cells["cells"]["19"]["cell"] = str(cell_num)
 
-        with open("inventory.json", "w") as file_cells:
+        with open(self.resource_path("inventory.json"), "w") as file_cells:
             json.dump(data_cells, file_cells, indent=4)
 
     def mini_button_change(self,cell_num):
         """
         changing the value of the mini button in the json
         """
-        with open("inventory.json", "r") as file_cells:
+        with open(self.resource_path("inventory.json"), "r") as file_cells:
             data_cells = json.load(file_cells)
 
         data_cells["cells"][str(cell_num)]["mini_button_pressed?"] = True
 
-        with open("inventory.json", "w") as file_cells:
+        with open(self.resource_path("inventory.json"), "w") as file_cells:
             json.dump(data_cells, (file_cells), indent=4)
 
     def both_mini_button_pressed(self):
@@ -589,7 +596,7 @@ class clientTest():
         """
         cell_num1 = 0
         cell_num2 = 0
-        with open("inventory.json", "r") as file_cells:
+        with open(self.resource_path("inventory.json"), "r") as file_cells:
             data_cells = json.load(file_cells)
         for i in range(1, 19):
             if data_cells["cells"][str(i)]["mini_button_pressed?"] and cell_num1 == 0:
@@ -605,7 +612,7 @@ class clientTest():
         """
         switch cell num1 with cell num2
         """
-        with open("inventory.json", "r") as file_cells:
+        with open(self.resource_path("inventory.json"), "r") as file_cells:
             data_cells = json.load(file_cells)
 
         item1 = data_cells["cells"][str(cell_num1)]["item"]
@@ -637,7 +644,7 @@ class clientTest():
         for cell in data_cells["cells"].values():
             cell["mini_button_pressed?"] = False
 
-        with open("inventory.json", "w") as file_cells:
+        with open(self.resource_path("inventory.json"), "w") as file_cells:
             json.dump(data_cells, file_cells, indent=4)
 
         print(data_cells)
@@ -673,9 +680,9 @@ class clientTest():
         """
         delete the item from the
         """
-        with open("items.json", "r") as file_items:
+        with open(self.resource_path("items.json"), "r") as file_items:
             data_items = json.load(file_items)
-        with open("inventory.json", "r") as file_cells:
+        with open(self.resource_path("inventory.json"), "r") as file_cells:
             data_cells = json.load(file_cells)
 
         if not data_items["items"][str(item)]["stackable"] or data_cells["cells"][str(cell)]["quantity"] == 1:
@@ -685,7 +692,7 @@ class clientTest():
         else:
             data_cells["cells"][str(cell)]["quantity"] -= 1
 
-        with open("inventory.json", "w") as file_cells:
+        with open(self.resource_path("inventory.json"), "w") as file_cells:
             json.dump(data_cells, file_cells, indent=4)
 
     ##########################################################################################################
@@ -697,7 +704,7 @@ class clientTest():
         if he is full return true.
         if he is not full return false.
         """
-        with open("inventory.json", "r") as file_cells:
+        with open(self.resource_path("inventory.json"), "r") as file_cells:
             data_cells = json.load(file_cells)
 
         for i in range(1, 19):
@@ -712,7 +719,7 @@ class clientTest():
         if it does return true and the cell
         if it doesn't return false and zero
         """
-        with open("inventory.json", "r") as file_cells:
+        with open(self.resource_path("inventory.json"), "r") as file_cells:
             data_cells = json.load(file_cells)
 
         for i in range(1, 19):
@@ -730,9 +737,9 @@ class clientTest():
         if the item cannot be added returns false.
         if it was added successfully returns true.
         """
-        with open("items.json", "r") as file_items:
+        with open(self.resource_path("items.json"), "r") as file_items:
             data_items = json.load(file_items)
-        with open("inventory.json", "r") as file_cells:
+        with open(self.resource_path("inventory.json"), "r") as file_cells:
             data_cells = json.load(file_cells)
 
         if data_items["items"][str(item)]["stackable"]:
@@ -741,7 +748,7 @@ class clientTest():
                 quantity = data_cells["cells"][str(cell)]["quantity"]
                 data_cells["cells"][str(cell)]["quantity"] = int(int(quantity) + int(amount))
                 self.add_item_inventory(item, cell, True)
-                with open("inventory.json", "w") as file_cells:
+                with open(self.resource_path("inventory.json"), "w") as file_cells:
                     json.dump(data_cells, file_cells, indent=4)
                 return True
 
@@ -757,7 +764,7 @@ class clientTest():
                 self.add_item_inventory(item, i, True)
                 break
 
-        with open("inventory.json", "w") as file_cells:
+        with open(self.resource_path("inventory.json"), "w") as file_cells:
             json.dump(data_cells, file_cells, indent=4)
         return True
 
@@ -766,7 +773,7 @@ class clientTest():
         checks if there is an empty slot in the inventory
         if yes return its index and if not return 0
         """
-        with open("inventory.json", "r") as file_cells:
+        with open(self.resource_path("inventory.json"), "r") as file_cells:
             data_cells = json.load(file_cells)
 
         for i in range(1, 19):
@@ -783,9 +790,9 @@ class clientTest():
         gets the inventory from the function get_inventory_from_server
         and put it inside the json file the user have
         """
-        with open("items.json", "r") as file_items:
+        with open(self.resource_path("items.json"), "r") as file_items:
             data_items = json.load(file_items)
-        with open("inventory.json", "r") as file_cells:
+        with open(self.resource_path("inventory.json"), "r") as file_cells:
             data_cells = json.load(file_cells)
 
         data = self.get_inventory_from_server()
@@ -807,7 +814,7 @@ class clientTest():
                 except Exception as e:
                     print("error:", e)
 
-            with open("inventory.json", "w") as file_cells:
+            with open(self.resource_path("inventory.json"), "w") as file_cells:
                 json.dump(data_cells, file_cells, indent=4)
 
     def id_to_name(self,item_id):
@@ -1061,7 +1068,7 @@ class clientTest():
         """
         check if the player clicked on the ui or have an item you cant attack with
         """
-        with open("inventory.json", "r") as file_cells:
+        with open(self.resource_path("inventory.json"), "r") as file_cells:
             data_cells = json.load(file_cells)
         cell = data_cells["cells"]["19"]["cell"]  # cell - number of the cell that the current holding holds
         held_cell = data_cells["cells"][cell]
